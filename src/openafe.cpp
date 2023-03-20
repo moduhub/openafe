@@ -1,4 +1,4 @@
-#include "AFE_Shield.h"
+#include "openafe.h"
 
 #include "Arduino.h"
 #include <SPI.h>

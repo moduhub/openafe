@@ -1,5 +1,5 @@
-#ifndef _AFE_SHIELD_H_
-#define _AFE_SHIELD_H_
+#ifndef _OPENAFE_H_
+#define _OPENAFE_H_
 
 #include "Arduino.h"
 
@@ -62,4 +62,4 @@ class AFE
 		void _system_init(void);
 };
 
-#endif //_AFE_SHIELD_H_
+#endif //_OPENAFE_H_

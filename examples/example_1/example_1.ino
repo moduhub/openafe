@@ -1,4 +1,4 @@
-#include "AFE_Shield.h"
+#include "openafe.h"
 
 AFE afe(9600);
 
