@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-#define SPI_CLK_HZ 100000
+#define SPI_CLK_DEFAULT_HZ 100000U
 
 #define AD_ADDR_ADIID 0x0400
 #define AD_ADDR_CHIPID 0x0404
@@ -24,7 +24,18 @@
 class AFE
 {
 	public:
-		AFE(int baud);
+
+		/**
+		 * The most minimal declaration use all default params.
+		 */
+		AFE(void);
+
+		/**
+		 * Minimal declaration, set a specific SPI Interface Frequency,
+		 * all other parameters are default.
+		 * @param spiFreq IN -- SPI Interface Frequency (in Hertz).
+		 */
+		AFE(uint32_t spiFreq);
 
 		/**
 		 * Read the 16-bit or 32-bit value from a register.
@@ -46,15 +57,9 @@ class AFE
 		 */
 		void writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
 
-		/**
-		 * Simple test to check if the AD5941 is responding,
-		 * if it fails this test the AD5941 is probably not
-		 * working.
-		 * @returns True if passed, false if failed.
-		 */
-		bool testAD5941(void);
-
 	private:
+
+		uint32_t _SPI_CLK_HZ;
 
 		/**
 		 * Make the initialization sequence. 
