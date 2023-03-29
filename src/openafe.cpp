@@ -124,14 +124,14 @@ void AFE::writeRegister(uint16_t address, uint32_t value, uint8_t registerSize)
 void AFE::_system_init(void)
 {
 	// https://www.analog.com/media/en/technical-documentation/data-sheets/ad5940-5941.pdf#page=29
-	writeRegister(0x0908, 0x02C9, REG_SZ_16);
-	writeRegister(0x0C08, 0x206C, REG_SZ_16);
-	writeRegister(0x21F0, 0x0010, REG_SZ_16);
-	writeRegister(0x0410, 0x02C9, REG_SZ_16);
-	writeRegister(0x0A28, 0x0009, REG_SZ_16);
-	writeRegister(0x238C, 0x0104, REG_SZ_16);
-	writeRegister(0x0A04, 0x4859, REG_SZ_16);
-	writeRegister(0x0A04, 0xF27B, REG_SZ_16);
-	writeRegister(0x0A00, 0x8009, REG_SZ_16);
-	writeRegister(0x22F0, 0x0000, REG_SZ_16);
+	writeRegister(0x0908, 0x02C9, REG_SZ_16); // register not found (?)
+	writeRegister(0x0C08, 0x206C, REG_SZ_16); // register not found (?)
+	writeRegister(0x21F0, 0x0010, REG_SZ_32); // REPEATADCCNV - Repeat ADC conversion control register
+	writeRegister(0x0410, 0x02C9, REG_SZ_16); // CLKEN1 - Clock gate enable
+	writeRegister(0x0A28, 0x0009, REG_SZ_16); // EI2CON - External Interrupt Configuration 2 register
+	writeRegister(0x238C, 0x005F3D04, REG_SZ_32); // ADCBUFCON - ADC buffer configuration register
+	writeRegister(0x0A04, 0x4859, REG_SZ_16); // PWRKEY - Key protection for PWRMOD register
+	writeRegister(0x0A04, 0xF27B, REG_SZ_16); // PWRKEY - Key protection for PWRMOD register
+	writeRegister(0x0A00, 0x8009, REG_SZ_16); // PWRMOD - Power mode configuration register
+	writeRegister(0x22F0, 0x0000, REG_SZ_32); // PMBW - Power modes configuration register
 }
