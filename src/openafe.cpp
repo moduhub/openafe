@@ -137,6 +137,60 @@ void AFE::_system_init(void)
 }
 
 
+void AFE::_testSwitchConfiguration(void)
+{
+
+	// Enable writes to the low power DAC with LPDACDAT0
+	_setRegisterBit(AD_LPDACCON0, 0);
+
+	// Power on the low power DAC
+	_clearRegisterBit(AD_LPDACCON0, 1);
+
+	// Clear this bit to 0 for the V ZERO0 voltage output to be 6-bit
+	_clearRegisterBit(AD_LPDACCON0, 4);
+
+	// Low power DAC switches override. Set this bit to 1 to overrides LPDACCON0,
+	// Bit 5. The switches connected to the Low Power DAC output are controlled
+	// via LPDACSW0, Bits [4:0]
+	_setRegisterBit(AD_LPDACSW0, 5);
+
+	// Connects the VBIAS0 DAC voltage output directly to the positive input of the potentiostat amplifier
+	_setRegisterBit(AD_LPDACSW0, 4);
+
+	// Disconnects the V BIAS0 DAC voltage output from the low-pass filter/V BIAS0 pin
+	_clearRegisterBit(AD_LPDACSW0, 3); // <- most important part
+
+	// Connects the V ZERO0 DAC voltage output directly to the low power TIA positive input
+	_setRegisterBit(AD_LPDACSW0, 2);
+
+	// Connects the V ZERO0 to the DAC 6-bit output
+	_setRegisterBit(AD_LPDACSW0, 1);
+
+	// Disconnects the V ZERO0 DAC voltage output from the high speed TIA positive input
+	_clearRegisterBit(AD_LPDACSW0, 0);
+
+	// Short RE and CE together
+	_setRegisterBit(AD_LPTIASW0, 15);
+
+	// Close the required switches, SW2, SW4 and SW13
+	_setRegisterBit(AD_LPTIASW0, 13);
+	_setRegisterBit(AD_LPTIASW0, 4);
+	_setRegisterBit(AD_LPTIASW0, 2);
+
+	// Power up potentiostat amplifier
+	_clearRegisterBit(AD_LPTIACON0, 1);
+
+	// Power up low power TIA
+	_clearRegisterBit(AD_LPTIACON0, 0);
+
+	// Set TIA GAIN resistor to 3kOhms
+	_setRegisterBit(AD_LPTIACON0, 7);
+
+	// Enable the DAC buffer
+	_setRegisterBit(AD_AFECON, 21);
+}
+
+
 void AFE::_setRegisterBit(uint16_t address, uint8_t bitIndex)
 {
 	uint32_t register_value = readRegister(address, REG_SZ_32);

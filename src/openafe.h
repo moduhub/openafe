@@ -67,6 +67,12 @@ class AFE
 		void _system_init(void);
 
 		/**
+		 * Configure the switches in a test configuration.
+		 * @warning For testing purposes only!
+		 */
+		void _testSwitchConfiguration(void);
+
+		/**
 		 * Set a specific bit in a register to 1.
 		 */
 		void _setRegisterBit(uint16_t address, uint8_t bitIndex);
