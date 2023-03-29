@@ -65,6 +65,16 @@ class AFE
 		 * Make the initialization sequence. 
 		 */
 		void _system_init(void);
+
+		/**
+		 * Set a specific bit in a register to 1.
+		 */
+		void _setRegisterBit(uint16_t address, uint8_t bitIndex);
+
+		/**
+		 * Clear a specific bit in a register, set a bit to 0.
+		 */
+		void _clearRegisterBit(uint16_t address, uint8_t bitIndex);
 };
 
 #endif //_OPENAFE_H_

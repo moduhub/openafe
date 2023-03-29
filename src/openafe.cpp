@@ -135,3 +135,19 @@ void AFE::_system_init(void)
 	writeRegister(0x0A00, 0x8009, REG_SZ_16); // PWRMOD - Power mode configuration register
 	writeRegister(0x22F0, 0x0000, REG_SZ_32); // PMBW - Power modes configuration register
 }
+
+
+void AFE::_setRegisterBit(uint16_t address, uint8_t bitIndex)
+{
+	uint32_t register_value = readRegister(address, REG_SZ_32);
+	register_value |= 1 << bitIndex;
+	writeRegister(address, register_value, REG_SZ_32);
+}
+
+
+void AFE::clearRegisterBit(uint16_t address, uint8_t bitIndex)
+{
+	uint32_t register_value = readRegister(address, REG_SZ_32);
+	register_value &= ~(1 << bitIndex);
+	writeRegister(address, register_value, REG_SZ_32);
+}
