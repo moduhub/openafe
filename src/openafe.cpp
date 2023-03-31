@@ -1,4 +1,5 @@
 #include "openafe.h"
+#include "Utility/registers.h"
 
 #include "Arduino.h"
 #include <SPI.h>
