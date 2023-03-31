@@ -134,24 +134,18 @@ void AFE::setupCV(void)
 int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
 	int stepDuration_ms = pStepSize * 1000 / pScanRate;
-	_DEBUG_print("Step duration (ms): ", (float)stepDuration_ms, 20.0f);
 
 	float stepSize_hex = (float)pStepSize * 10000.0f / 5372.0f;
-	_DEBUG_print("Step size HEX: ", (float)stepSize_hex, 3.0f);
 
 	float waveOffset_V = (pPeakVoltage + pValleyVoltage) / 2.0f;
-	_DEBUG_print("Wave offset: ", waveOffset_V, 0.0);
 
 	uint32_t refValue_hex = (uint32_t)( ( (_DAC_6_MAX_RNG_V / 2) - waveOffset_V) / _DAC_6_STEP_V);
-	_DEBUG_print("Reference value HEX: ", (float)refValue_hex, 31.0);
 
 	float refValue_V  = (float)map(refValue_hex, 0, 63, 0, 2166) / 1000.0f;
-	_DEBUG_print("Reference value V: ", refValue_V, 1.065f);
 
 	// Check the possibility of the wave:
 
 	float waveTop_V = refValue_V + pPeakVoltage;
-	_DEBUG_print("Wave top (V): ", waveTop_V, 1.565f);
 
 	if(!(waveTop_V <= _DAC_6_MAX_RNG_V)){
 		// ERROR: wave can't be generated!
@@ -159,7 +153,6 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 	}
 
 	float waveBottom_V = refValue_V + pValleyVoltage;
-	_DEBUG_print("Wave bottom (V): ", waveBottom_V, 0.565f);
 
 	if(!(waveBottom_V >= 0)){
 		// ERROR: wave can't be generated!
@@ -170,12 +163,9 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 	int valleyHex = map(waveBottom_V * 100000, 0, 219983, 0, 4095);
 
 	const int HIGH_POINT_12_BIT = peakHex;
-	_DEBUG_print("12-BIT HIGH value: ", (float)HIGH_POINT_12_BIT, 2913.25f);
 	const int LOW_POINT_12_BIT = valleyHex;
-	_DEBUG_print("12-BIT LOW value: ", (float)LOW_POINT_12_BIT, 1051.25f);
 
 	const uint32_t CORRECTION_6_BIT = (uint32_t)refValue_hex << 12;
-	_DEBUG_print("6-bit Correction: ", CORRECTION_6_BIT, 126976.0f);
 
 	int cycles = pNumCycles;
 	
