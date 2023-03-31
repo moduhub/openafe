@@ -78,15 +78,6 @@ class AFE
 
 		uint32_t _SPI_CLK_HZ;
 
-		// Value that represents the midrange of both the 6- and 12-bit output of the DAC
-		uint32_t _LVL_ZERO_VOLT = 0x1F7BE;
-
-		// Step in millivolts of the 6-bit output of the DAC
-		float _DAC_6_STEP_V = 0.03438f;
-
-		// Max voltage range of the 6-bit output of the DAC
-		float _DAC_6_MAX_RNG_V = 2.166f;
-
 		/**
 		 * Make the initialization sequence. 
 		 */

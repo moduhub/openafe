@@ -4,6 +4,24 @@
 #include "Arduino.h"
 #include <SPI.h>
 
+// Value that represents the midrange of both the 6- and 12-bit output of the DAC
+#define DAC_LVL_ZERO_VOLT 0x1F7BE
+// Step in millivolts of the 12-bit output of the DAC
+#define DAC_12_STEP_V 0.0005372f
+// Voltage range of the 12-bit output of the DAC
+#define DAC_12_RNG_V 2.2f
+// Maximum voltage of the 12-bit output of the DAC
+#define DAC_12_MAX_V 2.4f
+// Minimum voltage of the 12-bit output of the DAC
+#define DAC_12_MIN_V 0.2f
+// Step in millivolts of the 6-bit output of the DAC
+#define DAC_6_STEP_V 0.03438f
+// Voltage range of the 6-bit output of the DAC
+#define DAC_6_RNG_V 2.166f
+// Maximum voltage of the 6-bit output of the DAC
+#define DAC_6_MAX_V 2.366f
+// Minimum voltage of the 6-bit output of the DAC
+#define DAC_6_MIN_V 0.2f
 
 AFE::AFE()
 {
@@ -127,7 +145,7 @@ void AFE::setupCV(void)
 	// Set the switches in the required configuration
 	_testSwitchConfiguration();
 	// Zero the voltage across the electrode
-	writeRegister(AD_LPDACDAT0, _LVL_ZERO_VOLT, 32);
+	writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, 32);
 }
 
 
@@ -139,7 +157,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 
 	float waveOffset_V = (pPeakVoltage + pValleyVoltage) / 2.0f;
 
-	uint32_t refValue_hex = (uint32_t)( ( (_DAC_6_MAX_RNG_V / 2) - waveOffset_V) / _DAC_6_STEP_V);
+	uint32_t refValue_hex = (uint32_t)( ( (DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
 
 	float refValue_V  = (float)map(refValue_hex, 0, 63, 0, 2166) / 1000.0f;
 
@@ -147,7 +165,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 
 	float waveTop_V = refValue_V + pPeakVoltage;
 
-	if(!(waveTop_V <= _DAC_6_MAX_RNG_V)){
+	if(!(waveTop_V <= DAC_6_RNG_V)){
 		// ERROR: wave can't be generated!
 		return -1;
 	}
@@ -165,7 +183,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 	const int HIGH_POINT_12_BIT = peakHex;
 	const int LOW_POINT_12_BIT = valleyHex;
 
-	const uint32_t CORRECTION_6_BIT = (uint32_t)refValue_hex << 12;
+	const uint32_t CORRECTION_6_BIT = refValue_hex << 12;
 
 	int cycles = pNumCycles;
 	
@@ -184,7 +202,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 	}
 
 	// Zero the voltage across the electrode
-	writeRegister(AD_LPDACDAT0, _LVL_ZERO_VOLT, 32);
+	writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, 32);
 
 	return 0;
 }
