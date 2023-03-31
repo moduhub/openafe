@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-#define SPI_CLK_DEFAULT_HZ 100000U
+#define SPI_CLK_DEFAULT_HZ 1000000UL
 
 #define AD_ADDR_ADIID 0x0400
 #define AD_ADDR_CHIPID 0x0404
