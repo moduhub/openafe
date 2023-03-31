@@ -57,9 +57,35 @@ class AFE
 		 */
 		void writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
 
+		/**
+		 * Setup process of the Cyclic Voltammetry.
+		 */
+		void setupCV(void);
+
+		/**
+		 * Generation of the Cyclic Voltammetry waveform.
+		 * 
+		 * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.
+		 * @param pValleyVoltage IN -- Valley voltage of the waveform in Volts, e.g. -0.5.
+		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
+		 * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
+		 * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
+		 * @return 0 if successful, -1 if error.   
+		 */
+		int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
+
 	private:
 
 		uint32_t _SPI_CLK_HZ;
+
+		// Value that represents the midrange of both the 6- and 12-bit output of the DAC
+		uint32_t _LVL_ZERO_VOLT = 0x1F7BE;
+
+		// Step in millivolts of the 6-bit output of the DAC
+		float _DAC_6_STEP_V = 0.03438f;
+
+		// Max voltage range of the 6-bit output of the DAC
+		float _DAC_6_MAX_RNG_V = 2.166f;
 
 		/**
 		 * Make the initialization sequence. 
