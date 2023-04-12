@@ -101,6 +101,11 @@ class AFE
 		 * Make the initialization sequence. 
 		 */
 		void _system_init(void);
+		
+		/**
+		 * Read the ADC conversion result.
+		*/
+		uint32_t _readADC(void);
 
 		/**
 		 * Configure the switches in a test configuration.

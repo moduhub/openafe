@@ -208,6 +208,12 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 }
 
 
+uint32_t AFE::_readADC(void)
+{
+	return readRegister(AD_ADCDAT, REG_SZ_32);
+}
+
+
 double AFE::_getCurrentFromADCValue(uint32_t pADCValue)
 {
 	float tVoltage = (1.82f / (float)_PGA) * ((float)(pADCValue - 32768) / 32768.0f) * (-1.0f);
