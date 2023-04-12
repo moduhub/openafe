@@ -74,9 +74,28 @@ class AFE
 		 */
 		int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
 
+		/**
+		 * Set the gain of the RTIA.
+		 * @param pTIAGainResistor IN -- Gain of the TIA, e.g. AD_TIAGAIN_3K.
+		 * @note If the gain value passed to this function is not a valid gain
+		 * value, a gain value of 10k will be set, to avoid passing invalid 
+		 * gain values use the AD_TIAGAIN_xx values. 
+		 * @return The TIA gain set.
+		 */
+		unsigned long setTIAGain(unsigned long pTIAGain);
+
 	private:
 
 		uint32_t _SPI_CLK_HZ;
+
+		/** Gain of the TIA. */
+		unsigned long _TIAGain = 0;
+		
+		/** Value of the Rload resistor. */
+		unsigned int _Rload = 0;
+
+		/** PGA Gain. */
+		unsigned int _PGA = 1;
 
 		/**
 		 * Make the initialization sequence. 
@@ -88,6 +107,13 @@ class AFE
 		 * @warning For testing purposes only!
 		 */
 		void _testSwitchConfiguration(void);
+
+		/**
+		 * Set the value of the RTIA resistor.
+		 * @param pTIAGainResistor IN -- The bits to be written in the
+		 * LPTIACON0 register TIAGAIN bits, e.g. AD_LPTIACON0_TIAGAIN_3K.
+		 */
+		void _setTIAGainResistor(uint32_t pTIAGainResistor);
 
 		/**
 		 * Set a specific bit in a register to 1.
