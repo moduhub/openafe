@@ -208,6 +208,16 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 }
 
 
+double AFE::_getCurrentFromADCValue(uint32_t pADCValue)
+{
+	float tVoltage = (1.82f / (float)_PGA) * ((float)(pADCValue - 32768) / 32768.0f) * (-1.0f);
+
+	double tCurrent = ((double)tVoltage * 1000000.0) / (double)_TIAGain;
+	
+	return tCurrent;
+}
+
+
 void AFE::_setTIAGainResistor(uint32_t pTIAGainResistor){
 
 	uint32_t valueInRegister = readRegister(AD_LPTIACON0, REG_SZ_32);

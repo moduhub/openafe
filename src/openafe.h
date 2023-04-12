@@ -116,6 +116,14 @@ class AFE
 		void _setTIAGainResistor(uint32_t pTIAGainResistor);
 
 		/**
+		 * Get the current value in micro Amps (uA) for the value read in the ADC and
+		 * the current TIA Gain.
+		 * @param pADCValue IN -- Raw value read by the ADC.
+		 * @return Current measured, in uA.
+		 */
+		double _getCurrentFromADCValue(uint32_t pADCValue);
+
+		/**
 		 * Set a specific bit in a register to 1.
 		 */
 		void _setRegisterBit(uint16_t address, uint8_t bitIndex);
