@@ -441,7 +441,7 @@ void AFE::_setRegisterBit(uint16_t address, uint8_t bitIndex)
 }
 
 
-void AFE::clearRegisterBit(uint16_t address, uint8_t bitIndex)
+void AFE::_clearRegisterBit(uint16_t address, uint8_t bitIndex)
 {
 	uint32_t register_value = readRegister(address, REG_SZ_32);
 	register_value &= ~(1 << bitIndex);
