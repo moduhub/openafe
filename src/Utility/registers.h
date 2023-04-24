@@ -184,9 +184,9 @@
 #define AD_GP0TGL	0x0020 // GPIO Port 0 pin toggle register
 
 /** ANALOG DIE RESET REGISTERS */
-#define RSTCONKEY	0x0A5C // Key protection for SWRSTCON register
-#define SWRSTCON	0x0424 // Software reset register 
-#define RSTSTA		0x0A40 // Reset status register
+#define AD_RSTCONKEY	0x0A5C // Key protection for SWRSTCON register
+#define AD_SWRSTCON	    0x0424 // Software reset register 
+#define AD_RSTSTA		0x0A40 // Reset status register
 
 /** POWER MODES REGISTERS */
 #define AD_PWRMOD		0x0A00 // Power mode configuration register
@@ -204,7 +204,6 @@
 #define AD_OSCKEY		0x0A0C // Key protection for the OSCCON register
 #define AD_OSCCON		0x0A10 // Oscillator control
 #define AD_HSOSCCON		0x20BC // High speed oscillator configuration
-#define AD_RSTCONKEY	0x0A5C // Key protection for the RSTCON register
 #define AD_LOSCTST		0x0A6C // Internal low frequency oscillator test
 
 #endif //_REGISTERS_H_
