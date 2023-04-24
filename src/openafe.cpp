@@ -5,24 +5,15 @@
 #include "Arduino.h"
 #include <SPI.h>
 
-// Value that represents the midrange of both the 6- and 12-bit output of the DAC
-#define DAC_LVL_ZERO_VOLT 0x1F7BE
-// Step in millivolts of the 12-bit output of the DAC
-#define DAC_12_STEP_V 0.0005372f
-// Voltage range of the 12-bit output of the DAC
-#define DAC_12_RNG_V 2.2f
-// Maximum voltage of the 12-bit output of the DAC
-#define DAC_12_MAX_V 2.4f
-// Minimum voltage of the 12-bit output of the DAC
-#define DAC_12_MIN_V 0.2f
-// Step in millivolts of the 6-bit output of the DAC
-#define DAC_6_STEP_V 0.03438f
-// Voltage range of the 6-bit output of the DAC
-#define DAC_6_RNG_V 2.166f
-// Maximum voltage of the 6-bit output of the DAC
-#define DAC_6_MAX_V 2.366f
-// Minimum voltage of the 6-bit output of the DAC
-#define DAC_6_MIN_V 0.2f
+#define DAC_LVL_ZERO_VOLT 0x1F7BE	// Value that represents the midrange of both the 6- and 12-bit output of the DAC
+#define DAC_12_STEP_V 0.0005372f	// Step in millivolts of the 12-bit output of the DAC
+#define DAC_12_RNG_V 2.2f			// Voltage range of the 12-bit output of the DAC
+#define DAC_12_MAX_V 2.4f			// Maximum voltage of the 12-bit output of the DAC
+#define DAC_12_MIN_V 0.2f			// Minimum voltage of the 12-bit output of the DAC
+#define DAC_6_STEP_V 0.03438f		// Step in millivolts of the 6-bit output of the DAC
+#define DAC_6_RNG_V 2.166f			// Voltage range of the 6-bit output of the DAC
+#define DAC_6_MAX_V 2.366f			// Maximum voltage of the 6-bit output of the DAC
+#define DAC_6_MIN_V 0.2f			// Minimum voltage of the 6-bit output of the DAC
 
 AFE::AFE()
 {
