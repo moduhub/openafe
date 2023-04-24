@@ -3,9 +3,9 @@
 AFE afe;
 
 void setup() {
-	afe.setupCV();
-
 	Serial.begin(115200);
+
+	afe.setupCV();
 }
 
 void loop() {
