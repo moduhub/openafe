@@ -2,6 +2,8 @@
 #define _OPENAFE_H_
 
 #include "Arduino.h"
+#include <stdint.h>
+
 
 #define SPI_CLK_DEFAULT_HZ 1000000UL
 
