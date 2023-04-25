@@ -16,6 +16,14 @@
 #define DAC_6_MAX_V 2.366f			// Maximum voltage of the 6-bit output of the DAC
 #define DAC_6_MIN_V 0.2f			// Minimum voltage of the 6-bit output of the DAC
 
+#define SEQ_DEFAULT_TIME_RESULUTION_NS 62.5f // Default time resolution of the sequencer, using the 16 MHz clock
+
+#define SEQ0_START_ADDR 0x000U	// Address of the SRAM where Sequence 0 starts
+#define SEQ0_END_ADDR 	0x2A9U	// Address of the SRAM where Sequence 0 ends
+#define SEQ1_START_ADDR 0x2AAU 	// Address of the SRAM where Sequence 1 starts
+#define SEQ1_END_ADDR 	0x554U	// Address of the SRAM where Sequence 1 ends
+
+
 AFE::AFE()
 {
 	SPI.begin();
