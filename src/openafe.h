@@ -23,6 +23,33 @@
 #define REG_SZ_16 16
 #define REG_SZ_32 32
 
+/** Variable type to store the characteristics of a CV waveform. */
+struct waveCV_t {
+	float voltage1;	// Target higher voltage value of the CV wave, in Volts.
+	float voltage2; // Target lower voltage value of the CV wave, in Volts.
+	float scanRate; // Target scan rate, in mV/s.
+	float stepSize; // Target step size, in mV.
+	uint8_t numCycles;  // Target number of cycles of the CV wave.
+};
+
+/** Variable type to store the AD parameters of a CV waveform. */
+struct paramCV_t {
+	uint16_t highDAC12Value; 	// Value of 12-bit output of DAC for the CV high voltage value.
+	uint16_t lowDAC12Value;		// Value of 12-bit output of DAC for the CV low voltage value.
+	float dac12Step;			// Step value for the 12-bit output of the DAC.
+	uint16_t dac6Value;			// 6-bit DAC value.
+	uint32_t stepDuration_us;	// Duration of each step, in us.
+	uint16_t numPoints; 		// Number of points in the CV wave.
+	uint8_t numCycles;				// Target number of cycles of the CV wave.
+};
+
+/** Variable type to store the current state of CV waveform. */
+struct stateCV_t {
+	uint16_t currentDAC12Value;	// Current value of the 12-bit output of DAC.
+	uint8_t currentSlope;		// Current slope.
+	uint16_t currentPoint;		// Number current in the CV wave point.
+};
+
 class AFE
 {
 	public:
