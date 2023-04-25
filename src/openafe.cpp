@@ -1,4 +1,5 @@
 #include "openafe.h"
+#include "openafe_defines.h"
 #include "Utility/registers.h"
 #include "Utility/ad5941_defines.h"
 
