@@ -40,6 +40,9 @@ static uint16_t gNumWavePoints; // Number of points in the current waveform.
 
 static uint16_t gNumRemainingDataPoints; 	// Number of data points to read.
 
+static bool gDebugMode = false; // Debug mode control variable, if yes debug logs are going to be printed.
+
+
 /**
  * @brief Whether the AD594x has finish or not the current operation.
  * @note READ ONLY! This variable is automatically managed by the library.
@@ -71,6 +74,12 @@ AFE::AFE(uint32_t spiFreq)
 }
 
 
+void AFE::debugModeOn(void)
+{
+	gDebugMode = true;
+}
+
+
 void AFE::resetByHardware(void)
 {
 
@@ -81,19 +90,6 @@ void AFE::resetBySoftware(void)
 {
 	writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
 	writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
-}
-
-
-void AFE::log(String pString)
-{
-	Serial.println(pString);
-}
-
-
-void AFE::log(String pString, uint32_t pValue)
-{
-	Serial.print(pString);
-	Serial.println(pValue);
 }
 
 
@@ -307,7 +303,7 @@ int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 
 	pParamCV->numPoints = ((uint16_t)((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->dac12Step) * 2 + 1) * pWaveCV->numCycles;
 
-	log("Number of points param: ", pParamCV->numPoints);
+	_debugLog("Number of points param: ", pParamCV->numPoints);
 
 	return 1;
 }
@@ -468,8 +464,8 @@ void AFE::interruptHandler(void)
 	tInterruptFlags0 = readRegister(AD_INTCFLAG0, REG_SZ_32);
 
 	if(tInterruptFlags0 & (uint32_t)1 << 12){ // end of voltammetry
-		log(">> INT -> FINISHED WAVEFORM!");
-		log("Number used by sequencer: ", gNumWavePoints);
+		_debugLog(">> INT -> FINISHED WAVEFORM!");
+		_debugLog("Number used by sequencer: ", gNumWavePoints);
 		_zeroVoltageAcrossElectrodes();
 		gFinished = true;
 	}
@@ -477,7 +473,7 @@ void AFE::interruptHandler(void)
 	if(tInterruptFlags0 & (uint32_t)1 << 15){ // end of sequence
 		// start the next sequence, and fill the sequence that ended with new commands
 		_startSequence(!gCurrentSequence);
-		log(">> INT -> END OF SEQUENCE: ", gCurrentSequence);
+		_debugLog(">> INT -> END OF SEQUENCE: ", gCurrentSequence);
 
 		if (gCurrentSequence){ // check which sequence is running, and feed the other one with new commands
 			_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
@@ -489,17 +485,17 @@ void AFE::interruptHandler(void)
 
 	if(tInterruptFlags0 & (uint32_t)1 << 23){ // data FIFO full
 		// Start reading data FIFO immediately
-		Serial.println(">> INT -> DATA FIFO FULL");
+		_debugLog(">> INT -> DATA FIFO FULL");
 	}
 	
 	if(tInterruptFlags0 & (uint32_t)1 << 24){ // data FIFO threshold reached
 		// Start reading data FIFO immediately
-		Serial.println(">> INT -> DATA FIFO THRES REACHED");
+		_debugLog(">> INT -> DATA FIFO THRES REACHED");
 	}
 	
 	if(tInterruptFlags0 & (uint32_t)1 << 25){ // data FIFO empty
 		// stop reading data FIFO
-		Serial.println(">> INT -> DATA FIFO EMPTY");
+		_debugLog(">> INT -> DATA FIFO EMPTY");
 	}
 
 	writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
@@ -856,4 +852,20 @@ void AFE::_clearRegisterBit(uint16_t pAddress, uint8_t pBitIndex)
 	uint32_t pRegisterValue = readRegister(pAddress, REG_SZ_32);
 	pRegisterValue &= ~(1 << pBitIndex);
 	writeRegister(pAddress, pRegisterValue, REG_SZ_32);
+}
+
+
+void AFE::_debugLog(String pString)
+{	
+	if(gDebugMode) 
+		Serial.println(pString);
+}
+
+
+void AFE::_debugLog(String pString, uint32_t pValue)
+{
+	if(gDebugMode){
+		Serial.print(pString);
+		Serial.println(pValue);
+	}
 }

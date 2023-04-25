@@ -67,6 +67,11 @@ class AFE
 		AFE(uint32_t spiFreq);
 		
 		/**
+		 * @brief Enable debug mode, so debug prints are printed.
+		 */
+		static void debugModeOn(void);
+
+		/**
 		 * @brief Reset the AD5941 by hardware.
 		 * 
 		 * @note This is the most compreheensive reset, everything is reset to the reset value.
@@ -157,21 +162,6 @@ class AFE
 		 * @brief Handle interrupts triggered by the AD5941 device.
 		 */
 		static void interruptHandler(void);
-
-		/**
-		 * @brief Logger, prints string only.
-		 *
-		 * @param pString IN -- String to print.
-		 */
-		static void log(String pString);
-
-		/**
-		 * @brief Logger, prints string and value.
-		 *
-		 * @param pString IN -- String to print.
-		 * @param pValue IN -- Value to print.
-		 */
-		static void log(String pString, uint32_t pValue);
 
 	private:
 
@@ -314,6 +304,21 @@ class AFE
 		 * @param pCurrentAddress IN -- Ending index of the sequence in the SRAM.
 		 */
 		static void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
+
+		/**
+		 * @brief Logger, prints string only.
+		 *
+		 * @param pString IN -- String to print.
+		 */
+		static void _debugLog(String pString);
+
+		/**
+		 * @brief Logger, prints string and value.
+		 *
+		 * @param pString IN -- String to print.
+		 * @param pValue IN -- Value to print.
+		 */
+		static void _debugLog(String pString, uint32_t pValue);
 };
 
 #endif //_OPENAFE_H_
