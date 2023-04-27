@@ -324,46 +324,25 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 	
 	bool tSequenceFilled = false;
 
+	uint16_t tNumSlopePoints = pParamCV->numSlopePoints;
+		
 	uint32_t tAFECONValue = readRegister(AD_AFECON, REG_SZ_32);
 
 	while(pStateCV->currentSlope <= pParamCV->numCycles * 2 && !tSequenceFilled){
 		
-		uint16_t tNumSlopePoints = pParamCV->numSlopePoints;
-
 		if(pStateCV->currentSlope == (pParamCV->numCycles * 2)) tNumSlopePoints++;
 		
-		if(!(pStateCV->currentSlope % 2 == 0)){
-
 			for (uint16_t i = pStateCV->currentSlopePoint; i < tNumSlopePoints; i++)
 			{
-				uint16_t tDAC12Value = (pParamCV->dac12Step * (float)i) + pParamCV->lowDAC12Value;
+			uint16_t tDAC12Value;
 
-				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)tDAC12Value);
-
-				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)(1 << 8)); // Start ADC conversion
-
-				tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us);
-
-				gNumWavePoints++;
-
-				if(tCurrentAddress + 4 >= pEndingAddress){
-					pStateCV->currentSlopePoint = (i + 1) >= tNumSlopePoints ? 0 : (i + 1);
-					tSequenceFilled = true;
-					break;
-				}
-
+			if(!(pStateCV->currentSlope % 2 == 0)){
+				/* Rising slope */
+				tDAC12Value = (pParamCV->dac12Step * (float)i) + pParamCV->lowDAC12Value;
+			} else {
+				/* Falling slope */
+				tDAC12Value = pParamCV->highDAC12Value - (pParamCV->dac12Step * (float)i);
 			}
-
-			if(!tSequenceFilled){
-				pStateCV->currentSlopePoint = 0;
-				pStateCV->currentSlope++;
-			}
-
-		} else {
-
-			for (uint16_t i = pStateCV->currentSlopePoint; i < tNumSlopePoints; i++)
-			{
-				uint16_t tDAC12Value = pParamCV->highDAC12Value - (pParamCV->dac12Step * (float)i);
 
 				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)tDAC12Value);
 
@@ -387,8 +366,6 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 			}
 
 		}
-
-	}
 
 	if(pStateCV->currentSlope > pParamCV->numCycles * 2){
 		tSentAllCommands = true;
