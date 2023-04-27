@@ -40,14 +40,14 @@ struct paramCV_t {
 	uint16_t dac6Value;			// 6-bit DAC value.
 	uint32_t stepDuration_us;	// Duration of each step, in us.
 	uint16_t numPoints; 		// Number of points in the CV wave.
-	uint8_t numCycles;				// Target number of cycles of the CV wave.
+	uint8_t numCycles;			// Target number of cycles of the CV wave.
+	uint16_t numSlopePoints;	// Number of points in the CV slopes.
 };
 
 /** Variable type to store the current state of CV waveform. */
 struct stateCV_t {
-	uint16_t currentDAC12Value;	// Current value of the 12-bit output of DAC.
 	uint8_t currentSlope;		// Current slope.
-	uint16_t currentPoint;		// Number current in the CV wave point.
+	uint16_t currentSlopePoint; // Current point of the slope. 
 };
 
 class AFE

@@ -229,8 +229,10 @@ int AFE::cyclicVoltammetry(float pPeakVoltage, float pValleyVoltage, float pScan
 	}
 	
 	// Initialize the CV state struct
-	gCVState.currentDAC12Value = gCVParams.lowDAC12Value;
 	gCVState.currentSlope = 1;
+	gCVState.currentSlopePoint = 0;
+
+	gNumWavePoints = 0;
 
 	gNumRemainingDataPoints = gCVParams.numPoints;
 
@@ -301,9 +303,11 @@ int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 
 	pParamCV->numCycles = pWaveCV->numCycles;
 
-	pParamCV->numPoints = ((uint16_t)((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->dac12Step) * 2 + 1) * pWaveCV->numCycles;
+	pParamCV->numPoints = ((uint16_t)(((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->dac12Step) * 2.0f) * pWaveCV->numCycles) + 1;
 
 	_debugLog("Number of points param: ", pParamCV->numPoints);
+
+	pParamCV->numSlopePoints = (pParamCV->numPoints - 1) / (pParamCV->numCycles * 2);
 
 	return 1;
 }
@@ -324,11 +328,17 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 
 	while(pStateCV->currentSlope <= pParamCV->numCycles * 2 && !tSequenceFilled){
 		
+		uint16_t tNumSlopePoints = pParamCV->numSlopePoints;
+
+		if(pStateCV->currentSlope == (pParamCV->numCycles * 2)) tNumSlopePoints++;
+		
 		if(!(pStateCV->currentSlope % 2 == 0)){
 
-			for (float i = pStateCV->currentDAC12Value; i < pParamCV->highDAC12Value; i += pParamCV->dac12Step)
+			for (uint16_t i = pStateCV->currentSlopePoint; i < tNumSlopePoints; i++)
 			{
-				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)i);
+				uint16_t tDAC12Value = (pParamCV->dac12Step * (float)i) + pParamCV->lowDAC12Value;
+
+				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)tDAC12Value);
 
 				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)(1 << 8)); // Start ADC conversion
 
@@ -337,7 +347,7 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 				gNumWavePoints++;
 
 				if(tCurrentAddress + 4 >= pEndingAddress){
-					pStateCV->currentDAC12Value = (i + pParamCV->dac12Step) > pParamCV->highDAC12Value ? pParamCV->highDAC12Value : (i + pParamCV->dac12Step);
+					pStateCV->currentSlopePoint = (i + 1) >= tNumSlopePoints ? 0 : (i + 1);
 					tSequenceFilled = true;
 					break;
 				}
@@ -345,15 +355,17 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 			}
 
 			if(!tSequenceFilled){
+				pStateCV->currentSlopePoint = 0;
 				pStateCV->currentSlope++;
-				pStateCV->currentDAC12Value = pParamCV->highDAC12Value;
 			}
 
 		} else {
 
-			for (float i = pStateCV->currentDAC12Value; i > pParamCV->lowDAC12Value; i -= pParamCV->dac12Step)
+			for (uint16_t i = pStateCV->currentSlopePoint; i < tNumSlopePoints; i++)
 			{
-				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)i);
+				uint16_t tDAC12Value = pParamCV->highDAC12Value - (pParamCV->dac12Step * (float)i);
+
+				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)tDAC12Value);
 
 				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)(1 << 8)); // Start ADC conversion
 
@@ -362,7 +374,7 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 				gNumWavePoints++;
 
 				if(tCurrentAddress + 4 >= pEndingAddress){
-					pStateCV->currentDAC12Value = (i - pParamCV->dac12Step) < pParamCV->lowDAC12Value ? pParamCV->lowDAC12Value : (i - pParamCV->dac12Step);
+					pStateCV->currentSlopePoint = (i + 1) >= tNumSlopePoints ? 0 : (i + 1);
 					tSequenceFilled = true;
 					break;
 				}
@@ -370,8 +382,8 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 			}
 
 			if(!tSequenceFilled){
+				pStateCV->currentSlopePoint = 0;
 				pStateCV->currentSlope++;
-				pStateCV->currentDAC12Value = pParamCV->lowDAC12Value;
 			}
 
 		}
