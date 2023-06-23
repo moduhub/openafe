@@ -1,6 +1,17 @@
+## (UNDER DEVELOPMENT)
+
 # Open AFE
 
-# Example
+OpenAFE is an innitiative to democratize the access of Analog Front End (AFE) devices for the use in voltammetric measurements, which at the moment can only be done with expensive devices, with prices of basic potentiostats  ranging from USD500 to upwards of USD2000.
+
+The OpenAFE innitiative also aims to make development of potentiostat based devices easier and cheaper, by offering:
+- A cheaper and realiable Arduino compatible AFE Shield
+- An open library ease the usage of the potentiostat shield
+- And cost effective electrodes
+
+# Early Results
+This is an early Cyclic Voltammetry wave aquired by the OpenAFE project:
+![CV Wave](https://github.com/moduhub/openafe/tree/master/images/CVSaltWater.png)
 
 # License
 Copyright 2023 ModuHub Tecnologia Ltda
