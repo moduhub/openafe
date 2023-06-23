@@ -11,7 +11,7 @@ The OpenAFE innitiative also aims to make development of potentiostat based devi
 
 # Early Results
 This is an early Cyclic Voltammetry wave aquired by the OpenAFE project:
-![CV Wave](https://github.com/moduhub/openafe/tree/master/images/CVSaltWater.png)
+![CV Wave](https://github.com/moduhub/openafe/blob/master/images/CVSaltWater.png)
 
 # License
 Copyright 2023 ModuHub Tecnologia Ltda
