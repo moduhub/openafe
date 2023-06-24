@@ -75,7 +75,7 @@ class AFE
 		 * @note The registerSize parameter defaults to 16 if not defined correctly. 
 		 * @return Value read from the register.
 		 */
-		uint32_t readRegister(uint16_t address, uint8_t registerSize);
+		static uint32_t readRegister(uint16_t address, uint8_t registerSize);
 
 		/**
 		 * Write a 16-bit value into a AD5941 register.
@@ -85,12 +85,12 @@ class AFE
 		 * use either REG_SZ_16 or REG_SZ_32.
 		 * @note The registerSize parameter defaults to 16 if not defined correctly.
 		 */
-		void writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
+		static void writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
 
 		/**
 		 * Setup process of the Cyclic Voltammetry.
 		 */
-		void setupCV(void);
+		static void setupCV(void);
 
 		/**
 		 * Generation of the Cyclic Voltammetry waveform.
@@ -102,7 +102,7 @@ class AFE
 		 * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
 		 * @return 0 if successful, -1 if error.   
 		 */
-		int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
+		static int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
 		 * Set the gain of the RTIA.
@@ -112,32 +112,32 @@ class AFE
 		 * gain values use the AD_TIAGAIN_xx values. 
 		 * @return The TIA gain set.
 		 */
-		unsigned long setTIAGain(unsigned long pTIAGain);
+		static unsigned long setTIAGain(unsigned long pTIAGain);
 
 	private:
 
 		/**
 		 * Make the initialization sequence. 
 		 */
-		void _system_init(void);
+		static void _system_init(void);
 		
 		/**
 		 * Read the ADC conversion result.
 		*/
-		uint32_t _readADC(void);
+		static uint32_t _readADC(void);
 
 		/**
 		 * Configure the switches in a test configuration.
 		 * @warning For testing purposes only!
 		 */
-		void _testSwitchConfiguration(void);
+		static void _testSwitchConfiguration(void);
 
 		/**
 		 * Set the value of the RTIA resistor.
 		 * @param pTIAGainResistor IN -- The bits to be written in the
 		 * LPTIACON0 register TIAGAIN bits, e.g. AD_LPTIACON0_TIAGAIN_3K.
 		 */
-		void _setTIAGainResistor(uint32_t pTIAGainResistor);
+		static void _setTIAGainResistor(uint32_t pTIAGainResistor);
 
 		/**
 		 * Get the current value in micro Amps (uA) for the value read in the ADC and
@@ -145,17 +145,17 @@ class AFE
 		 * @param pADCValue IN -- Raw value read by the ADC.
 		 * @return Current measured, in uA.
 		 */
-		double _getCurrentFromADCValue(uint32_t pADCValue);
+		static double _getCurrentFromADCValue(uint32_t pADCValue);
 
 		/**
 		 * Set a specific bit in a register to 1.
 		 */
-		void _setRegisterBit(uint16_t address, uint8_t bitIndex);
+		static void _setRegisterBit(uint16_t address, uint8_t bitIndex);
 
 		/**
 		 * Clear a specific bit in a register, set a bit to 0.
 		 */
-		void _clearRegisterBit(uint16_t address, uint8_t bitIndex);
+		static void _clearRegisterBit(uint16_t address, uint8_t bitIndex);
 };
 
 #endif //_OPENAFE_H_
