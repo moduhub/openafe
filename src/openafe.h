@@ -40,7 +40,8 @@ struct paramCV_t {
 	uint16_t dac6Value;			// 6-bit DAC value.
 	uint32_t stepDuration_us;	// Duration of each step, in us.
 	uint16_t numPoints; 		// Number of points in the CV wave.
-	uint8_t numCycles;				// Target number of cycles of the CV wave.
+	uint8_t numCycles;			// Target number of cycles of the CV wave.
+	uint16_t numSlopePoints;	// Number of points in the CV slopes.
 };
 
 /** Variable type to store the current state of CV waveform. */
@@ -114,17 +115,6 @@ class AFE
 		unsigned long setTIAGain(unsigned long pTIAGain);
 
 	private:
-
-		uint32_t _SPI_CLK_HZ;
-
-		/** Gain of the TIA. */
-		unsigned long _TIAGain = 0;
-		
-		/** Value of the Rload resistor. */
-		unsigned int _Rload = 0;
-
-		/** PGA Gain. */
-		unsigned int _PGA = 1;
 
 		/**
 		 * Make the initialization sequence. 

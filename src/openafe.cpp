@@ -23,6 +23,16 @@
 #define SEQ1_START_ADDR 0x2AAU 	// Address of the SRAM where Sequence 1 starts
 #define SEQ1_END_ADDR 	0x554U	// Address of the SRAM where Sequence 1 ends
 
+static uint32_t _SPI_CLK_HZ;
+
+/** Gain of the TIA. */
+static unsigned long _TIAGain = 0;
+
+/** Value of the Rload resistor. */
+static unsigned int _Rload = 0;
+
+/** PGA Gain. */
+static unsigned int _PGA = 1;
 
 AFE::AFE()
 {
