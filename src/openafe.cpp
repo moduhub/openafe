@@ -162,58 +162,79 @@ void AFE::setupCV(void)
 
 int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
-	int stepDuration_ms = pStepSize * 1000 / pScanRate;
+	waveCV_t tWaveCV;
+	tWaveCV.voltage1 = pPeakVoltage;
+	tWaveCV.voltage2 = pValleyVoltage;
+	tWaveCV.scanRate = pScanRate;
+	tWaveCV.stepSize = pStepSize;
+	tWaveCV.numCycles = pNumCycles;
 
-	float stepSize_hex = (float)pStepSize * 10000.0f / 5372.0f;
+	static paramCV_t tCVParams;
 
-	float waveOffset_V = (pPeakVoltage + pValleyVoltage) / 2.0f;
+	int tPossible = _calculateParamsForCV(&tWaveCV, &tCVParams);
 
-	uint32_t refValue_hex = (uint32_t)( ( (DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
-
-	float refValue_V  = (float)map(refValue_hex, 0, 63, 0, 2166) / 1000.0f;
-
-	// Check the possibility of the wave:
-
-	float waveTop_V = refValue_V + pPeakVoltage;
-
-	if(!(waveTop_V <= DAC_6_RNG_V)){
-		// ERROR: wave can't be generated!
-		return -1;
+	if (!tPossible)
+	{
+		return tPossible;
 	}
 
-	float waveBottom_V = refValue_V + pValleyVoltage;
+	static stateCV_t tCVState;
+	tCVState.currentSlope = 1;
 
-	if(!(waveBottom_V >= 0)){
-		// ERROR: wave can't be generated!
-		return -1;
-	}
+	uint8_t tRisingSlope = 1;
 
-	int peakHex = map(waveTop_V * 100000, 0, 219983, 0, 4095);
-	int valleyHex = map(waveBottom_V * 100000, 0, 219983, 0, 4095);
+	uint16_t tNumSlopePoints = tCVParams.numPoints / (tCVParams.numCycles * 2);
 
-	const int HIGH_POINT_12_BIT = peakHex;
-	const int LOW_POINT_12_BIT = valleyHex;
+	uint32_t tAFECONValue = readRegister(AD_AFECON, REG_SZ_32);
 
-	const uint32_t CORRECTION_6_BIT = refValue_hex << 12;
+	float tVoltageLevel = pValleyVoltage * 1000; // Voltage level in millivolts.
 
-	int cycles = pNumCycles;
-	
-	while(cycles > 0){
-		cycles--;
+	while (tCVState.currentSlope <= (tCVParams.numCycles * 2))
+	{
+		uint16_t tDAC12Value;
 
-		for(float i = LOW_POINT_12_BIT; i <= HIGH_POINT_12_BIT; i += stepSize_hex) {
-			writeRegister(AD_LPDACDAT0, CORRECTION_6_BIT + i, 32);
-			delay(stepDuration_ms);
+		for (uint8_t slopePoint = 0; slopePoint <= tNumSlopePoints; slopePoint++)
+		{
+			if (tRisingSlope)
+			{
+				tDAC12Value = (tCVParams.dac12Step * (float)slopePoint) + tCVParams.lowDAC12Value;
+			}
+			else
+			{
+				tDAC12Value = tCVParams.highDAC12Value - (tCVParams.dac12Step * (float)slopePoint);
+			}
+
+			writeRegister(AD_LPDACDAT0, tCVParams.dac6Value + tDAC12Value, REG_SZ_32);
+			writeRegister(AD_AFECON, tAFECONValue | (uint32_t)1 << 8, REG_SZ_32);
+			delay(tCVParams.stepDuration_us * 1000);
+
+			Serial.print(tVoltageLevel);
+			Serial.print(",");
+			Serial.println(_getCurrentFromADCValue(_readADC()));
+
+			if (tRisingSlope)
+			{	
+				tVoltageLevel += pStepSize;
+			}
+			else 
+			{
+				tVoltageLevel -= pStepSize;
+			}
 		}
 
-		for(float i = HIGH_POINT_12_BIT; i >= LOW_POINT_12_BIT; i -= stepSize_hex) {
-			writeRegister(AD_LPDACDAT0, CORRECTION_6_BIT + i, 32);
-			delay(stepDuration_ms);
+		tCVState.currentSlope++;
+
+		if (!(tCVState.currentSlope % 2 == 0))
+		{
+			tRisingSlope = 1;
+		}
+		else
+		{
+			tRisingSlope = 0;
 		}
 	}
 
-	// Zero the voltage across the electrode
-	writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, 32);
+	_zeroVoltageAcrossElectrodes();
 
 	return 0;
 }
@@ -387,6 +408,8 @@ void AFE::_system_init(void)
 	writeRegister(0x0A00, 0x8009, REG_SZ_16); // PWRMOD - Power mode configuration register
 	writeRegister(0x22F0, 0x0000, REG_SZ_32); // PMBW - Power modes configuration register
 	writeRegister(0x238C, 0x005F3D04, REG_SZ_32); // ADCBUFCON - ADC buffer configuration register
+
+	_zeroVoltageAcrossElectrodes();
 }
 
 
@@ -457,4 +480,51 @@ void AFE::_clearRegisterBit(uint16_t address, uint8_t bitIndex)
 	uint32_t register_value = readRegister(address, REG_SZ_32);
 	register_value &= ~(1 << bitIndex);
 	writeRegister(address, register_value, REG_SZ_32);
+}
+
+
+int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
+{
+	pParamCV->stepDuration_us = (uint32_t)((double)pWaveCV->stepSize * 1000000.0 / (double)pWaveCV->scanRate);
+
+	pParamCV->dac12Step = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
+
+	float waveOffset_V = (pWaveCV->voltage1 + pWaveCV->voltage2) / 2.0f;
+
+	pParamCV->dac6Value = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
+
+	float refValue_V = (float)map(pParamCV->dac6Value, 0, 63, 0, 2166) / 1000.0f;
+
+	float waveTop_V = refValue_V + pWaveCV->voltage1;
+
+	if (!(waveTop_V <= DAC_6_RNG_V))
+	{
+		// ERROR: wave can't be generated!
+		return -1;
+	}
+
+	float waveBottom_V = refValue_V + pWaveCV->voltage2;
+
+	if (!(waveBottom_V >= 0))
+	{
+		// ERROR: wave can't be generated!
+		return -2;
+	}
+
+	pParamCV->highDAC12Value = map(waveTop_V * 100000, 0, 219983, 0, 4095);
+	pParamCV->lowDAC12Value = map(waveBottom_V * 100000, 0, 219983, 0, 4095);
+
+	pParamCV->numCycles = pWaveCV->numCycles;
+
+	pParamCV->numPoints = ((uint16_t)(((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->dac12Step) * 2.0f) * pWaveCV->numCycles) + 1;
+
+	pParamCV->numSlopePoints = (pParamCV->numPoints - 1) / (pParamCV->numCycles * 2);
+
+	return 1;
+}
+
+
+void AFE::_zeroVoltageAcrossElectrodes(void)
+{
+	writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, REG_SZ_32);
 }

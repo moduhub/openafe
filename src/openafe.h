@@ -115,7 +115,7 @@ class AFE
 		static unsigned long setTIAGain(unsigned long pTIAGain);
 
 	private:
-
+	
 		/**
 		 * Make the initialization sequence. 
 		 */
@@ -156,6 +156,20 @@ class AFE
 		 * Clear a specific bit in a register, set a bit to 0.
 		 */
 		static void _clearRegisterBit(uint16_t address, uint8_t bitIndex);
+
+		/**
+		 * @brief Calculate the parameters for a given target CV waveform.
+		 *
+		 * @param pWaveCV IN -- Desired parameters of a CV wave.
+		 * @param pParamCV OUT -- Resulting parameters to generate the given CV wave.
+		 * @return <=0 if wave cannot be generated.
+		 */
+		static int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV);
+
+		/**
+		 * @brief Zero the voltage across the electrode.
+		 */
+		static void _zeroVoltageAcrossElectrodes(void);
 };
 
 #endif //_OPENAFE_H_
