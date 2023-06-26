@@ -67,10 +67,10 @@ uint8_t afe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize);
 /**
  * @brief Wrapper to write data throught the SPI.
  * 
- * @param pRXBuffer IN -- Transceive buffer.
+ * @param pTXBuffer IN -- Transceive buffer.
  * @param pBufferSize IN -- Size of the buffer in bytes.
  * @return uint8_t Number of bytes written.
  */
-uint8_t afe_wrapper_SPIWrite(uint8_t *pRXBuffer, uint8_t pBufferSize);
+uint8_t afe_wrapper_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize);
 
 #endif// _AFE_WRAPPER_H_

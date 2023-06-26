@@ -52,7 +52,7 @@ uint8_t afe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize)
 	// Return the amount bytes read
 }
 
-uint8_t afe_wrapper_SPIWrite(uint8_t *pRXBuffer, uint8_t pBufferSize)
+uint8_t afe_wrapper_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize)
 {
 	// Write process here ...
 	// Return the amount of bytes written
