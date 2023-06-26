@@ -275,94 +275,77 @@ void afe_resetBySoftware(void)
 
 uint32_t afe_readRegister(uint16_t pAddress, uint8_t pRegisterSize)
 {
-	#if USE_SPI_READ_WRITE_WRAPPER
-	return afe_wrapper_readRegister(pAddress, pRegisterSize);
-	#else
-	uint32_t receivedData = 0;
-
 	if (!(pRegisterSize == 16 || pRegisterSize == 32))
 	{
 		pRegisterSize = 16;
 	}
 
-	/** Setting the register pAddress */
+	uint8_t tCommandBuffer[] = {SPICMD_SETADDR, pAddress >> 8 & 0xFF, pAddress & 0xFF};
+
 	afe_wrapper_CSLow();
-
-	afe_wrapper_SPITransfer(SPICMD_SETADDR);
-
-	// Transmit the register pAddress
-	afe_wrapper_SPITransfer((pAddress >> 8) & 0xFF);
-	afe_wrapper_SPITransfer(pAddress & 0xFF);
-
+	afe_wrapper_SPIWrite(tCommandBuffer, 3);
 	afe_wrapper_CSHigh();
 
-	/** Read the register pAddress */
+	uint8_t tReceiveBuffer[1 + (pRegisterSize == 16 ? 2 : 4)];
 	afe_wrapper_CSLow();
+	tCommandBuffer[0] = SPICMD_READREG;
+	afe_wrapper_SPIWrite(tCommandBuffer, 1);
+	afe_wrapper_SPIRead(tReceiveBuffer, 1 + (pRegisterSize == 16 ? 2 : 4));
+	afe_wrapper_CSHigh();
 
-	afe_wrapper_SPITransfer(SPICMD_READREG);
-
-	afe_wrapper_SPITransfer(0); // Dummy byte, to initialize read
+	uint32_t tRegisterValue;
 
 	if (pRegisterSize == 16)
 	{
-		receivedData = afe_wrapper_SPITransfer(0) << 8 | afe_wrapper_SPITransfer(0);
+		tRegisterValue = ((uint32_t)tReceiveBuffer[1] << 8 |
+						  (uint32_t)tReceiveBuffer[2]);
 	}
 	else
 	{
-		receivedData = ((uint32_t)afe_wrapper_SPITransfer(0) << 24) |
-					   ((uint32_t)afe_wrapper_SPITransfer(0) << 16) |
-					   ((uint32_t)afe_wrapper_SPITransfer(0) << 8) |
-					   ((uint32_t)afe_wrapper_SPITransfer(0));
+		tRegisterValue = ((uint32_t)tReceiveBuffer[1] << 24 |
+						  (uint32_t)tReceiveBuffer[2] << 16 |
+						  (uint32_t)tReceiveBuffer[3] << 8 |
+						  (uint32_t)tReceiveBuffer[4]);
 	}
+	// printk("Register read: 0x%04x >> 0x%08x\n", pAddress, tRegisterValue);
 
-	afe_wrapper_CSHigh();
-
-	return receivedData;
-	#endif
+	return tRegisterValue;
 }
 
 
 void afe_writeRegister(uint16_t pAddress, uint32_t pValue, uint8_t pRegisterSize)
 {
-	#if USE_SPI_READ_WRITE_WRAPPER
-	afe_wrapper_writeRegister(pAddress, pValue, pRegisterSize);
-	#else
 	if (!(pRegisterSize == 16 || pRegisterSize == 32))
 	{
 		pRegisterSize = 16;
 	}
 
-	/** Setting the register address */
+	// printk("Write register: 0x%04x << 0x%08x\n", pAddress, pRegisterValue);
+
+	uint8_t tCommandBuffer[] = {SPICMD_SETADDR, pAddress >> 8 & 0xFF, pAddress & 0xFF, 0x00, 0x00};
+
 	afe_wrapper_CSLow();
-
-	afe_wrapper_SPITransfer(SPICMD_SETADDR);
-
-	// Transmit the register address
-	afe_wrapper_SPITransfer((pAddress >> 8) & 0xFF);
-	afe_wrapper_SPITransfer(pAddress & 0xFF);
-
+	afe_wrapper_SPIWrite(tCommandBuffer, 3);
 	afe_wrapper_CSHigh();
 
-	/** Write pValue into the register */
-	afe_wrapper_CSLow();
-
-	afe_wrapper_SPITransfer(SPICMD_WRITEREG);
+	tCommandBuffer[0] = SPICMD_WRITEREG;
 
 	if (pRegisterSize == 16)
 	{
-		afe_wrapper_SPITransfer(pValue >> 8 & 0xFF);
-		afe_wrapper_SPITransfer(pValue);
+		tCommandBuffer[1] = pValue >> 8 & 0xff;
+		tCommandBuffer[2] = pValue & 0xff;
 	}
 	else
 	{
-		afe_wrapper_SPITransfer(pValue >> 24 & 0xFF);
-		afe_wrapper_SPITransfer(pValue >> 16 & 0xFF);
-		afe_wrapper_SPITransfer(pValue >> 8 & 0xFF);
-		afe_wrapper_SPITransfer(pValue);
+		tCommandBuffer[1] = pValue >> 24 & 0xff;
+		tCommandBuffer[2] = pValue >> 16 & 0xff;
+		tCommandBuffer[3] = pValue >> 8 & 0xff;
+		tCommandBuffer[4] = pValue & 0xff;
 	}
 
+	afe_wrapper_CSLow();
+	afe_wrapper_SPIWrite(tCommandBuffer, (pRegisterSize == 16 ? 3 : 5));
 	afe_wrapper_CSHigh();
-	#endif
 }
 
 

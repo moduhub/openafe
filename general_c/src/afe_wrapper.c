@@ -46,56 +46,14 @@ void afe_wrapper_reset(void)
 	// [Place in here a function to make reset pin go to high]
 }
 
-/**
- * Here there are two options:
- *
- * - Make the afe_wrapper_SPITransfer (easy way):
- * 		This is a function that takes a uint8_t byte, it writes
- * 		the byte to the AFE, meanwhile the function reads and
- * 		returns a byte read from the SPI transfer, full duplex mode
- * 		is required for this to work). It does just that.
- * 		In order for the library to use this read and write method the
- * 		constant USE_SPI_READ_WRITE_WRAPPER must be set to 0 (defaults to 0),
- * 		in the afe_wrapper.h.
- * 		OBS: DO NOT change the level of the CS pin (the library does this on it's on)
- *
- * - Make the read and write wrapper functions ('hard' way):
- * 		These functions do the entire read and write process. Depending
- * 		on the hardware afe_wrapper_SPITransfer may not be feasible. In
- * 		order for the library to use this read and write method the
- * 		constant USE_SPI_READ_WRITE_WRAPPER must be set to 1 (defaults to 0),
- * 		in the afe_wrapper.h.
- * 		OBS: Take a look on the Zephyr RTOS example.
- *
-*/
-
-uint8_t afe_wrapper_SPITransfer(uint8_t pByte)
+uint8_t afe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize)
 {
-	// Place Zephyr SPI write here
-	uint8_t tTXBuffer = pByte;
-	uint8_t tRXBuffer;
-
-	struct spi_buf tx_buf = {.buf = &tTXBuffer, .len = 1};
-	struct spi_buf rx_buf = {.buf = &tRXBuffer, .len = 1};
-	struct spi_buf_set tx_bufs = {.buffers = &tx_buf, .count = 1};
-	struct spi_buf_set rx_bufs = {.buffers = &rx_buf, .count = 1};
-
-	spi_transceive(gOpenAFE_dev, &gSPIConfig, &tx_bufs, &rx_bufs);
-
-	return tRXBuffer;
+	// Read process here ...
+	// Return the amount bytes read
 }
 
-
-uint32_t afe_wrapper_readRegister(uint16_t pRegisterAddress, uint8_t pRegisterSize)
-{
-	uint32_t tRegisterValue;
-	
-	// Read process here ... 
-
-	return tRegisterValue;
-}
-
-void afe_wrapper_writeRegister(uint16_t pRegisterAddress, uint32_t pRegisterValue, uint8_t pRegisterSize)
+uint8_t afe_wrapper_SPIWrite(uint8_t *pRXBuffer, uint8_t pBufferSize)
 {
 	// Write process here ...
+	// Return the amount of bytes written
 }

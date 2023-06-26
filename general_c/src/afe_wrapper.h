@@ -56,21 +56,21 @@ void afe_wrapper_reset(void);
 uint8_t afe_wrapper_SPITransfer(uint8_t pByte);
 
 /**
- * @brief Read process wrapper.
+ * @brief Wrapper to read data from the SPI.
  *
- * @param pRegisterAddress IN -- Address of the register to be read.
- * @param pRegisterSize IN -- Size of the register, either 16 or 32 bits.
- * @return uint32_t
+ * @param pRXBuffer OUT -- Receive buffer.
+ * @param pBufferSize IN -- Size of the buffer in bytes.
+ * @return uint8_t Number of bytes received.
  */
-uint32_t afe_wrapper_readRegister(uint16_t pRegisterAddress, uint8_t pRegisterSize);
+uint8_t afe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize);
 
 /**
- * @brief Write process wrapper.
+ * @brief Wrapper to write data throught the SPI.
  * 
- * @param pRegisterAddress IN -- Address of the register to be written.
- * @param pRegisterValue IN -- Value to be written in the register.
- * @param pRegisterSize IN -- Size of the register, either 16 or 32 bits.
+ * @param pRXBuffer IN -- Transceive buffer.
+ * @param pBufferSize IN -- Size of the buffer in bytes.
+ * @return uint8_t Number of bytes written.
  */
-void afe_wrapper_writeRegister(uint16_t pRegisterAddress, uint32_t pRegisterValue, uint8_t pRegisterSize);
+uint8_t afe_wrapper_SPIWrite(uint8_t *pRXBuffer, uint8_t pBufferSize);
 
 #endif// _AFE_WRAPPER_H_
