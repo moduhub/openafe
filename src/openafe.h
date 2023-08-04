@@ -36,9 +36,9 @@ struct waveCV_t {
 struct paramCV_t {
 	uint16_t highDAC12Value; 	// Value of 12-bit output of DAC for the CV high voltage value.
 	uint16_t lowDAC12Value;		// Value of 12-bit output of DAC for the CV low voltage value.
-	float dac12Step;			// Step value for the 12-bit output of the DAC.
-	uint16_t dac6Value;			// 6-bit DAC value.
-	uint32_t stepDuration_us;	// Duration of each step, in us.
+	float DAC12StepSize;		// Step size for the 12-bit output of the DAC.
+	uint16_t DAC6Value;			// Value of 6-bit output of DAC.
+	uint32_t stepDuration_us;	// Duration of each step, in microseconds (us).
 	uint16_t numPoints; 		// Number of points in the CV wave.
 	uint8_t numCycles;			// Target number of cycles of the CV wave.
 	uint16_t numSlopePoints;	// Number of points in the CV slopes.
@@ -122,10 +122,22 @@ class AFE
 		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
 		 * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
 		 * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
-		 * @return >=0 if successful, otherwise error.
+		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		static int cyclicVoltammetry(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
+		static int setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
+
+		/**
+		 * Generation of the Cyclic Voltammetry waveform.
+		 *
+		 * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.
+		 * @param pValleyVoltage IN -- Valley voltage of the waveform in Volts, e.g. -0.5.
+		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
+		 * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
+		 * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
+		 * @return >0 if successful, -1 if error.
+		 */
+		static int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
 		 * @brief Set the gain of the RTIA.

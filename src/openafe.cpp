@@ -20,7 +20,7 @@
 
 #define SEQ0_START_ADDR 0x000U	// Address of the SRAM where Sequence 0 starts
 #define SEQ0_END_ADDR 	0x2A9U	// Address of the SRAM where Sequence 0 ends
-#define SEQ1_START_ADDR 0x2AAU 	// Address of the SRAM where Sequence 1 starts
+#define SEQ1_START_ADDR 0x2ABU 	// Address of the SRAM where Sequence 1 starts
 #define SEQ1_END_ADDR 	0x554U	// Address of the SRAM where Sequence 1 ends
 
 
@@ -197,24 +197,96 @@ bool AFE::done(void)
 void AFE::setupCV(void)
 {
 	_switchConfiguration(); // Set the switches in the required configuration
-
-	setTIAGain(AD_TIAGAIN_2K); // Set TIA gain
-
-	/** configure ADC */
-	_setRegisterBit(AD_AFECON, 7); // Enable ADC
-
-	_setRegisterBit(AD_AFECON, 10); // Enable the excitation instrumentation amplifier
-
-	writeRegister(AD_ADCCON, (0b10U << 8 | 0b00010U), REG_SZ_32); // Configure ADC inputs
-
-	_setRegisterBit(AD_ADCFILTERCON, 0); // Set the ADC data rate to 800 kHz
-
-	writeRegister(AD_REPEATADCCNV, (0xFF << 4 | 0x1), REG_SZ_32); // Enable ADC repeate conversions and set it to 256
 }
 
+int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
+{
+	waveCV_t tWaveCV;
+	tWaveCV.voltage1 = pPeakVoltage;
+	tWaveCV.voltage2 = pValleyVoltage;
+	tWaveCV.scanRate = pScanRate;
+	tWaveCV.stepSize = pStepSize;
+	tWaveCV.numCycles = pNumCycles;
 
-int AFE::cyclicVoltammetry(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
+	static paramCV_t tCVParams;
+
+	int tPossible = _calculateParamsForCV(&tWaveCV, &tCVParams);
+
+	if (!tPossible)
+	{
+		return tPossible;
+	}
+
+	static stateCV_t tCVState;
+	tCVState.currentSlope = 1;
+
+	uint8_t tRisingSlope = 1;
+
+	uint16_t tNumSlopePoints = tCVParams.numPoints / (tCVParams.numCycles * 2);
+
+	uint32_t tAFECONValue = readRegister(AD_AFECON, REG_SZ_32);
+
+	float tVoltageLevel = pValleyVoltage * 1000; // Voltage level in millivolts.
+
+	while (tCVState.currentSlope <= (tCVParams.numCycles * 2))
+	{
+		uint16_t tDAC12Value;
+
+		// Adds another point on the last slope:
+		uint16_t tNumPointsOnCurrentSlope = tCVState.currentSlope == (tCVParams.numCycles * 2) ? tNumSlopePoints + 1 : tNumSlopePoints;
+
+		for (uint16_t slopePoint = 0; slopePoint < tNumPointsOnCurrentSlope; slopePoint++)
+		{
+			if (tRisingSlope)
+			{
+				tDAC12Value = (uint16_t)(((float)tCVParams.DAC12StepSize * (float)slopePoint) + (float)tCVParams.lowDAC12Value);
+			}
+			else
+			{
+				tDAC12Value = (uint16_t)((float)tCVParams.highDAC12Value - ((float)tCVParams.DAC12StepSize * (float)slopePoint));
+}
+
+			writeRegister(AD_LPDACDAT0, (uint32_t)tCVParams.DAC6Value << 12 | tDAC12Value, REG_SZ_32);
+			writeRegister(AD_AFECON, tAFECONValue | (uint32_t)1 << 8, REG_SZ_32);
+			delay(tCVParams.stepDuration_us / 1000);
+
+			Serial.print(tVoltageLevel);
+			Serial.print(F(","));
+			Serial.println(_getCurrentFromADCValue(_readADC()));
+
+			if (tRisingSlope)
 {	
+				tVoltageLevel += pStepSize;
+			}
+			else
+			{
+				tVoltageLevel -= pStepSize;
+			}
+		}
+
+		tCVState.currentSlope++;
+
+		if (!(tCVState.currentSlope % 2 == 0))
+		{
+			tRisingSlope = 1;
+		}
+		else
+		{
+			tRisingSlope = 0;
+		}
+	}
+
+	_zeroVoltageAcrossElectrodes();
+
+	return 1;
+}
+
+int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
+{	
+	_zeroVoltageAcrossElectrodes();
+
+	_dataFIFOSetup(2000U);
+
 	waveCV_t tWaveCV;
 	tWaveCV.voltage1 = pPeakVoltage; 
 	tWaveCV.voltage2 = pValleyVoltage;
@@ -537,7 +609,7 @@ uint32_t AFE::_readADC(void)
 
 double AFE::_getCurrentFromADCValue(uint32_t pADCValue)
 {
-	float tVoltage = (1.82f / (float)gPGA) * ((float)(pADCValue - 32768) / 32768.0f) * (-1.0f);
+	float tVoltage = (1.82f / (float)gPGA) * ((float)(pADCValue - 32768.0f) / 32768.0f) * (-1.0f);
 
 	double tCurrent = ((double)tVoltage * 1000000.0) / (double)gTIAGain;
 	
@@ -776,7 +848,6 @@ void AFE::_zeroVoltageAcrossElectrodes(void)
 
 void AFE::_switchConfiguration(void)
 {
-
 	// Enable writes to the low power DAC with LPDACDAT0
 	_setRegisterBit(AD_LPDACCON0, 0);
 
@@ -806,25 +877,26 @@ void AFE::_switchConfiguration(void)
 	// Disconnects the V ZERO0 DAC voltage output from the high speed TIA positive input
 	_clearRegisterBit(AD_LPDACSW0, 0);
 
-	// Opens SW15 to disconnect RE and CE 
-	_clearRegisterBit(AD_LPTIASW0, 15);
-
 	// Close the required switches, SW2, SW4 and SW13
 	_setRegisterBit(AD_LPTIASW0, 13);
 	_setRegisterBit(AD_LPTIASW0, 4);
 	_setRegisterBit(AD_LPTIASW0, 2);
 
-	// Connect Low Pass filter to TIA output
-	_setRegisterBit(AD_LPTIACON0, 13);
-
 	// Power up potentiostat amplifier
-	_clearRegisterBit(AD_LPTIACON0, 1);
-
 	// Power up low power TIA
-	_clearRegisterBit(AD_LPTIACON0, 0);
+	// Set TIA GAIN resistor to 3kOhms
+	// Connects TIA output to LP filter
+	writeRegister(AD_LPTIACON0, 0x2080, REG_SZ_32);
+
+	setTIAGain(AD_TIAGAIN_3K);
 
 	// Enable the DAC buffer
-	_setRegisterBit(AD_AFECON, 21);
+	// Enable ADC
+	writeRegister(AD_AFECON, 0x280080, REG_SZ_32);
+
+	writeRegister(AD_ADCCON, 0x1002, REG_SZ_32);
+
+	_setRegisterBit(AD_ADCFILTERCON, REG_SZ_32);
 }
 
 
