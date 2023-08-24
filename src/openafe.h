@@ -156,7 +156,15 @@ class AFE
 		 * @return False if device is currently under work. 
 		 */
 		static bool done(void);
-		
+
+		/**
+		 * @brief Check if there is data available or not. 
+		 * 
+		 * @return true if there is data available
+		 * @return false if there is no data available
+		 */
+		static bool dataAvailable(void);
+
 		/**
 		 * @brief Start the voltametry. 
 		 * @note Use this after cyclicVoltammetry.

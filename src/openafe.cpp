@@ -42,6 +42,7 @@ static uint16_t gNumRemainingDataPoints; 	// Number of data points to read.
 
 static bool gDebugMode = false; // Debug mode control variable, if yes debug logs are going to be printed.
 
+static bool gDataAvailable = false; // Whether or not there is data available to read.
 
 /**
  * @brief Whether the AD594x has finish or not the current operation.
@@ -194,10 +195,17 @@ bool AFE::done(void)
 }
 
 
+bool AFE::dataAvailable(void)
+{
+	return gDataAvailable;
+}
+
+
 void AFE::setupCV(void)
 {
 	_switchConfiguration(); // Set the switches in the required configuration
 }
+
 
 int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
@@ -244,7 +252,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 			else
 			{
 				tDAC12Value = (uint16_t)((float)tCVParams.highDAC12Value - ((float)tCVParams.DAC12StepSize * (float)slopePoint));
-}
+			}
 
 			writeRegister(AD_LPDACDAT0, (uint32_t)tCVParams.DAC6Value << 12 | tDAC12Value, REG_SZ_32);
 			writeRegister(AD_AFECON, tAFECONValue | (uint32_t)1 << 8, REG_SZ_32);
@@ -255,7 +263,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 			Serial.println(_getCurrentFromADCValue(_readADC()));
 
 			if (tRisingSlope)
-{	
+			{
 				tVoltageLevel += pStepSize;
 			}
 			else
@@ -280,6 +288,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 
 	return 1;
 }
+
 
 int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {	
@@ -320,12 +329,13 @@ int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate
 
 	gFinished = false;
 
-	return 0;
+	return 1;
 }
 
 
 void AFE::startVoltammetry(void)
-{
+{	
+	gDataAvailable = false;
 	_startSequence(0);
 }
 
@@ -338,7 +348,7 @@ int AFE::readDataFIFO(void)
 
 	gNumRemainingDataPoints--;
 
-	return;
+	return tDataFIFOValue;
 }
 
 
@@ -346,13 +356,13 @@ int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 {
 	pParamCV->stepDuration_us = (uint32_t)((double)pWaveCV->stepSize * 1000000.0 / (double)pWaveCV->scanRate);
 
-	pParamCV->dac12Step = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
+	pParamCV->DAC12StepSize = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
 	
 	float waveOffset_V = (pWaveCV->voltage1 + pWaveCV->voltage2) / 2.0f;
 
-	pParamCV->dac6Value = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
+	pParamCV->DAC6Value = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
 
-	float refValue_V = (float)map(pParamCV->dac6Value, 0, 63, 0, 2166) / 1000.0f;
+	float refValue_V = (float)map(pParamCV->DAC6Value, 0, 63, 0, 2166) / 1000.0f;
 
 	float waveTop_V = refValue_V + pWaveCV->voltage1;
 
@@ -375,7 +385,7 @@ int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 
 	pParamCV->numCycles = pWaveCV->numCycles;
 
-	pParamCV->numPoints = ((uint16_t)(((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->dac12Step) * 2.0f) * pWaveCV->numCycles) + 1;
+	pParamCV->numPoints = ((uint16_t)(((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->DAC12StepSize) * 2.0f) * pWaveCV->numCycles) + 1;
 
 	_debugLog("Number of points param: ", pParamCV->numPoints);
 
@@ -410,13 +420,13 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 
 			if(!(pStateCV->currentSlope % 2 == 0)){
 				/* Rising slope */
-				tDAC12Value = (pParamCV->dac12Step * (float)i) + pParamCV->lowDAC12Value;
+				tDAC12Value = (pParamCV->DAC12StepSize * (float)i) + pParamCV->lowDAC12Value;
 			} else {
 				/* Falling slope */
-				tDAC12Value = pParamCV->highDAC12Value - (pParamCV->dac12Step * (float)i);
+				tDAC12Value = pParamCV->highDAC12Value - (pParamCV->DAC12StepSize * (float)i);
 			}
 
-				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->dac6Value << 12) | (uint32_t)tDAC12Value);
+				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->DAC6Value << 12) | (uint32_t)tDAC12Value);
 
 				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)(1 << 8)); // Start ADC conversion
 
@@ -547,16 +557,19 @@ void AFE::interruptHandler(void)
 	if(tInterruptFlags0 & (uint32_t)1 << 23){ // data FIFO full
 		// Start reading data FIFO immediately
 		_debugLog(">> INT -> DATA FIFO FULL");
+		gDataAvailable = true;
 	}
 	
 	if(tInterruptFlags0 & (uint32_t)1 << 24){ // data FIFO threshold reached
 		// Start reading data FIFO immediately
 		_debugLog(">> INT -> DATA FIFO THRES REACHED");
+		gDataAvailable = true;
 	}
 	
 	if(tInterruptFlags0 & (uint32_t)1 << 25){ // data FIFO empty
 		// stop reading data FIFO
 		_debugLog(">> INT -> DATA FIFO EMPTY");
+		gDataAvailable = false;
 	}
 
 	writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
