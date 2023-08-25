@@ -560,13 +560,13 @@ void AFE::interruptHandler(void)
 		gDataAvailable = true;
 	}
 	
-	if(tInterruptFlags0 & (uint32_t)1 << 24){ // data FIFO threshold reached
+	if(tInterruptFlags0 & (uint32_t)1 << 25){ // data FIFO threshold reached
 		// Start reading data FIFO immediately
 		_debugLog(">> INT -> DATA FIFO THRES REACHED");
 		gDataAvailable = true;
 	}
 	
-	if(tInterruptFlags0 & (uint32_t)1 << 25){ // data FIFO empty
+	if(tInterruptFlags0 & (uint32_t)1 << 24){ // data FIFO empty
 		// stop reading data FIFO
 		_debugLog(">> INT -> DATA FIFO EMPTY");
 		gDataAvailable = false;
