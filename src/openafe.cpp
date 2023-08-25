@@ -296,6 +296,12 @@ int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate
 
 	_dataFIFOSetup(2000U);
 
+
+	// - Restore FIFO after configuration.
+	// - bit 13 -- Enable data FIFO.
+	// - bit 11 -- Select data from the sinc2 filter.
+	writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)0b11 << 13 | (uint32_t)1 << 11, REG_SZ_32);
+
 	waveCV_t tWaveCV;
 	tWaveCV.voltage1 = pPeakVoltage; 
 	tWaveCV.voltage2 = pValleyVoltage;
@@ -482,13 +488,6 @@ void AFE::_dataFIFOSetup(uint16_t pDataMemoryAmount)
 
 	writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32);
 
-	// uint32_t tFIFOCONValue = readRegister(AD_FIFOCON, REG_SZ_32);
-	/**
-	 * - ADC data. ADC data is output of gain/offset calibration through the sinc3
-	 *   filter.
-	 * - Enable data FIFO.
-	 */
-	writeRegister(AD_FIFOCON, (uint32_t)1 << 12 | (uint32_t)1 << 11, REG_SZ_32);
 }
 
 
