@@ -543,8 +543,8 @@ void AFE::interruptHandler(void)
 
 	if(tInterruptFlags0 & (uint32_t)1 << 15){ // end of sequence
 		// start the next sequence, and fill the sequence that ended with new commands
-		_startSequence(!gCurrentSequence);
 		_debugLog(">> INT -> END OF SEQUENCE: ", gCurrentSequence);
+		_startSequence(!gCurrentSequence);
 
 		if (gCurrentSequence){ // check which sequence is running, and feed the other one with new commands
 			_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
