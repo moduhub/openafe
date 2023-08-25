@@ -510,17 +510,16 @@ void AFE::_interruptConfig(void)
 	 * - Data FIFO threshold
 	 * - Data FIFO empty
 	 */
-	// writeRegister(AD_INTCSEL0, 0x3808600, REG_SZ_32);
+	writeRegister(AD_INTCSEL0,
+		(uint32_t)1 << 25 |	// Data FIFO threshold
+		(uint32_t)1 << 23 | // Data FIFO full
+		(uint32_t)1 << 15 | // End of sequence
+		(uint32_t)1 << 12 | // End of Voltammetry
+		(uint32_t)1 << 10 | // Sequence 1 -> custom interrupt 1
+		(uint32_t)1 << 9,	// Sequence 0 -> custom interrupt 0
+		REG_SZ_32);
 
-	/** Set interrupts for:
-	 * - Sequence 0 -> custom interrupt 0
-	 * - Sequence 1 -> custom interrupt 1
-	 * - Finished Waveform -> custom interrupt 3
-	 * - End of Sequence
-	 */
-	writeRegister(AD_INTCSEL0, 0x9600, REG_SZ_32);
-
-	uint16_t pDataFIFOThreshold = 0x1FF; // 50% of the data FIFO
+	uint16_t pDataFIFOThreshold = 0xAA; // 50% of the data FIFO (1023 / 3 = 341 / 2 = 170 => 0xAA)
 
 	writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
 }
