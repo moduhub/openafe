@@ -903,13 +903,25 @@ void AFE::_switchConfiguration(void)
 
 	setTIAGain(AD_TIAGAIN_3K);
 
-	// Enable the DAC buffer
-	// Enable ADC
-	writeRegister(AD_AFECON, 0x280080, REG_SZ_32);
+	writeRegister(AD_AFECON,
+		(uint32_t)1 << 21 | // Enables the dc DAC buffer
+		(uint32_t)1 << 19 | // Analog LDO buffer current limiting disabled 
+		(uint32_t)1 << 16 | // Supply rejection filter enabled. Enables sinc2 (50 Hz/60 Hz digital filter)
+		(uint32_t)1 << 7,   // ADC enable
+		REG_SZ_32);
 
-	writeRegister(AD_ADCCON, 0x1002, REG_SZ_32);
+	writeRegister(AD_ADCCON, 
+		(uint32_t)0b1 << 12 | // ADC negative IN: VZERO pin
+		(uint32_t)0b10, 	  // ADC positive IN: Low power TIA positive low-pass filter signal 
+		REG_SZ_32);
+	// writeRegister(AD_ADCCON, ((uint32_t)(0b00010) << 8) | (uint32_t)(0b00010), REG_SZ_32);
 
-	_setRegisterBit(AD_ADCFILTERCON, REG_SZ_32);
+	// Filtering options
+	writeRegister(AD_ADCFILTERCON, 
+		(uint32_t)0b0000 << 8 | // Sinc2 oversampling rate (OSR).
+		(uint32_t)1 << 4 | 		// Bypasses the 50 Hz notch and 60 Hz notch filters. 
+		(uint32_t)0x1, 			// ADC data rate: 800 kHz
+		REG_SZ_32);
 }
 
 
