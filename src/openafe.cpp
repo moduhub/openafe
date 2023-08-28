@@ -18,11 +18,10 @@
 
 #define SEQ_DEFAULT_TIME_RESULUTION_NS 62.5f // Default time resolution of the sequencer, using the 16 MHz clock
 
-#define SEQ0_START_ADDR 0x000U	// Address of the SRAM where Sequence 0 starts
-#define SEQ0_END_ADDR 	0x2A9U	// Address of the SRAM where Sequence 0 ends
-#define SEQ1_START_ADDR 0x2ABU 	// Address of the SRAM where Sequence 1 starts
-#define SEQ1_END_ADDR 	0x554U	// Address of the SRAM where Sequence 1 ends
-
+#define SEQ0_START_ADDR 0x000U // Address of the SRAM where Sequence 0 starts
+#define SEQ0_END_ADDR 0x154U   // Address of the SRAM where Sequence 0 ends
+#define SEQ1_START_ADDR 0x155U // Address of the SRAM where Sequence 1 starts
+#define SEQ1_END_ADDR 0x2A9U   // Address of the SRAM where Sequence 1 ends
 
 static uint32_t gSPI_CLK_HZ;	// SPI interface frequency, in Hertz.
 
