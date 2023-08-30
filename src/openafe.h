@@ -163,7 +163,7 @@ class AFE
 		 * @return true if there is data available
 		 * @return false if there is no data available
 		 */
-		static bool dataAvailable(void);
+		static uint32_t dataAvailable(void);
 
 		/**
 		 * @brief Start the voltametry. 
@@ -176,7 +176,7 @@ class AFE
 		 * 
 		 * @return int 
 		 */
-		static int readDataFIFO(void);
+		static float readDataFIFO(void);
 
 		/**
 		 * @brief Handle interrupts triggered by the AD5941 device.

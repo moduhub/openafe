@@ -11,11 +11,9 @@ void setup()
 	pinMode(2, INPUT);
 	attachInterrupt(digitalPinToInterrupt(2), interruptCallback, HIGH); // Config the Arduino Interrupt
 
-	Serial.println("Device is ready");
-
 	openAFE.setupCV();
 
-	openAFE.debugModeOn();
+	// openAFE.debugModeOn();
 	noInterrupts();
 }
 
@@ -38,33 +36,40 @@ void loop()
 
 	// int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
 
-	// int success = openAFE.cyclicVoltammetry(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
+	// int success = openAFE.waveformCV(0.5, -0.5, 250, 10, 2); // DEBUG ONLY
 
-	int success = openAFE.setCVSequence(0.5, -0.5, 250, 1, 2); // DEBUG ONLY
+	int success = openAFE.setCVSequence(0.5, -0.5, 250, 10, 2); // DEBUG ONLY
 
 	if (success)
 	{
 		Serial.println("Voltammetry in process...");
+
 		interrupts();
 		openAFE.startVoltammetry();
 
 		do
 		{
-			if (openAFE.dataAvailable())
+			bool isDataAvailable = openAFE.dataAvailable() > 0;
+
+			// Serial.print("Data Av.: ");
+			// Serial.println(isDataAvailable);
+
+			if (isDataAvailable)
 			{
-				// Serial.println("Data available");
+				// Serial.println("-- Data available");
 
 				noInterrupts(); // Disable interrupts while reading data FIFO
 
 				float tDataDueToRead = openAFE.readDataFIFO();
 
-				if (tDataDueToRead != 0)
+				interrupts(); // Enable back interrupts after reading data from FIFO
+
+				if (tDataDueToRead)
 				{
 					Serial.println(tDataDueToRead);
 				}
-
-				interrupts(); // Enable back interrupts after reading data from FIFO
 			}
+			delay(1);
 
 		} while (!openAFE.done());
 
