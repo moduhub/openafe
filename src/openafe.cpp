@@ -889,6 +889,16 @@ uint16_t AFE::_sequencerWaitCommand(uint32_t pTimeToWait_us)
 }
 
 
+uint16_t AFE::_sequencerWaitCommandClock(uint32_t pTimeToWait_clk)
+{
+	uint32_t tSequencerCommand = pTimeToWait_clk & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
+
+	writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
+
+	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+}
+
+
 uint16_t AFE::_increaseSequencerMemoryAddress(void)
 {
 	uint32_t tCMDRegisterData = readRegister(AD_CMDFIFOWADDR, REG_SZ_32);
