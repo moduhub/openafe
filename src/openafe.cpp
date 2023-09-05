@@ -18,10 +18,11 @@
 
 #define SEQ_DEFAULT_TIME_RESULUTION_NS 62.5f // Default time resolution of the sequencer, using the 16 MHz clock
 
-#define SEQ0_START_ADDR 0x000U // Address of the SRAM where Sequence 0 starts
-#define SEQ0_END_ADDR 0x154U   // Address of the SRAM where Sequence 0 ends
-#define SEQ1_START_ADDR 0x155U // Address of the SRAM where Sequence 1 starts
-#define SEQ1_END_ADDR 0x2A9U   // Address of the SRAM where Sequence 1 ends
+// 1023 / 2 commands per sequence
+#define SEQ0_START_ADDR 0x000u // Address of the SRAM where Sequence 0 starts
+#define SEQ0_END_ADDR 0x1FFu   // Address of the SRAM where Sequence 0 ends
+#define SEQ1_START_ADDR 0x200u // Address of the SRAM where Sequence 1 starts
+#define SEQ1_END_ADDR 0x3FFu   // Address of the SRAM where Sequence 1 ends
 
 static uint32_t gSPI_CLK_HZ;	// SPI interface frequency, in Hertz.
 
@@ -41,7 +42,7 @@ static uint16_t gNumRemainingDataPoints; 	// Number of data points to read.
 
 static bool gDebugMode = false; // Debug mode control variable, if yes debug logs are going to be printed.
 
-static bool gDataAvailable = false; // Whether or not there is data available to read.
+static uint16_t gDataAvailable = 0; // Whether or not there is data available to read.
 
 /**
  * @brief Whether the AD594x has finish or not the current operation.
@@ -190,13 +191,13 @@ void AFE::writeRegister(uint16_t address, uint32_t value, uint8_t registerSize)
 
 bool AFE::done(void)
 {
-	return gFinished && (gNumRemainingDataPoints == 0);
+	return (gFinished && (gDataAvailable == 0)) || (gFinished && (gNumRemainingDataPoints == 0));
 }
 
 
-bool AFE::dataAvailable(void)
+uint16_t AFE::dataAvailable(void)
 {
-	return gDataAvailable;
+	return gNumRemainingDataPoints > 0 ? gDataAvailable : 0;
 }
 
 
@@ -293,7 +294,34 @@ int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate
 {	
 	_zeroVoltageAcrossElectrodes();
 
+	writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Disable FIFO before configuration
+
 	_dataFIFOSetup(2000U);
+
+	// - bit 13 -- Select data FIFO source: sinc2.
+	writeRegister(AD_FIFOCON,(uint32_t)0b011 << 13, REG_SZ_32);
+
+	_interruptConfig();
+
+	uint32_t tFIFOCONValue = readRegister(AD_FIFOCON, REG_SZ_32);
+	writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Clear fifo configuration
+
+	writeRegister(AD_SEQCON, 0, REG_SZ_32); // Disable sequencer
+	writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Clear count and CRC registers
+
+	/**
+	 * Configure sequencer:
+	 * - bit 3 -- Command Memory mode
+	 * - bit 0 -- Command memory select
+	 */
+	uint32_t tCMDDATACONValue = readRegister(AD_CMDDATACON, REG_SZ_32);
+	tCMDDATACONValue &= ~(uint32_t)0b111111 << 0; // Mask command configs
+	tCMDDATACONValue |= ((uint32_t)0b10 << 0 | (uint32_t)0b01 << 3);
+	writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32); // Configure sequencer
+
+	// - Restore FIFO after configuration.
+	// - bit 11 -- Enable data FIFO.
+	writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)1 << 11, REG_SZ_32); // restore FIFO configuration
 
 	waveCV_t tWaveCV;
 	tWaveCV.voltage1 = pPeakVoltage; 
@@ -316,9 +344,8 @@ int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate
 
 	gNumRemainingDataPoints = gCVParams.numPoints;
 
-	writeRegister(AD_CMDDATACON, 0x449, REG_SZ_32); // Configure sequencer
-
-	_interruptConfig();
+	Serial.print("num pnts: ");
+	Serial.println(gNumRemainingDataPoints);
 
 	bool tSentAllWaveSequence = _sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
 
@@ -334,25 +361,44 @@ int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate
 
 void AFE::startVoltammetry(void)
 {	
-	gDataAvailable = false;
+	gDataAvailable = 0;
+	
+	// FIFO reset
+	writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13, REG_SZ_32);
+	// Enable FIFO again
+	writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13 | (uint32_t)1 << 11, REG_SZ_32);
+
 	_startSequence(0);
 }
 
 
-int AFE::readDataFIFO(void)
+float AFE::readDataFIFO(void)
 {
 	uint32_t tDataFIFOValue = readRegister(AD_DATAFIFORD, REG_SZ_32);
 
-	tDataFIFOValue &= ~((uint16_t)0); 
+	if (tDataFIFOValue == 0)
+	{
+		gDataAvailable = 0;
+	}
+
+	tDataFIFOValue &= 0xFFFF; 
 
 	gNumRemainingDataPoints--;
 
-	return tDataFIFOValue;
+	if (gNumRemainingDataPoints == 0)
+	{
+		Serial.print(">> NO MORE PNTS\n");
+		gDataAvailable = 0;
+	}
+
+	return _getCurrentFromADCValue(tDataFIFOValue);
 }
 
 
 int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 {
+	pParamCV->numPoints = (uint16_t)(((((pWaveCV->voltage1 - pWaveCV->voltage2) * 1000.0f) / pWaveCV->stepSize) * 2.0f) * (float)pWaveCV->numCycles) + 1u;
+
 	pParamCV->stepDuration_us = (uint32_t)((double)pWaveCV->stepSize * 1000000.0 / (double)pWaveCV->scanRate);
 
 	pParamCV->DAC12StepSize = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
@@ -383,8 +429,6 @@ int AFE::_calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 	pParamCV->lowDAC12Value = map(waveBottom_V * 100000, 0, 219983, 0, 4095);
 
 	pParamCV->numCycles = pWaveCV->numCycles;
-
-	pParamCV->numPoints = ((uint16_t)(((float)(pParamCV->highDAC12Value - pParamCV->lowDAC12Value) / pParamCV->DAC12StepSize) * 2.0f) * pWaveCV->numCycles) + 1;
 
 	_debugLog("Number of points param: ", pParamCV->numPoints);
 
@@ -419,21 +463,38 @@ bool AFE::_sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStart
 
 			if(!(pStateCV->currentSlope % 2 == 0)){
 				/* Rising slope */
-				tDAC12Value = (pParamCV->DAC12StepSize * (float)i) + pParamCV->lowDAC12Value;
+				tDAC12Value = (uint16_t)(pParamCV->DAC12StepSize * (float)i) + pParamCV->lowDAC12Value;
 			} else {
 				/* Falling slope */
-				tDAC12Value = pParamCV->highDAC12Value - (pParamCV->DAC12StepSize * (float)i);
+				tDAC12Value = pParamCV->highDAC12Value - (uint16_t)(pParamCV->DAC12StepSize * (float)i);
 			}
 
 				_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->DAC6Value << 12) | (uint32_t)tDAC12Value);
 
-				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)(1 << 8)); // Start ADC conversion
+				if (pStateCV->currentSlope == 1 && i == 0)
+				{
+					_sequencerWriteCommand(AD_FIFOCON, 0); // Disable FIFO
+					_sequencerWaitCommand(1000000u); // settling time on the first ever slope
+					_sequencerWriteCommand(AD_FIFOCON, (uint32_t)0b11 << 13 | (uint32_t)1 << 11); // Enable FIFO again
+				}
 
-				tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us);
+				// Turn on ADC
+				const uint16_t ADC_STABILIZATION_TIME_US = 500u; 
+				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); // Enable ADC power
+				_sequencerWaitCommand(ADC_STABILIZATION_TIME_US); // wait for it to stabilize
+
+				// ADC conversion
+				const uint16_t CONV_CLK_CYCLES = 8000 + 50; // 800 (samples) * ( 16 (MHz) / 1.6 (MHz)) = 8000 clock pulses per sample
+				_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8)); // Start ADC conversion				
+				_sequencerWaitCommandClock(CONV_CLK_CYCLES); // wait 2360 clocks
+				_sequencerWriteCommand(AD_AFECON, (tAFECONValue & ~((uint32_t)1 << 7)) & ~((uint32_t)1 << 8)); // Stop ADC conversion
+				
+				// Step time with the necessary time compensations
+				tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us - (uint32_t)((float)(CONV_CLK_CYCLES) * 0.0625f) - ADC_STABILIZATION_TIME_US);
 
 				gNumWavePoints++;
 
-				if(tCurrentAddress + 4 >= pEndingAddress){
+				if(tCurrentAddress + 8 >= pEndingAddress){
 					pStateCV->currentSlopePoint = (i + 1) >= tNumSlopePoints ? 0 : (i + 1);
 					tSequenceFilled = true;
 					break;
@@ -467,7 +528,8 @@ void AFE::_dataFIFOSetup(uint16_t pDataMemoryAmount)
 
 	tCMDDATACONValue &= ~( (uint32_t)0b111 << 9);
 
-	tCMDDATACONValue |= (uint32_t)0b10 << 9; // Data FIFO Mode: FIFO mode
+	// tCMDDATACONValue |= (uint32_t)0b10 << 9; // Data FIFO Mode: FIFO mode
+	tCMDDATACONValue |= (uint32_t)0b11 << 9; // Data FIFO Mode: stream mode
 
 	tCMDDATACONValue &= ~( (uint32_t)0b111 << 6);
 
@@ -481,13 +543,10 @@ void AFE::_dataFIFOSetup(uint16_t pDataMemoryAmount)
 
 	writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32);
 
-	// uint32_t tFIFOCONValue = readRegister(AD_FIFOCON, REG_SZ_32);
-	/**
-	 * - ADC data. ADC data is output of gain/offset calibration through the sinc3
-	 *   filter.
-	 * - Enable data FIFO.
-	 */
-	writeRegister(AD_FIFOCON, (uint32_t)1 << 12 | (uint32_t)1 << 11, REG_SZ_32);
+	// uint16_t pDataFIFOThreshold = 0xAA; // 50% of the data FIFO (1023 / 3 = 341 / 2 = 170 => 0xAA)
+	uint16_t pDataFIFOThreshold = 20u;
+
+	writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
 }
 
 
@@ -509,19 +568,15 @@ void AFE::_interruptConfig(void)
 	 * - Data FIFO threshold
 	 * - Data FIFO empty
 	 */
-	// writeRegister(AD_INTCSEL0, 0x3808600, REG_SZ_32);
-
-	/** Set interrupts for:
-	 * - Sequence 0 -> custom interrupt 0
-	 * - Sequence 1 -> custom interrupt 1
-	 * - Finished Waveform -> custom interrupt 3
-	 * - End of Sequence
-	 */
-	writeRegister(AD_INTCSEL0, 0x9600, REG_SZ_32);
-
-	uint16_t pDataFIFOThreshold = 0x1FF; // 50% of the data FIFO
-
-	writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
+	writeRegister(AD_INTCSEL0,
+		(uint32_t)1 << 25 |	// Data FIFO threshold
+		(uint32_t)1 << 23 | // Data FIFO empty
+		// (uint32_t)1 << 24 | // Data FIFO full
+		(uint32_t)1 << 15 | // End of sequence
+		(uint32_t)1 << 12 | // End of Voltammetry
+		(uint32_t)1 << 10 | // Sequence 1 -> custom interrupt 1
+		(uint32_t)1 << 9,	// Sequence 0 -> custom interrupt 0
+		REG_SZ_32);
 }
 
 
@@ -533,17 +588,22 @@ void AFE::interruptHandler(void)
 	
 	tInterruptFlags0 = readRegister(AD_INTCFLAG0, REG_SZ_32);
 
-	if(tInterruptFlags0 & (uint32_t)1 << 12){ // end of voltammetry
+	// Serial.print("Interrupt Flags: 0x");
+	// Serial.println(tInterruptFlags0, HEX);
+
+	if(tInterruptFlags0 & ((uint32_t)1 << 12)){ // end of voltammetry
 		_debugLog(">> INT -> FINISHED WAVEFORM!");
+		Serial.println(">> INT -> FINISHED WAVEFORM!");
 		_debugLog("Number used by sequencer: ", gNumWavePoints);
 		_zeroVoltageAcrossElectrodes();
+		gDataAvailable = 10;
 		gFinished = true;
 	}
 
-	if(tInterruptFlags0 & (uint32_t)1 << 15){ // end of sequence
+	if(tInterruptFlags0 & ((uint32_t)1 << 15)){ // end of sequence
 		// start the next sequence, and fill the sequence that ended with new commands
-		_startSequence(!gCurrentSequence);
 		_debugLog(">> INT -> END OF SEQUENCE: ", gCurrentSequence);
+		_startSequence(!gCurrentSequence);
 
 		if (gCurrentSequence){ // check which sequence is running, and feed the other one with new commands
 			_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
@@ -553,22 +613,41 @@ void AFE::interruptHandler(void)
 		
 	}
 
-	if(tInterruptFlags0 & (uint32_t)1 << 23){ // data FIFO full
+	if(tInterruptFlags0 & ((uint32_t)1 << 23)){ // data FIFO full
 		// Start reading data FIFO immediately
 		_debugLog(">> INT -> DATA FIFO FULL");
-		gDataAvailable = true;
+		// Serial.print(F(">> INT -> DATA FIFO FULL\n"));
+
+		// uint32_t tNumDataInFIFO = ((uint32_t)readRegister(AD_FIFOCNTSTA, REG_SZ_32) >> 16) & (uint32_t)0b1111111111;
+		// Serial.print(F("Amount of data available: "));
+		// Serial.println(tNumDataInFIFO);
+		gDataAvailable = 10; // used just to flag there is data available
 	}
 	
-	if(tInterruptFlags0 & (uint32_t)1 << 24){ // data FIFO threshold reached
+	if(tInterruptFlags0 & ((uint32_t)1 << 25) && !gFinished){ // data FIFO threshold reached
 		// Start reading data FIFO immediately
 		_debugLog(">> INT -> DATA FIFO THRES REACHED");
-		gDataAvailable = true;
+		Serial.print(F(">> INT -> DATA FIFO THRES REACHED\n"));
+
+		uint32_t tINTCSEL0Value = readRegister(AD_INTCSEL0, REG_SZ_32);
+		writeRegister(AD_INTCSEL0, (tINTCSEL0Value & ~((uint32_t)1 << 25)) | (uint32_t)1 << 24, REG_SZ_32);
+
+		uint32_t tNumDataInFIFO = ((uint32_t)readRegister(AD_FIFOCNTSTA, REG_SZ_32) >> 16) & (uint32_t)0b1111111111;
+		tNumDataInFIFO = ((uint32_t)readRegister(AD_FIFOCNTSTA, REG_SZ_32) >> 16) & (uint32_t)0b1111111111;
+		Serial.print(F("Amount of data available: "));
+		Serial.println(tNumDataInFIFO);
+		
+		gDataAvailable = tNumDataInFIFO;
 	}
 	
-	if(tInterruptFlags0 & (uint32_t)1 << 25){ // data FIFO empty
+	if(tInterruptFlags0 & ((uint32_t)1 << 24)){ // data FIFO empty
 		// stop reading data FIFO
 		_debugLog(">> INT -> DATA FIFO EMPTY");
-		gDataAvailable = false;
+		Serial.print(F(">> INT -> DATA FIFO EMPTY\n"));
+
+		uint32_t tINTCSEL0Value = readRegister(AD_INTCSEL0, REG_SZ_32);
+		writeRegister(AD_INTCSEL0, (tINTCSEL0Value & ~((uint32_t)1 << 24)) | (uint32_t)1 << 25, REG_SZ_32);
+		gDataAvailable = 0;
 	}
 
 	writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
@@ -811,6 +890,16 @@ uint16_t AFE::_sequencerWaitCommand(uint32_t pTimeToWait_us)
 }
 
 
+uint16_t AFE::_sequencerWaitCommandClock(uint32_t pTimeToWait_clk)
+{
+	uint32_t tSequencerCommand = pTimeToWait_clk & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
+
+	writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
+
+	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+}
+
+
 uint16_t AFE::_increaseSequencerMemoryAddress(void)
 {
 	uint32_t tCMDRegisterData = readRegister(AD_CMDFIFOWADDR, REG_SZ_32);
@@ -902,13 +991,28 @@ void AFE::_switchConfiguration(void)
 
 	setTIAGain(AD_TIAGAIN_3K);
 
-	// Enable the DAC buffer
-	// Enable ADC
-	writeRegister(AD_AFECON, 0x280080, REG_SZ_32);
+	writeRegister(AD_AFECON, 0, REG_SZ_32);
+	writeRegister(AD_AFECON,
+		(uint32_t)1 << 21 | // Enables the dc DAC buffer
+		(uint32_t)1 << 19 | // Analog LDO buffer current limiting disabled 
+		(uint32_t)1 << 16, // Supply rejection filter: 1 -> Enables, 0 -> disables sinc2 
+		REG_SZ_32);
 
-	writeRegister(AD_ADCCON, 0x1002, REG_SZ_32);
+	writeRegister(AD_ADCCON, 
+		(uint32_t)0b10 << 8 | // ADC negative IN: Low power TIA negative input
+		(uint32_t)0b10, 	  // ADC positive IN: Low power TIA positive low-pass filter signal 
+		REG_SZ_32);
 
-	_setRegisterBit(AD_ADCFILTERCON, REG_SZ_32);
+	// Filtering options
+	writeRegister(AD_ADCFILTERCON, 
+		(uint32_t)0b1 << 18 | 	// Disable DFT clock.
+		(uint32_t)0b0 << 16 |  	// Sinc2 filter clock: 0 -> enable, 1 -> disable.
+		(uint32_t)0b1000 << 8 | // Sinc2 oversampling rate (OSR): 0b0 -> 22, 0b1000 -> 800 samples.
+		(uint32_t)0b0 << 7 | 	// ADC average function (DFT): 0 -> disable, 1 -> enable.
+		(uint32_t)0b1 << 6 | 	// Sinc3 filter: 0 -> enable, 1 -> disable.
+		(uint32_t)0b1 << 4 | 	// 1 - Bypasses, 0 - passes through: the 50 Hz notch and 60 Hz notch filters. 
+		(uint32_t)0b0, 			// ADC data rate: 1 -> 800 kHz, 0 -> 1.6 MHz.
+		REG_SZ_32);
 }
 
 

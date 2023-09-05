@@ -163,7 +163,7 @@ class AFE
 		 * @return true if there is data available
 		 * @return false if there is no data available
 		 */
-		static bool dataAvailable(void);
+		static uint16_t dataAvailable(void);
 
 		/**
 		 * @brief Start the voltametry. 
@@ -176,7 +176,7 @@ class AFE
 		 * 
 		 * @return int 
 		 */
-		static int readDataFIFO(void);
+		static float readDataFIFO(void);
 
 		/**
 		 * @brief Handle interrupts triggered by the AD5941 device.
@@ -219,6 +219,13 @@ class AFE
 		 * @param pTimeToWait_us IN -- Amount of microseconds to wait.
 		 */
 		static uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us);
+
+		/**
+		 * @brief Send a wait command to the sequencer.
+		 * 
+		 * @param pTimeToWait_clk IN -- Amount of clock cycles to wait.
+		 */
+		static uint16_t _sequencerWaitCommandClock(uint32_t pTimeToWait_clk);
 		
 		/**
 		 * @brief Trigger the start of a specific sequence.
