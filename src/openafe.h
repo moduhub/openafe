@@ -163,7 +163,7 @@ class AFE
 		 * @return true if there is data available
 		 * @return false if there is no data available
 		 */
-		static uint32_t dataAvailable(void);
+		static uint16_t dataAvailable(void);
 
 		/**
 		 * @brief Start the voltametry. 

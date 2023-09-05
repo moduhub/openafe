@@ -13,7 +13,7 @@ void setup()
 
 	openAFE.setupCV();
 
-	// openAFE.debugModeOn();
+	// openAFE.debugModeOn(); // Decomment to enable debug prints
 	noInterrupts();
 }
 
@@ -24,21 +24,21 @@ void interruptCallback(void)
 
 void loop()
 {
-	// CVGraph();
+	CVGraph();
 
-	// float peakVoltage = getUserValue("Voltage A (V): ", 0, 2.2, "V");
+	float peakVoltage = getUserValue("Voltage A (V): ", 0, 2.2, "V");
 
-	// float valleyVoltage = getUserValue("Voltage B (V): ", -2.2, 0, "V");
+	float valleyVoltage = getUserValue("Voltage B (V): ", -2.2, 0, "V");
 
-	// float scanRate = getUserValue("Scan Rate (mV/s): ", 1, 500, "mV/s");
+	float scanRate = getUserValue("Scan Rate (mV/s): ", 1, 500, "mV/s");
 
-	// float stepSize = getUserValue("Step Size (mV): ", 1, 50, "mV");
+	float stepSize = getUserValue("Step Size (mV): ", 1, 50, "mV");
 
-	// int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
+	int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
 
-	// int success = openAFE.waveformCV(0.5, -0.5, 250, 10, 2); // DEBUG ONLY
-
-	int success = openAFE.setCVSequence(0.5, -0.5, 250, 10, 2); // DEBUG ONLY
+	int success = openAFE.setCVSequence(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
+	
+	// int success = openAFE.setCVSequence(0.2, -0.2, 100, 2, 1); // DEBUG ONLY
 
 	if (success)
 	{
@@ -51,13 +51,8 @@ void loop()
 		{
 			bool isDataAvailable = openAFE.dataAvailable() > 0;
 
-			// Serial.print("Data Av.: ");
-			// Serial.println(isDataAvailable);
-
 			if (isDataAvailable)
 			{
-				// Serial.println("-- Data available");
-
 				noInterrupts(); // Disable interrupts while reading data FIFO
 
 				float tDataDueToRead = openAFE.readDataFIFO();
