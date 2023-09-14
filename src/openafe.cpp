@@ -1,7 +1,7 @@
 #include "openafe.h"
-// extern "C" {
+extern "C" {
 	#include "core/openafe_core.h"
-// }
+}
 
 AFE::AFE(void)
 {

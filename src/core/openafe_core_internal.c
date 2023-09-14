@@ -1,6 +1,6 @@
-// #ifdef __cplusplus 
-// extern "C" {
-// #endif
+#ifdef __cplusplus 
+extern "C" {
+#endif
 
 #include "openafe_core_internal.h"
 #include "../openafe_wrapper/openafe_wrapper.h"
@@ -659,6 +659,6 @@ int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_
 	return (pX - pInMin) * (pOutMax - pOutMin) / (pInMax - pInMin) + pOutMin;
 }
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+}
+#endif

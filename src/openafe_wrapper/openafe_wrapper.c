@@ -1,6 +1,6 @@
-// #ifdef __cplusplus
-// extern "C" {
-// #endif // __cplusplus
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 #include "openafe_wrapper.h"
 
@@ -104,6 +104,6 @@ uint8_t openafe_wrapper_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize)
 	return 0;
 }
 
-// #ifdef __cplusplus
-// }
-// #endif // __cplusplus
+#ifdef __cplusplus
+}
+#endif // __cplusplus

@@ -1,6 +1,6 @@
-// #ifdef __cplusplus
-// extern "C" {
-// #endif // __cplusplus
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 #include "arduino_peripherals_access.h"
 
@@ -49,6 +49,6 @@ void arduino_pin_3_low(void)
 	PORTD &= ~(1 << PD3); // Set PD3 LOW
 }
 
-// #ifdef __cplusplus
-// }
-// #endif // __cplusplus
+#ifdef __cplusplus
+}
+#endif // __cplusplus
