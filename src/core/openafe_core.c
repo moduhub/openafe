@@ -1,6 +1,6 @@
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "openafe_core.h"
 #include "openafe_core_internal.h"
@@ -317,6 +317,6 @@ unsigned long openafe_setTIAGain(unsigned long pTIAGain)
 }
 
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+}
+#endif

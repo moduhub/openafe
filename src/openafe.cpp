@@ -59,7 +59,7 @@ uint32_t AFE::setTIAGain(unsigned long pTIAGain)
 
 bool AFE::done(void)
 {
-	return openafe_done();
+	return openafe_done() != 0 ? true : false;
 }
 
 
