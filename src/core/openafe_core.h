@@ -109,9 +109,9 @@ void openafe_startVoltammetry(void);
 /**
  * @brief Read the data FIFO.
  *
- * @return int
+ * @return float
  */
-uint32_t openafe_readDataFIFO(void);
+float openafe_readDataFIFO(void);
 
 /**
  * @brief Handle interrupts triggered by the AD5941 device.

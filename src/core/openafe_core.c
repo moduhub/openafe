@@ -22,7 +22,7 @@ int openafe_init(uint32_t pSPIFrequency)
 
 	// Initializes the system:
 	_initAFE();
-
+	_setTIAGain(3000u); 
 	return 1;
 }
 
@@ -146,7 +146,7 @@ void openafe_startVoltammetry(void)
 }
 
 
-uint32_t openafe_readDataFIFO(void)
+float openafe_readDataFIFO(void)
 {
 	uint32_t tDataFIFOValue = _readRegister(AD_DATAFIFORD, REG_SZ_32);
 
@@ -155,7 +155,7 @@ uint32_t openafe_readDataFIFO(void)
 		gDataAvailable = 0;
 	}
 
-	// tDataFIFOValue &= 0xFFFF;
+	tDataFIFOValue &= 0xFFFF;
 
 	gNumRemainingDataPoints--;
 
@@ -164,8 +164,7 @@ uint32_t openafe_readDataFIFO(void)
 		gDataAvailable = 0;
 	}
 
-	// return _getCurrentFromADCValue(tDataFIFOValue);
-	return tDataFIFOValue;
+	return _getCurrentFromADCValue(tDataFIFOValue);
 }
 
 
@@ -314,132 +313,7 @@ int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate
 
 unsigned long openafe_setTIAGain(unsigned long pTIAGain)
 {
-	unsigned long tGain;
-	int tTIAGAIN;
-
-	switch (pTIAGain)
-	{
-	case 200UL:
-		tGain = 100 - gRload + 110;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_200;
-		break;
-	case 1000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_1K;
-		break;
-	case 2000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_2K;
-		break;
-	case 3000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_3K;
-		break;
-	case 4000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_4K;
-		break;
-	case 6000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_6K;
-		break;
-	case 8000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_8K;
-		break;
-	case 10000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_10K;
-		break;
-	case 12000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_12K;
-		break;
-	case 16000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_16K;
-		break;
-	case 20000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_20K;
-		break;
-	case 24000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_24K;
-		break;
-	case 30000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_30K;
-		break;
-	case 32000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_32K;
-		break;
-	case 40000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_40K;
-		break;
-	case 48000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_48K;
-		break;
-	case 64000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_64K;
-		break;
-	case 85000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_85K;
-		break;
-	case 96000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_96K;
-		break;
-	case 100000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_100K;
-		break;
-	case 120000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_120K;
-		break;
-	case 128000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_128K;
-		break;
-	case 160000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_160K;
-		break;
-	case 196000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_196K;
-		break;
-	case 256000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_256K;
-		break;
-	case 512000UL:
-		tGain = pTIAGain;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_512K;
-		break;
-	default:
-		tGain = 10000UL;
-		tTIAGAIN = AD_LPTIACON0_TIAGAIN_10K;
-		break;
-	}
-
-	_setTIAGainResistor(tTIAGAIN);
-
-	if (tGain == 200)
-	{
-		gTIAGain = tGain;
-	}
-	else
-	{
-		gTIAGain = tGain + 100;
-	}
-	return gTIAGain;
+	return _setTIAGain(pTIAGain);
 }
 
 

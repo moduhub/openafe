@@ -84,7 +84,7 @@ class AFE
 		 * gain values use the AD_LPTIACON0_TIAGAIN_xx values.
 		 * @return The TIA gain set.
 		 */
-		static unsigned long setTIAGain(unsigned long pTIAGain);
+		static uint32_t setTIAGain(unsigned long pTIAGain);
 
 		/**
 		 * @brief Check if the AFE device has finished operations.
@@ -113,7 +113,7 @@ class AFE
 		 * 
 		 * @return
 		 */
-		static uint32_t readDataFIFO(void);
+		static float readDataFIFO(void);
 
 		/**
 		 * @brief Handle interrupts triggered by the AD5941 device.

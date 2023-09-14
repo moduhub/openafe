@@ -49,12 +49,6 @@
 
 extern uint32_t gSPI_CLK_HZ; // SPI interface frequency, in Hertz.
 
-extern unsigned long gTIAGain; // Gain of the TIA.
-
-extern unsigned int gRload; // Value of the Rload resistor.
-
-extern unsigned int gPGA; // PGA Gain.
-
 extern paramCV_t gCVParams; // Global parameters of the current CV Waveform.
 
 extern stateCV_t gCVState; // Global state of the current CV waveform.
@@ -170,6 +164,16 @@ void _startSequence(uint8_t pSequenceIndex);
  * @return Current SRAM address.
  */
 uint16_t _increaseSequencerMemoryAddress(void);
+
+/**
+ * @brief Set the gain of the RTIA.
+ * @param pTIAGainResistor IN -- Gain of the TIA, e.g. AD_LPTIACON0_TIAGAIN_3K.
+ * @note If the gain value passed to this function is not a valid gain
+ * value, a gain value of 10k will be set, to avoid passing invalid
+ * gain values use the AD_LPTIACON0_TIAGAIN_xx values.
+ * @return The TIA gain set.
+ */
+uint32_t _setTIAGain(uint32_t pTIAGain);
 
 /**
  * @brief Set the value of the RTIA resistor.

@@ -51,7 +51,7 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 }
 
 
-unsigned long AFE::setTIAGain(unsigned long pTIAGain)
+uint32_t AFE::setTIAGain(unsigned long pTIAGain)
 {
 	return openafe_setTIAGain(pTIAGain);
 }
@@ -75,7 +75,7 @@ void AFE::startVoltammetry(void)
 }
 
 
-uint32_t AFE::readDataFIFO(void)
+float AFE::readDataFIFO(void)
 {
 	return openafe_readDataFIFO();
 }
