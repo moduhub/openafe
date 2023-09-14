@@ -6,15 +6,18 @@ void setup()
 {
 	Serial.begin(115200);
 
-	delay(1000);
+	pinMode(3, OUTPUT);
+	digitalWrite(3, HIGH);
+	delay(1);
+	digitalWrite(3, LOW);
 
 	pinMode(2, INPUT);
-	attachInterrupt(digitalPinToInterrupt(2), interruptCallback, HIGH); // Config the Arduino Interrupt
+	noInterrupts();
+	attachInterrupt(digitalPinToInterrupt(2), interruptCallback, LOW); // Config the Arduino Interrupt
 
 	openAFE.setupCV();
 
-	// openAFE.debugModeOn(); // Decomment to enable debug prints
-	noInterrupts();
+	delay(500);
 }
 
 void interruptCallback(void)
@@ -24,21 +27,21 @@ void interruptCallback(void)
 
 void loop()
 {
-	CVGraph();
+	// CVGraph();
 
-	float peakVoltage = getUserValue("Voltage A (V): ", 0, 2.2, "V");
+	// float peakVoltage = getUserValue("Voltage A (V): ", 0, 2.2, "V");
 
-	float valleyVoltage = getUserValue("Voltage B (V): ", -2.2, 0, "V");
+	// float valleyVoltage = getUserValue("Voltage B (V): ", -2.2, 0, "V");
 
-	float scanRate = getUserValue("Scan Rate (mV/s): ", 1, 500, "mV/s");
+	// float scanRate = getUserValue("Scan Rate (mV/s): ", 1, 500, "mV/s");
 
-	float stepSize = getUserValue("Step Size (mV): ", 1, 50, "mV");
+	// float stepSize = getUserValue("Step Size (mV): ", 1, 50, "mV");
 
-	int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
+	// int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
 
-	int success = openAFE.setCVSequence(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
-	
-	// int success = openAFE.setCVSequence(0.2, -0.2, 100, 2, 1); // DEBUG ONLY
+	// int success = openAFE.setCVSequence(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
+	// int success = openAFE.setCVSequence(0.1, -0.5, 200, 5, 1); // DEBUG ONLY
+	int success = openAFE.setCVSequence(0.5, -0.5, 200, 5, 1); // DEBUG ONLY
 
 	if (success)
 	{
@@ -55,13 +58,16 @@ void loop()
 			{
 				noInterrupts(); // Disable interrupts while reading data FIFO
 
-				float tDataDueToRead = openAFE.readDataFIFO();
+				unsigned int tDataDueToRead = openAFE.readDataFIFO();
 
 				interrupts(); // Enable back interrupts after reading data from FIFO
 
 				if (tDataDueToRead)
 				{
-					Serial.println(tDataDueToRead);
+					float tVoltage = (1.82f / 1.0f) * (((float)(tDataDueToRead & 0xFFFF) - 32768.0f) / 32768.0f) * (-1.0f);
+					float tCurrent = (tVoltage * 1000000.0f) / 3000.0f;
+
+					Serial.println(tCurrent);
 				}
 			}
 			delay(1);
