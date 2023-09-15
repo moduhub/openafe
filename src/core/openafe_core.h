@@ -48,6 +48,15 @@ uint8_t openafe_isResponding(void);
 void openafe_setupCV(void);
 
 /**
+ * @brief Get both voltage and current of a point.
+ * 
+ * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV. 
+ * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
+ * @return The point index, it starts at 0.
+ */
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
+
+/**
  * @brief Generate the desired CV waveform and fill the sequencer.
  *
  * @note This function also automatically sets the interrupts and initialize global variables.

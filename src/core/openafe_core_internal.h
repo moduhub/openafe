@@ -114,6 +114,20 @@ void _resetByHardware(void);
 void _resetBySoftware(void);
 
 /**
+ * @brief Get the voltage of the current data point.
+ * 
+ * @return Voltage at the current point, in mV.
+ */
+float _getVoltage(void);
+
+/**
+ * @brief Pass the wave parameters to the internal openafe_core source.
+ * 
+ * @param pCVWave IN -- Wave parameters.
+ */
+void _setVoltammetryParams(const waveCV_t *pCVWave);
+
+/**
  * @brief Read the ADC conversion result.
  */
 uint32_t _readADC(void);

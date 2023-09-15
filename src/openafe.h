@@ -87,6 +87,15 @@ class AFE
 		static uint32_t setTIAGain(unsigned long pTIAGain);
 
 		/**
+		 * @brief Get both voltage and current of a point.
+		 *
+		 * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV.
+		 * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
+		 * @return The point index, it starts at 0.
+		 */
+		static uint16_t getPoint(float *pVoltage_mV, float *pCurrent_uA);
+
+		/**
 		 * @brief Check if the AFE device has finished operations.
 		 * 
 		 * @return True if device has finished operation, or has not begun an operation. 

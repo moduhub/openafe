@@ -5,6 +5,9 @@ extern "C" {
 #include "openafe_core.h"
 #include "openafe_core_internal.h"
 
+// Number of points read in the current voltammetry. Can be used as point index.
+uint16_t gNumPointsRead; 
+
 void openafe_DEBUG_turnOnPrints(void)
 {
 
@@ -53,6 +56,20 @@ void openafe_setupCV(void)
 }
 
 
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
+{
+	*pVoltage_mV = _getVoltage();
+
+	*pCurrent_uA = openafe_readDataFIFO();
+
+	uint16_t pointIndex = gNumPointsRead;
+
+	gNumPointsRead++;
+
+	return pointIndex; 
+}
+
+
 int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
 	_zeroVoltageAcrossElectrodes();
@@ -92,6 +109,8 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 	tWaveCV.scanRate = pScanRate;
 	tWaveCV.stepSize = pStepSize;
 	tWaveCV.numCycles = pNumCycles;
+
+	_setVoltammetryParams(&tWaveCV);
 
 	int tPossible = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
@@ -136,6 +155,7 @@ uint16_t openafe_dataAvailable(void)
 void openafe_startVoltammetry(void)
 {
 	gDataAvailable = 0;
+	gNumPointsRead = 0;
 
 	// FIFO reset
 	_writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13, REG_SZ_32);

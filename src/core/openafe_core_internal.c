@@ -5,6 +5,7 @@ extern "C" {
 #include "openafe_core_internal.h"
 #include "../openafe_wrapper/openafe_wrapper.h"
 
+#include <string.h>
 
 uint32_t gSPI_CLK_HZ; // SPI interface frequency, in Hertz.
 
@@ -13,6 +14,8 @@ unsigned long gTIAGain; // Gain of the TIA.
 unsigned int gRload; // Value of the Rload resistor.
 
 unsigned int gPGA; // PGA Gain.
+
+waveCV_t gCVWave;
 
 paramCV_t gCVParams; // Global parameters of the current CV Waveform.
 
@@ -195,6 +198,34 @@ void _resetBySoftware(void)
 {
 	_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
 	_writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
+}
+
+
+float _getVoltage(void)
+{
+	uint16_t tNumPointsRead = gCVParams.numPoints - gNumRemainingDataPoints;
+	
+	uint8_t tCurrentSlope = tNumPointsRead / gCVParams.numSlopePoints;
+
+	uint16_t tCurrentSlopePoint = tNumPointsRead - (tCurrentSlope * gCVParams.numSlopePoints);
+
+	float voltage_mV;
+
+	if (tCurrentSlope % 2 == 0) { 
+		// Rising slope 
+		voltage_mV = (gCVWave.voltage2 * 1000.0f) + ((float)tCurrentSlopePoint * gCVWave.stepSize); 
+	} else {
+		// Falling slope
+		voltage_mV = (gCVWave.voltage1 * 1000.0f) - ((float)tCurrentSlopePoint * gCVWave.stepSize);
+	}
+
+	return voltage_mV;
+}
+
+
+void _setVoltammetryParams(const waveCV_t *pCVWave)
+{
+	memcpy(&gCVWave, pCVWave, sizeof(waveCV_t));
 }
 
 
@@ -515,6 +546,7 @@ uint32_t _setTIAGain(uint32_t pTIAGain)
 	}
 	return gTIAGain;
 }
+
 
 void _setTIAGainResistor(uint32_t pTIAGainResistor)
 {
