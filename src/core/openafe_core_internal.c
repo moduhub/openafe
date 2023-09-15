@@ -7,6 +7,8 @@ extern "C" {
 
 #include <string.h>
 
+#define CURRENT_OFFSET_uA 8.89f // Current offset, in microamps.
+
 uint32_t gSPI_CLK_HZ; // SPI interface frequency, in Hertz.
 
 unsigned long gTIAGain; // Gain of the TIA.
@@ -271,7 +273,7 @@ float _getCurrentFromADCValue(uint32_t pADCValue)
 {
 	float tVoltage = (1.82f / (float)gPGA) * ((((float)pADCValue) - 32768.0f) / 32768.0f) * (-1.0f);
 
-	float tCurrent = (tVoltage * 1000000.0f) / (float)gTIAGain;
+	float tCurrent = ((tVoltage * 1000000.0f) / (float)gTIAGain) - CURRENT_OFFSET_uA;
 
 	return tCurrent;
 }
@@ -741,7 +743,7 @@ void _dataFIFOSetup(uint16_t pDataMemoryAmount)
 	_writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32);
 
 	// uint16_t pDataFIFOThreshold = 0xAA; // 50% of the data FIFO (1023 / 3 = 341 / 2 = 170 => 0xAA)
-	uint16_t pDataFIFOThreshold = 20u;
+	uint16_t pDataFIFOThreshold = 100u;
 
 	_writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
 }
