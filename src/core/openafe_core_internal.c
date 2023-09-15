@@ -675,7 +675,7 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 			_sequencerWaitCommand(ADC_STABILIZATION_TIME_US);					// wait for it to stabilize
 
 			// ADC conversion
-			const uint16_t CONV_CLK_CYCLES = 8000 + 50;													   // 800 (samples) * ( 16 (MHz) / 1.6 (MHz)) = 8000 clock pulses per sample
+			const uint16_t CONV_CLK_CYCLES = 8000 + 10;												       // 800 (samples) * ( 16 (MHz) / 1.6 (MHz)) = 8000 clock pulses per sample
 			_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
 			_sequencerWaitCommandClock(CONV_CLK_CYCLES);												   // wait 2360 clocks
 			_sequencerWriteCommand(AD_AFECON, (tAFECONValue & ~((uint32_t)1 << 7)) & ~((uint32_t)1 << 8)); // Stop ADC conversion
