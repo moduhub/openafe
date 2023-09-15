@@ -6,23 +6,13 @@ void setup()
 {
 	Serial.begin(115200);
 
-	pinMode(3, OUTPUT);
-	digitalWrite(3, HIGH);
-	delay(1);
-	digitalWrite(3, LOW);
-
 	pinMode(2, INPUT);
 	noInterrupts();
-	attachInterrupt(digitalPinToInterrupt(2), interruptCallback, LOW); // Config the Arduino Interrupt
+	attachInterrupt(digitalPinToInterrupt(2), openAFE.interruptHandler, LOW); // Config the Arduino Interrupt
 
 	openAFE.setupCV();
 
 	delay(500);
-}
-
-void interruptCallback(void)
-{
-	openAFE.interruptHandler();
 }
 
 void loop()
@@ -40,45 +30,40 @@ void loop()
 	// int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
 
 	// int success = openAFE.setCVSequence(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
-	// int success = openAFE.setCVSequence(0.1, -0.5, 200, 5, 1); // DEBUG ONLY
-	int success = openAFE.setCVSequence(0.5, -0.5, 200, 5, 1); // DEBUG ONLY
+	int success = openAFE.setCVSequence(0.5, -1, 100, 1, 1); // DEBUG ONLY
 
 	if (success)
 	{
-		Serial.println("Voltammetry in process...");
+		Serial.println(F("Voltammetry in process..."));
 
 		interrupts();
 		openAFE.startVoltammetry();
 
 		do
 		{
-			bool isDataAvailable = openAFE.dataAvailable() > 0;
-
-			if (isDataAvailable)
+			if (openAFE.dataAvailable() > 0)
 			{
 				noInterrupts(); // Disable interrupts while reading data FIFO
 
-				unsigned int tDataDueToRead = openAFE.readDataFIFO();
+				float voltage_mV;
+				float current_uA;
+				openAFE.getPoint(&voltage_mV, &current_uA);
 
 				interrupts(); // Enable back interrupts after reading data from FIFO
 
-				if (tDataDueToRead)
-				{
-					float tVoltage = (1.82f / 1.0f) * (((float)(tDataDueToRead & 0xFFFF) - 32768.0f) / 32768.0f) * (-1.0f);
-					float tCurrent = (tVoltage * 1000000.0f) / 3000.0f;
-
-					Serial.println(tCurrent);
-				}
+				Serial.print(voltage_mV);
+				Serial.print(",");
+				Serial.println(current_uA);
 			}
 			delay(1);
 
 		} while (!openAFE.done());
 
-		Serial.println("<<< FINISHED CYCLIC VOLTAMMETRY >>>");
+		Serial.println(F("<<< FINISHED CYCLIC VOLTAMMETRY >>>"));
 	}
 	else
 	{
-		Serial.println("*** ERROR: Cannot generate desired waveform! ***");
+		Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));
 	}
 
 	while (1)
