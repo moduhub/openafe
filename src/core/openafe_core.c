@@ -8,6 +8,9 @@ extern "C" {
 // Number of points read in the current voltammetry. Can be used as point index.
 uint16_t gNumPointsRead; 
 
+/** Whether or not the voltammetry should be stopped. */
+uint8_t gShoulKillVoltammetry = 0;
+
 void openafe_DEBUG_turnOnPrints(void)
 {
 
@@ -47,6 +50,20 @@ uint8_t openafe_isResponding(void)
 	uint32_t tADIIDValue = _readRegister(AD_ADIID, REG_SZ_16);
 	
 	return tADIIDValue == AD_VALUE_ADIID ? 1 : 0;
+}
+
+
+void openafe_killVoltammetry(void)
+{
+	gShoulKillVoltammetry = 1;
+
+	_writeRegister(AD_INTCSEL0, 0, REG_SZ_32); // Disable interrupts
+	_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32); // Disable all int flags
+
+	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Reset FIFO
+	_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Reset the sequencer
+
+	_zeroVoltageAcrossElectrodes();
 }
 
 
@@ -142,7 +159,12 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 
 uint8_t openafe_done(void)
 {
-	return (gFinished && (gDataAvailable == 0)) || (gFinished && (gNumRemainingDataPoints == 0)) ? 1 : 0;
+	if (gShoulKillVoltammetry == 1)
+	{
+		return 1;
+	}
+
+	return ((gFinished == 1) && (gDataAvailable == 0)) || ((gFinished == 1) && (gNumRemainingDataPoints == 0)) ? 1 : 0;
 }
 
 
@@ -156,6 +178,7 @@ void openafe_startVoltammetry(void)
 {
 	gDataAvailable = 0;
 	gNumPointsRead = 0;
+	gShoulKillVoltammetry = 0;
 
 	// FIFO reset
 	_writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13, REG_SZ_32);

@@ -31,6 +31,12 @@ class AFE
 		static bool isAFEResponding(void);
 
 		/**
+		 * @brief Kill the voltammetry proccess.
+		 *
+		 */
+		static void killVoltammetry(void);
+
+		/**
 		 * @brief Reset the AD5941 by hardware.
 		 * 
 		 * @note This is the most compreheensive reset, everything is reset to the reset value.

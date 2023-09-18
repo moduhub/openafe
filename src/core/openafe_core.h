@@ -43,6 +43,12 @@ void openafe_resetBySoftware(void);
 uint8_t openafe_isResponding(void);
 
 /**
+ * @brief Kill the voltammetry proccess.
+ *
+ */
+void openafe_killVoltammetry(void);
+
+/**
  * @brief Setup process of the Cyclic Voltammetry.
  */
 void openafe_setupCV(void);

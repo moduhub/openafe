@@ -20,6 +20,10 @@ bool AFE::isAFEResponding(void)
 	return (bool)openafe_isResponding();
 } 
 
+void AFE::killVoltammetry(void)
+{
+	openafe_killVoltammetry();
+}
 
 void AFE::resetByHardware(void)
 {
