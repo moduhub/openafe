@@ -354,6 +354,65 @@ int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate
 }
 
 
+uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange)
+{
+	// the range goes from 1.75 uA to 4.5 mA
+
+	uint32_t tCalculatedTIAResistor = (uint32_t)(900000.0f / (float)pDesiredCurrentRange);
+
+	if (tCalculatedTIAResistor <= 1000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_200);
+	}
+	else if (tCalculatedTIAResistor <= 2000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_1K);
+	}
+	else if (tCalculatedTIAResistor <= 4000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_2K);
+	}
+	else if (tCalculatedTIAResistor <= 10000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_4K);
+	}
+	else if (tCalculatedTIAResistor <= 20000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_10K);
+	}
+	else if (tCalculatedTIAResistor <= 40000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_20K);
+	}
+	else if (tCalculatedTIAResistor <= 100000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_40K);
+	}
+	else if (tCalculatedTIAResistor <= 160000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_100K);
+	}
+	else if (tCalculatedTIAResistor <= 196000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_160K);
+	}
+	else if (tCalculatedTIAResistor <= 256000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_196K);
+	}
+	else if (tCalculatedTIAResistor <= 512000UL)
+	{
+		openafe_setTIAGain(AD_TIAGAIN_256K);
+	}
+	else
+	{
+		openafe_setTIAGain(AD_TIAGAIN_512K);
+	}
+
+	return 1;
+}
+
+
 unsigned long openafe_setTIAGain(unsigned long pTIAGain)
 {
 	return _setTIAGain(pTIAGain);

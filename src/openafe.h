@@ -83,6 +83,15 @@ class AFE
 		static int waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
+		 * @brief Set the TIA gain resistor based on the desired current range.
+		 *
+		 * @param pDesiredCurrentRange IN -- the desired current range, in microamperes (uA).
+		 *
+		 * @return /= 0 if successful, 0 (zero) on error.
+		 */
+		static uint8_t setCurrentRange(uint16_t pDesiredCurrentRange);
+
+		/**
 		 * @brief Set the gain of the RTIA.
 		 * @param pTIAGainResistor IN -- Gain of the TIA, e.g. AD_LPTIACON0_TIAGAIN_3K.
 		 * @note If the gain value passed to this function is not a valid gain

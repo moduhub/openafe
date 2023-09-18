@@ -55,6 +55,12 @@ int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, f
 }
 
 
+uint8_t AFE::setCurrentRange(uint16_t pDesiredCurrentRange)
+{
+	return openafe_setCurrentRange(pDesiredCurrentRange);
+}
+
+
 uint32_t AFE::setTIAGain(unsigned long pTIAGain)
 {
 	return openafe_setTIAGain(pTIAGain);
