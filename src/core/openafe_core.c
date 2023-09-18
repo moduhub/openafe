@@ -6,7 +6,7 @@ extern "C" {
 #include "openafe_core_internal.h"
 
 // Number of points read in the current voltammetry. Can be used as point index.
-uint16_t gNumPointsRead; 
+uint16_t gNumPointsRead;
 
 /** Whether or not the voltammetry should be stopped. */
 uint8_t gShoulKillVoltammetry = 0;
@@ -131,9 +131,10 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 
 	int tPossible = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
-	if (!tPossible)
+	if (tPossible < 0)
 	{
-		return tPossible;
+		return 0;	// DEBUG ONLY
+		// return tPossible; 
 	}
 
 	// Initialize the CV state struct
@@ -150,8 +151,6 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 	{
 		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
 	}
-
-	gFinished = 0;
 
 	return 1;
 }
@@ -176,6 +175,7 @@ uint16_t openafe_dataAvailable(void)
 
 void openafe_startVoltammetry(void)
 {
+	gFinished = 0;
 	gDataAvailable = 0;
 	gNumPointsRead = 0;
 	gShoulKillVoltammetry = 0;

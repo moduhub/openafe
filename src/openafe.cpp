@@ -18,7 +18,7 @@ AFE::AFE(uint32_t spiFreq)
 bool AFE::isAFEResponding(void)
 {
 	return (bool)openafe_isResponding();
-} 
+}
 
 void AFE::killVoltammetry(void)
 {
@@ -74,7 +74,7 @@ uint16_t AFE::getPoint(float *pVoltage_mV, float *pCurrent_uA)
 
 bool AFE::done(void)
 {
-	return openafe_done() != 0 ? true : false;
+	return openafe_done() == 0 ? false : true;
 }
 
 
