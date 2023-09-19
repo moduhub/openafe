@@ -2,7 +2,7 @@
 #define _OPENAFE_CORE_H_
 
 #include <stdint.h>
-#include "../openafe_types/openafe_types.h"
+#include "openafe_types/openafe_types.h"
 
 
 /**
