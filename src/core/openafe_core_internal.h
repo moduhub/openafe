@@ -96,8 +96,12 @@ void _writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
 
 /**
  * @brief Make the initialization sequence.
+ *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
+ * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
  */
-void _initAFE(void);
+void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
 
 /**
  * @brief Reset the AD5941 by hardware.

@@ -14,10 +14,13 @@ void openafe_DEBUG_turnOnPrints(void);
 /**
  * @brief Minimal declaration, set a specific SPI Interface Frequency,
  * all other parameters are default.
+ *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
  * @param pSPIFrequency IN -- SPI Interface Frequency (in Hertz).
  * @return Status code on success, error code on error.
  */
-int openafe_init(uint32_t pSPIFrequency);
+int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency);
 
 /**
  * @brief Reset the AD5941 by hardware.

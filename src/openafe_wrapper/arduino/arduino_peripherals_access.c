@@ -15,8 +15,17 @@ extern "C" {
 #define SPI_MISO PB4
 #define SPI_SCK PB5
 
-void arduino_spi_begin(void)
+void arduino_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed)
 {
+	/**
+	 * If your Arduino board supports SPI speeds higher
+	 * than 1 MHz you can go for those speeds, but AVOID
+	 * using SPI speeds lower than 1 MHz, speeds lower
+	 * than that might compromise the sequencer operation.
+	 */
+	(void)pSPIClockSpeed; // Intentionally left unused
+	(void)pShieldCSPin;	  // Intentionally left unused	
+
 	// Set MOSI, SCK, and SS as output pins
 	SPI_PORT_DDR |= (1 << SPI_MOSI) | (1 << SPI_SCK) | (1 << SPI_SS);
 

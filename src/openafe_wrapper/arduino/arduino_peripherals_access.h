@@ -5,9 +5,11 @@
 
 /**
  * @brief Initializes Arduino's SPI, using SPI.begin() method.
- * 
+ *
+ * @param pShieldCSPin IN -- Shield chip select pin, e.g.: 10 equal Arduino pin 10.
+ * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
  */
-void arduino_spi_begin(void);
+void arduino_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed);
 
 /**
  * @brief Transfer a byte using Arduino's SPI.trasnfer(byte) method.

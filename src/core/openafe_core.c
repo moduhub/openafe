@@ -17,17 +17,19 @@ void openafe_DEBUG_turnOnPrints(void)
 }
 
 
-int openafe_init(uint32_t pSPIFrequency)
+int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency)
 {
+	uint32_t tSPIClockSpeed; // SPI interface frequency, in Hertz.
+
 	if (!pSPIFrequency) {
-		gSPI_CLK_HZ = SPI_CLK_DEFAULT_HZ;
+		tSPIClockSpeed = SPI_CLK_DEFAULT_HZ;
 	}
 	else {
-		gSPI_CLK_HZ = pSPIFrequency;
+		tSPIClockSpeed = pSPIFrequency;
 	}
 
 	// Initializes the system:
-	_initAFE();
+	_initAFE(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
 	_setTIAGain(3000u); 
 	return 1;
 }

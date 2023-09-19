@@ -5,13 +5,13 @@ extern "C" {
 
 AFE::AFE(void)
 {
-	openafe_init(0);
+	openafe_init(0, 0, 0);
 }
 
 
-AFE::AFE(uint32_t spiFreq)
+AFE::AFE(uint32_t pSPIFrequency)
 {
-	openafe_init(spiFreq);
+	openafe_init(0, 0, pSPIFrequency);
 }
 
 

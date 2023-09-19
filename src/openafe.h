@@ -17,9 +17,9 @@ class AFE
 		/**
 		 * @brief Minimal declaration, set a specific SPI Interface Frequency,
 		 * all other parameters are default.
-		 * @param spiFreq IN -- SPI Interface Frequency (in Hertz).
+		 * @param pSPIFrequency IN -- SPI Interface Frequency (in Hertz).
 		 */
-		AFE(uint32_t spiFreq);
+		AFE(uint32_t pSPIFrequency);
 
 		/**
 		 * @brief Check wheter the value in the ADIID register is the expected 0x4144.

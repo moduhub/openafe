@@ -9,8 +9,6 @@ extern "C" {
 
 #define CURRENT_OFFSET_uA 8.89f // Current offset, in microamps.
 
-uint32_t gSPI_CLK_HZ; // SPI interface frequency, in Hertz.
-
 unsigned long gTIAGain; // Gain of the TIA.
 
 unsigned int gRload; // Value of the Rload resistor.
@@ -231,14 +229,14 @@ void _setVoltammetryParams(const waveCV_t *pCVWave)
 }
 
 
-void _initAFE(void)
+void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
 {
 	gTIAGain = 0;
 	gRload = 0;
 	gPGA = 1;
 	gFinished = 1;
 
-	openafe_wrapper_setup();
+	openafe_wrapper_setup(pShieldCSPin, pShieldResetPin, pSPIClockSpeed);
 
 	_resetBySoftware(); /* TODO: Remove when reset by hardware is available */
 	_resetByHardware();

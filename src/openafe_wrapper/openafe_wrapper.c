@@ -18,10 +18,12 @@ extern "C" {
 
 #define SPI_CS_PIN 10
 
-void openafe_wrapper_setup(void)
+void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
 {
 	#if USE_ARDUINO_WRAPPERS
-	arduino_spi_begin();
+	(void)pShieldResetPin; // Intentionally left unused
+
+	arduino_spi_begin(pShieldCSPin, pSPIClockSpeed);
 	arduino_pin_3_low();
 	#else
 	/**
@@ -94,6 +96,8 @@ uint8_t openafe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize)
 {
 	// Read process here ...
 	// Return the amount bytes read
+	(void)pRXBuffer;   // Intentionally left unused
+	(void)pBufferSize; // Intentionally left unused
 	return 0;
 }
 
@@ -101,6 +105,8 @@ uint8_t openafe_wrapper_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize)
 {
 	// Write process here ...
 	// Return the amount of bytes written
+	(void)pTXBuffer;   // Intentionally left unused
+	(void)pBufferSize; // Intentionally left unused
 	return 0;
 }
 

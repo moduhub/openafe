@@ -11,8 +11,11 @@
  *
  * Write any code that needs to run once during initialization inside this function, if needed.
  *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
+ * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
  */
-void openafe_wrapper_setup(void);
+void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
 
 /**
  * @brief Wrapper function that drives the OpenAFE CS pin to low.
