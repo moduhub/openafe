@@ -4,8 +4,9 @@
 /** Variable type to store the characteristics of a CV waveform. */
 typedef struct waveCV_t
 {
-    float voltage1;    // Target higher voltage value of the CV wave, in Volts.
-    float voltage2;    // Target lower voltage value of the CV wave, in Volts.
+    uint16_t settlingTime; // Target settling time, in milliseconds.
+    float startingPotential;    // Target starting voltage value of the CV wave, in Volts.
+    float endingPotential;    // Target ending voltage value of the CV wave, in Volts.
     float scanRate;    // Target scan rate, in mV/s.
     float stepSize;    // Target step size, in mV.
     uint8_t numCycles; // Target number of cycles of the CV wave.
@@ -14,6 +15,7 @@ typedef struct waveCV_t
 /** Variable type to store the AD parameters of a CV waveform. */
 typedef struct paramCV_t
 {
+    uint16_t settlingTime;     // Settling time before the wave, in milliseconds.
     uint16_t highDAC12Value;  // Value of 12-bit output of DAC for the CV high voltage value.
     uint16_t lowDAC12Value;   // Value of 12-bit output of DAC for the CV low voltage value.
     float DAC12StepSize;      // Step size for the 12-bit output of the DAC.

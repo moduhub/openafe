@@ -68,15 +68,16 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
  *
  * @note This function also automatically sets the interrupts and initialize global variables.
  *
- * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.
- * @param pValleyVoltage IN -- Valley voltage of the waveform in Volts, e.g. -0.5.
+ * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
+ * @param pStartingPotential IN -- Starting voltage of the waveform in Volts, e.g. -0.5.
+ * @param pEndingPotential IN -- Ending voltage of the waveform in Volts, e.g. 0.5.
  * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
  * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
  * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
  * @return >0 if successful, otherwise error.
  *
  */
-int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
+int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 /**
  * Generation of the Cyclic Voltammetry waveform.

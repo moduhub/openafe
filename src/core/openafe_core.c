@@ -89,8 +89,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 	return pointIndex; 
 }
 
-
-int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
+int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles)
 {
 	_zeroVoltageAcrossElectrodes();
 
@@ -101,8 +100,9 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 	_interruptConfig();
 
 	waveCV_t tWaveCV;
-	tWaveCV.voltage1 = pPeakVoltage;
-	tWaveCV.voltage2 = pValleyVoltage;
+	tWaveCV.settlingTime = pSettlingTime;
+	tWaveCV.startingPotential = pStartingPotential;
+	tWaveCV.endingPotential = pEndingPotential;
 	tWaveCV.scanRate = pScanRate;
 	tWaveCV.stepSize = pStepSize;
 	tWaveCV.numCycles = pNumCycles;
@@ -256,8 +256,8 @@ void openafe_interruptHandler(void)
 int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
 	waveCV_t tWaveCV;
-	tWaveCV.voltage1 = pPeakVoltage;
-	tWaveCV.voltage2 = pValleyVoltage;
+	tWaveCV.endingPotential = pPeakVoltage;
+	tWaveCV.startingPotential = pValleyVoltage;
 	tWaveCV.scanRate = pScanRate;
 	tWaveCV.stepSize = pStepSize;
 	tWaveCV.numCycles = pNumCycles;

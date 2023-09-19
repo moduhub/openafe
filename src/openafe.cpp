@@ -43,9 +43,9 @@ void AFE::setupCV(void)
 }
 
 
-int AFE::setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
+int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles)
 {
-	return openafe_setCVSequence(pPeakVoltage, pValleyVoltage, pScanRate, pStepSize, pNumCycles);
+	return openafe_setCVSequence(pSettlingTime, pStartingPotential, pEndingPotential, pScanRate, pStepSize, pNumCycles);
 }
 
 

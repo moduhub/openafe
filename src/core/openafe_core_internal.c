@@ -214,10 +214,10 @@ float _getVoltage(void)
 
 	if (tCurrentSlope % 2 == 0) { 
 		// Rising slope 
-		voltage_mV = (gCVWave.voltage2 * 1000.0f) + ((float)tCurrentSlopePoint * gCVWave.stepSize); 
+		voltage_mV = (gCVWave.startingPotential * 1000.0f) + ((float)tCurrentSlopePoint * gCVWave.stepSize); 
 	} else {
 		// Falling slope
-		voltage_mV = (gCVWave.voltage1 * 1000.0f) - ((float)tCurrentSlopePoint * gCVWave.stepSize);
+		voltage_mV = (gCVWave.endingPotential * 1000.0f) - ((float)tCurrentSlopePoint * gCVWave.stepSize);
 	}
 
 	return voltage_mV;
@@ -584,19 +584,21 @@ void _zeroVoltageAcrossElectrodes(void)
 
 int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 {
-	pParamCV->numPoints = (uint16_t)(((((pWaveCV->voltage1 - pWaveCV->voltage2) * 1000.0f) / pWaveCV->stepSize) * 2.0f) * (float)pWaveCV->numCycles) + 1u;
+	pParamCV->settlingTime = pWaveCV->settlingTime;
+
+	pParamCV->numPoints = (uint16_t)(((((pWaveCV->endingPotential - pWaveCV->startingPotential) * 1000.0f) / pWaveCV->stepSize) * 2.0f) * (float)pWaveCV->numCycles) + 1u;
 
 	pParamCV->stepDuration_us = (uint32_t)((double)pWaveCV->stepSize * 1000000.0 / (double)pWaveCV->scanRate);
 
 	pParamCV->DAC12StepSize = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
 
-	float waveOffset_V = (pWaveCV->voltage1 + pWaveCV->voltage2) / 2.0f;
+	float waveOffset_V = (pWaveCV->endingPotential + pWaveCV->startingPotential) / 2.0f;
 
 	pParamCV->DAC6Value = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
 
 	float refValue_V = (float)_map(pParamCV->DAC6Value, 0, 63, 0, 2166) / 1000.0f;
 
-	float waveTop_V = refValue_V + pWaveCV->voltage1;
+	float waveTop_V = refValue_V + pWaveCV->endingPotential;
 
 	if (!(waveTop_V <= DAC_6_RNG_V))
 	{
@@ -604,7 +606,7 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-	float waveBottom_V = refValue_V + pWaveCV->voltage2;
+	float waveBottom_V = refValue_V + pWaveCV->startingPotential;
 
 	if (!(waveBottom_V >= 0))
 	{
@@ -638,6 +640,8 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 
 	uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
 
+	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
+
 	while (pStateCV->currentSlope <= pParamCV->numCycles * 2 && !tSequenceFilled)
 	{
 
@@ -663,9 +667,10 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 
 			if (pStateCV->currentSlope == 1 && i == 0)
 			{
-				_sequencerWriteCommand(AD_FIFOCON, 0);										  // Disable FIFO
-				_sequencerWaitCommand(1000000u);											  // settling time on the first ever slope
-				_sequencerWriteCommand(AD_FIFOCON, (uint32_t)0b11 << 13 | (uint32_t)1 << 11); // Enable FIFO again
+				// Add the settling time at the beginning of the first slope
+				_sequencerWriteCommand(AD_FIFOCON, 0);							 // Disable FIFO
+				_sequencerWaitCommand((uint32_t)pParamCV->settlingTime * 1000u); // settling time on the first ever slope
+				_sequencerWriteCommand(AD_FIFOCON, tFIFOCONValue);				 // Enable FIFO again
 			}
 
 			// Turn on ADC
