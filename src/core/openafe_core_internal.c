@@ -4,6 +4,7 @@ extern "C" {
 
 #include "openafe_core_internal.h"
 #include "../openafe_wrapper/openafe_wrapper.h"
+#include "Utility/openafe_status_codes.h"
 
 #include <string.h>
 
@@ -600,7 +601,7 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 	if (!(waveTop_V <= DAC_6_RNG_V))
 	{
 		// ERROR: wave can't be generated!
-		return -1;
+		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
 	float waveBottom_V = refValue_V + pWaveCV->voltage2;
@@ -608,7 +609,7 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 	if (!(waveBottom_V >= 0))
 	{
 		// ERROR: wave can't be generated!
-		return -2;
+		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
 	pParamCV->highDAC12Value = _map(waveTop_V * 100000, 0, 219983, 0, 4095);
@@ -618,7 +619,7 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 
 	pParamCV->numSlopePoints = (pParamCV->numPoints - 1) / (pParamCV->numCycles * 2);
 
-	return 1;
+	return NO_ERROR;
 }
 
 

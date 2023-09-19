@@ -39,10 +39,9 @@ void openafe_resetBySoftware(void);
  * @brief Check wheter the value in the ADIID register is the expected 0x4144.
  * Useful to check if the SPI and/or the AFE IC is working.
  *
- * @return 1 -- AFE IC responded correctly.
- * @return 0 -- AFE IC is not responding correctly.
+ * @return Error code.
  */
-uint8_t openafe_isResponding(void);
+int openafe_isResponding(void);
 
 /**
  * @brief Kill the voltammetry proccess.

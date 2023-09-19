@@ -234,7 +234,7 @@ void _zeroVoltageAcrossElectrodes(void);
  *
  * @param pWaveCV IN -- Desired parameters of a CV wave.
  * @param pParamCV OUT -- Resulting parameters to generate the given CV wave.
- * @return <=0 if wave cannot be generated.
+ * @return Error code on error.
  */
 int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV);
 

@@ -4,6 +4,7 @@ extern "C" {
 
 #include "openafe_core.h"
 #include "openafe_core_internal.h"
+#include "Utility/openafe_status_codes.h"
 
 // Number of points read in the current voltammetry. Can be used as point index.
 uint16_t gNumPointsRead;
@@ -47,11 +48,11 @@ void openafe_resetBySoftware(void)
 }
 
 
-uint8_t openafe_isResponding(void)
+int openafe_isResponding(void)
 {
 	uint32_t tADIIDValue = _readRegister(AD_ADIID, REG_SZ_16);
 	
-	return tADIIDValue == AD_VALUE_ADIID ? 1 : 0;
+	return tADIIDValue == AD_VALUE_ADIID ? NO_ERROR : ERROR_AFE_NOT_WORKING;
 }
 
 
@@ -131,12 +132,11 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 
 	_setVoltammetryParams(&tWaveCV);
 
-	int tPossible = _calculateParamsForCV(&tWaveCV, &gCVParams);
+	int tPossibility = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
-	if (tPossible < 0)
+	if (tPossibility != NO_ERROR)
 	{
-		return 0;	// DEBUG ONLY
-		// return tPossible; 
+		return tPossibility;
 	}
 
 	// Initialize the CV state struct
@@ -154,7 +154,7 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
 	}
 
-	return 1;
+	return NO_ERROR;
 }
 
 
@@ -162,10 +162,13 @@ uint8_t openafe_done(void)
 {
 	if (gShoulKillVoltammetry == 1)
 	{
-		return 1;
+		return STATUS_VOLTAMMETRY_DONE;
 	}
 
-	return ((gFinished == 1) && (gDataAvailable == 0)) || ((gFinished == 1) && (gNumRemainingDataPoints == 0)) ? 1 : 0;
+	return ((gFinished == 1) && (gDataAvailable == 0)) ||
+				   ((gFinished == 1) && (gNumRemainingDataPoints == 0))
+			   ? STATUS_VOLTAMMETRY_DONE
+			   : STATUS_VOLTAMMETRY_UNDERGOING;
 }
 
 
