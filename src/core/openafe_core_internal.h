@@ -262,12 +262,18 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV);
 uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, paramCV_t *pParamCV, stateCV_t *pStateCV);
 
 /**
- * This function sets up the data FIFO mode and size for an ADC device.
+ * This function configures the data FIFO mode and size for an ADC device.
  *
  * @param pDataMemoryAmount IN -- The amount of memory allocated for the data FIFO in kilobytes (kB). It can
  * be 2, 4, or 6 kB.
  */
-void _dataFIFOSetup(uint16_t pDataMemoryAmount);
+void _dataFIFOConfig(uint16_t pDataMemoryAmount);
+
+/**
+ * @brief This function configures the command sequencer.
+ * 
+ */
+void _sequencerConfig(void);
 
 /**
  * @brief Configure the interrupts.

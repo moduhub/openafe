@@ -715,8 +715,11 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 }
 
 
-void _dataFIFOSetup(uint16_t pDataMemoryAmount)
+void _dataFIFOConfig(uint16_t pDataMemoryAmount)
 {
+	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
+	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Disable FIFO before configuration
+
 	uint32_t tCMDDATACONValue = _readRegister(AD_CMDDATACON, REG_SZ_32);
 
 	tCMDDATACONValue &= ~((uint32_t)0b111 << 9);
@@ -745,6 +748,34 @@ void _dataFIFOSetup(uint16_t pDataMemoryAmount)
 	uint16_t pDataFIFOThreshold = 100u;
 
 	_writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
+
+	// - bit 13 -- Select data FIFO source: sinc2.
+	tFIFOCONValue &= ~(uint32_t)0b111 << 13;
+	_writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)0b011 << 13, REG_SZ_32);
+}
+
+
+void _sequencerConfig(void)
+{
+	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
+	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Clear fifo configuration
+
+	_writeRegister(AD_SEQCON, 0, REG_SZ_32); // Disable sequencer
+	_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Clear count and CRC registers
+
+	/**
+	 * Configure sequencer:
+	 * - bit 3 -- Command Memory mode
+	 * - bit 0 -- Command memory select
+	 */
+	uint32_t tCMDDATACONValue = _readRegister(AD_CMDDATACON, REG_SZ_32);
+	tCMDDATACONValue &= ~(uint32_t)0b111111 << 0; // Mask command configs
+	tCMDDATACONValue |= ((uint32_t)0b10 << 0 | (uint32_t)0b01 << 3);
+	_writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32); // Configure sequencer
+
+	// - Restore FIFO after configuration.
+	// - bit 11 -- Enable data FIFO.
+	_writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)1 << 11, REG_SZ_32); // restore FIFO configuration
 }
 
 

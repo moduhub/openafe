@@ -94,34 +94,11 @@ int openafe_setCVSequence(float pPeakVoltage, float pValleyVoltage, float pScanR
 {
 	_zeroVoltageAcrossElectrodes();
 
-	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Disable FIFO before configuration
+	_dataFIFOConfig(2000U);
 
-	_dataFIFOSetup(2000U);
-
-	// - bit 13 -- Select data FIFO source: sinc2.
-	_writeRegister(AD_FIFOCON, (uint32_t)0b011 << 13, REG_SZ_32);
+	_sequencerConfig();
 
 	_interruptConfig();
-
-	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
-	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Clear fifo configuration
-
-	_writeRegister(AD_SEQCON, 0, REG_SZ_32); // Disable sequencer
-	_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Clear count and CRC registers
-
-	/**
-	 * Configure sequencer:
-	 * - bit 3 -- Command Memory mode
-	 * - bit 0 -- Command memory select
-	 */
-	uint32_t tCMDDATACONValue = _readRegister(AD_CMDDATACON, REG_SZ_32);
-	tCMDDATACONValue &= ~(uint32_t)0b111111 << 0; // Mask command configs
-	tCMDDATACONValue |= ((uint32_t)0b10 << 0 | (uint32_t)0b01 << 3);
-	_writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32); // Configure sequencer
-
-	// - Restore FIFO after configuration.
-	// - bit 11 -- Enable data FIFO.
-	_writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)1 << 11, REG_SZ_32); // restore FIFO configuration
 
 	waveCV_t tWaveCV;
 	tWaveCV.voltage1 = pPeakVoltage;
