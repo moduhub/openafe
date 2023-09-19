@@ -8,7 +8,7 @@
 #define _OPENAFE_CORE_INTERNAL_H_
 
 #include <stdint.h>
-#include "openafe_types/openafe_types.h"
+#include "Utility/openafe_types.h"
 #include "Utility/openafe_defines.h"
 #include "Utility/ad5941_registers.h"
 #include "Utility/ad5941_defines.h"
