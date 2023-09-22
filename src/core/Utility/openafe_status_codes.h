@@ -14,4 +14,6 @@
 #define ERROR_AFE_NOT_WORKING -5  // AFE IC does not respond as expected.
 #define ERROR_WAVE_GEN -6         // An error ocurred during the wave generation.
 
+#define IS_ERROR(code) (((int)(code) < 0) ? 1 : 0)
+
 #endif //_OPENAFE_STATUS_CODES_

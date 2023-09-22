@@ -49,6 +49,12 @@ int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float p
 }
 
 
+int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase)
+{
+	return openafe_setDPVSequence(pSettlingTime, pStartingPotential, pEndingPotential, pPulsePotential, pStepPotential, pPulseWidth, pPulsePeriod, pSamplePeriodPulse, pSamplePeriodBase);
+}
+
+
 int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
 {
 	return openafe_waveformCV(pPeakVoltage, pValleyVoltage, pScanRate, pStepSize, pNumCycles);

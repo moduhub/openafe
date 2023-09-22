@@ -72,6 +72,24 @@ class AFE
 		static int setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
+		 * @brief Generate the desired DPV waveform and fill the sequencer.
+		 *
+		 * @note This function also automatically sets the interrupts and initialize global variables.
+		 *
+		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
+		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
+		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
+		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+		 * @param pStepPotential IN -- Step potential of the wave, in mV, e.g. 5.
+		 * @param pPulseWidth IN -- Pulse width, in milliseconds, e.g. 1.
+		 * @param pPulsePeriod IN -- Pulse period, it is the inverse of frequency, in ms, e.g. 20.
+		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
+		 * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
+		 * @return Error codes.
+		 */
+		static int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+
+		/**
 		 * Generation of the Cyclic Voltammetry waveform.
 		 *
 		 * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.

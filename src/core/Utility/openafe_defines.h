@@ -1,6 +1,9 @@
 #ifndef _OPENAFE_DEFINES_H_
 #define _OPENAFE_DEFINES_H_
 
+#define IS_RISING_SLOPE(slope) ((uint16_t)slope % 2 == 0 ? 0 : 1)
+#define IS_FIRST_VOLTAMMETRY_POINT(currentSlope, slopePoint) (((uint16_t)currentSlope == 1 && (uint16_t)slopePoint == 0) ? 1 : 0)
+
 /* Gain of the TIA */
 #define AD_TIAGAIN_200 200UL
 #define AD_TIAGAIN_1K 1000UL
