@@ -172,10 +172,8 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 
 	int tPossibility = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
-	if (tPossibility != NO_ERROR)
-	{
+	if (IS_ERROR(tPossibility)) 
 		return tPossibility;
-	}
 
 	// Initialize the CV state struct
 	gCVState.currentSlope = 1;
@@ -411,9 +409,6 @@ int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate
 			_writeRegister(AD_AFECON, tAFECONValue | (uint32_t)1 << 8, REG_SZ_32);
 			// openafe_wrapper_delayMicroseconds(tCVParams.stepDuration_us);
 
-			// Serial.print(tVoltageLevel);
-			// Serial.print(F(","));
-			// Serial.println(_getCurrentFromADCValue(_readADC()));
 
 			if (tRisingSlope)
 			{

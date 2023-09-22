@@ -728,24 +728,22 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 		if (pStateCV->currentSlope == (pParamCV->numCycles * 2))
 			tNumSlopePoints++;
 
-		for (uint16_t i = pStateCV->currentSlopePoint; i < tNumSlopePoints; i++)
+		for (uint16_t slopePoint = pStateCV->currentSlopePoint; slopePoint < tNumSlopePoints; slopePoint++)
 		{
 			uint16_t tDAC12Value;
 
-			if (!(pStateCV->currentSlope % 2 == 0))
+			if (IS_RISING_SLOPE(pStateCV->currentSlope))
 			{
-				/* Rising slope */
-				tDAC12Value = (uint16_t)(pParamCV->DAC12StepSize * (float)i) + pParamCV->lowDAC12Value;
+				tDAC12Value = (uint16_t)(pParamCV->DAC12StepSize * (float)slopePoint) + pParamCV->lowDAC12Value;
 			}
 			else
 			{
-				/* Falling slope */
-				tDAC12Value = pParamCV->highDAC12Value - (uint16_t)(pParamCV->DAC12StepSize * (float)i);
+				tDAC12Value = pParamCV->highDAC12Value - (uint16_t)(pParamCV->DAC12StepSize * (float)slopePoint);
 			}
 
 			_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->DAC6Value << 12) | (uint32_t)tDAC12Value);
 
-			if (pStateCV->currentSlope == 1 && i == 0)
+			if (IS_FIRST_VOLTAMMETRY_POINT(pStateCV->currentSlope, slopePoint))
 			{
 				// Add the settling time at the beginning of the first slope
 				_sequencerWriteCommand(AD_FIFOCON, 0);							 // Disable FIFO
@@ -753,25 +751,16 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 				_sequencerWriteCommand(AD_FIFOCON, tFIFOCONValue);				 // Enable FIFO again
 			}
 
-			// Turn on ADC
-			const uint16_t ADC_STABILIZATION_TIME_US = 500u;
-			_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); // Enable ADC power
-			_sequencerWaitCommand(ADC_STABILIZATION_TIME_US);					// wait for it to stabilize
-
-			// ADC conversion
-			const uint16_t CONV_CLK_CYCLES = 8000 + 10;												       // 800 (samples) * ( 16 (MHz) / 1.6 (MHz)) = 8000 clock pulses per sample
-			_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
-			_sequencerWaitCommandClock(CONV_CLK_CYCLES);												   // wait 2360 clocks
-			_sequencerWriteCommand(AD_AFECON, (tAFECONValue & ~((uint32_t)1 << 7)) & ~((uint32_t)1 << 8)); // Stop ADC conversion
+			uint32_t tStepOffset_us = _sequencerSamplePoint(tAFECONValue);
 
 			// Step time with the necessary time compensations
-			tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us - (uint32_t)((float)(CONV_CLK_CYCLES)*0.0625f) - ADC_STABILIZATION_TIME_US);
+			tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us - tStepOffset_us);
 
 			gNumWavePoints++;
 
-			if (tCurrentAddress + 8 >= pEndingAddress)
+			if (tCurrentAddress + SEQ_NUM_COMMAND_PER_CV_POINT >= pEndingAddress)
 			{
-				pStateCV->currentSlopePoint = (i + 1) >= tNumSlopePoints ? 0 : (i + 1);
+				pStateCV->currentSlopePoint = (slopePoint + 1) >= tNumSlopePoints ? 0 : (slopePoint + 1);
 				tSequenceFilled = 1;
 				break;
 			}
@@ -854,7 +843,7 @@ uint8_t _sendDifferentialPulseVoltammetrySequence(uint8_t pSequenceIndex, uint16
 			tSampleTime = _sequencerSamplePoint(tAFECONValue);
 			tCurrentSeqAddress = _sequencerWaitCommand((((uint32_t)pVoltammetry->samplePeriodPulse_ms * 1000u) - tSampleTime));
 
-			if ((tCurrentSeqAddress + 18) >= pEndingAddress)
+			if ((tCurrentSeqAddress + SEQ_NUM_COMMAND_PER_DPV_POINT) >= pEndingAddress)
 			{
 				pVoltammetry->state.currentSlopePoint = (slopePoint + 1) >= tNumSlopePoints ? 0 : (slopePoint + 1);
 				tSequenceFilled = 1;
