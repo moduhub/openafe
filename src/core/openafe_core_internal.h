@@ -57,21 +57,6 @@ extern uint16_t gNumWavePoints; // Number of points in the current waveform.
 
 extern uint16_t gNumRemainingDataPoints; // Number of data points to read.
 
-extern uint16_t gDataAvailable; // Whether or not there is data available to read.
-
-/**
- * @brief Whether the AD594x has finish or not the current operation.
- * @note READ ONLY! This variable is automatically managed by the library.
- */
-extern uint8_t gFinished;
-
-/**
- * @brief Store the index of the sequence that is currently running.
- * @note READ ONLY! This variable is automatically managed by the function _startSequence().
- */
-extern uint8_t gCurrentSequence;
-
-
 /**
  * @brief Read the 16-bit or 32-bit value from a register.
  *

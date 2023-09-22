@@ -37,19 +37,11 @@ uint16_t gNumWavePoints; // Number of points in the current waveform.
 
 uint16_t gNumRemainingDataPoints; // Number of data points to read.
 
-uint16_t gDataAvailable = 10; // Whether or not there is data available to read.
-
-/**
- * @brief Whether the AD594x has finish or not the current operation.
- * @note READ ONLY! This variable is automatically managed by the library.
- */
-uint8_t gFinished;
-
-/**
- * @brief Store the index of the sequence that is currently running.
- * @note READ ONLY! This variable is automatically managed by the function _startSequence().
- */
-uint8_t gCurrentSequence;
+// /**
+//  * @brief Store the index of the sequence that is currently running.
+//  * @note READ ONLY! This variable is automatically managed by the function _startSequence().
+//  */
+// uint8_t gCurrentSequence;
 
 
 uint32_t _readRegister(uint16_t pAddress, uint8_t pRegisterSize)
@@ -246,7 +238,6 @@ void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockS
 	gTIAGain = 0;
 	gRload = 0;
 	gPGA = 1;
-	gFinished = 1;
 
 	openafe_wrapper_setup(pShieldCSPin, pShieldResetPin, pSPIClockSpeed);
 
@@ -427,8 +418,6 @@ void _startSequence(uint8_t pSequenceIndex)
 	_writeRegister(AD_TRIGSEQ, (uint32_t)1 << pSequenceIndex, REG_SZ_16); // start sequence 0
 
 	_setRegisterBit(AD_SEQCON, 0); // enable sequencer
-
-	gCurrentSequence = pSequenceIndex;
 }
 
 

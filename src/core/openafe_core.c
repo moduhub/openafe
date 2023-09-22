@@ -118,12 +118,12 @@ float openafe_getVoltage()
 
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
-{
+{	
 	if(gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV)
 	{
 		*pVoltage_mV = openafe_getVoltage();
 	} else {
-	*pVoltage_mV = _getVoltage();
+		*pVoltage_mV = _getVoltage();
 	}
 
 	float tCurrent = openafe_readDataFIFO();
@@ -180,8 +180,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	// Initialize the CV state struct
 	gCVState.currentSlope = 1;
 	gCVState.currentSlopePoint = 0;
-
-	gNumWavePoints = 0;
 
 	gNumRemainingDataPoints = gCVParams.numPoints;
 
@@ -319,9 +317,9 @@ void openafe_interruptHandler(void)
 
 		if (gVoltammetryParams.state.currentVoltammetryType == 0){
 			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
-			_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
+				_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
 			} else {
-			_sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
+				_sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
 			}
 		} else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV){
 			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
