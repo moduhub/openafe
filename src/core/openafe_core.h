@@ -74,7 +74,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
  * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
  * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
  * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
- * @return >0 if successful, otherwise error.
+ * @return Number of points of the voltammetry if successful, negative values on error (error code).
  *
  */
 int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);

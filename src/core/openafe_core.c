@@ -188,7 +188,7 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
 	}
 
-	return NO_ERROR;
+	return gCVParams.numPoints;
 }
 
 
