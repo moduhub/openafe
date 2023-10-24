@@ -49,7 +49,8 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
 	}
 
 	// Initializes the system:
-	_initAFE(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
+	_wrapper_setup(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
+	_initAFE();
 	_setTIAGain(3000u); 
 	return 1;
 }
@@ -152,6 +153,10 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 
 int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles)
 {
+	_initAFE();
+
+	_setTIAGain(3000u);
+
 	_zeroVoltageAcrossElectrodes();
 
 	_dataFIFOConfig(2000U);
@@ -196,6 +201,10 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 						   float pPulsePotential, float pStepPotential, uint16_t pPulseWidth,
 						   uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase)
 {
+	_initAFE();
+
+	_setTIAGain(3000u);
+
 	_zeroVoltageAcrossElectrodes();
 
 	_dataFIFOConfig(2000U);

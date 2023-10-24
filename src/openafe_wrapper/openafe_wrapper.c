@@ -18,6 +18,11 @@ extern "C" {
 #include <string.h>
 #include <device.h>
 
+// Reset pin:
+#define OPENAFE_RESET_PIN_NODE DT_NODELABEL(led2)
+static const struct gpio_dt_spec openafereset = GPIO_DT_SPEC_GET(OPENAFE_RESET_PIN_NODE, gpios);
+
+// Chip select pin:
 #define OPENAFE_CS_NODE DT_NODELABEL(led0)
 
 static const struct gpio_dt_spec openafecs = GPIO_DT_SPEC_GET(OPENAFE_CS_NODE, gpios);
@@ -52,6 +57,7 @@ void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32
 	arduino_pin_3_low();
 	#elif USE_ZEPHYR_WRAPPERS
 	gpio_pin_configure_dt(&openafecs, GPIO_OUTPUT_ACTIVE);
+	// gpio_pin_configure_dt(&openafereset, GPIO_OUTPUT_INACTIVE);
 	gOpenAFE_dev = device_get_binding(ZEPHYR_OPENAFE_SPI_NAME);
 	#else
 	/**
@@ -111,7 +117,9 @@ void openafe_wrapper_reset(void)
 	_delay_ms(1);
 	arduino_pin_3_low();
 	#elif USE_ZEPHYR_WRAPPERS
+	gpio_pin_set_dt(&openafereset, 1);
 	openafe_wrapper_delayMicroseconds(5);
+	gpio_pin_set_dt(&openafereset, 0);
 	#else
 	// [Place in here a function to make reset pin go to low]
 

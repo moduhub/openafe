@@ -232,14 +232,16 @@ void _setVoltammetryParams(const waveCV_t *pCVWave)
 	memcpy(&gCVWave, pCVWave, sizeof(waveCV_t));
 }
 
+void _wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
+{
+	openafe_wrapper_setup(pShieldCSPin, pShieldResetPin, pSPIClockSpeed);
+}
 
-void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
+void _initAFE(void)
 {
 	gTIAGain = 0;
 	gRload = 0;
 	gPGA = 1;
-
-	openafe_wrapper_setup(pShieldCSPin, pShieldResetPin, pSPIClockSpeed);
 
 	_resetBySoftware(); /* TODO: Remove when reset by hardware is available */
 	_resetByHardware();
