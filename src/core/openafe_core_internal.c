@@ -33,8 +33,6 @@ paramCV_t gCVParams; // Global parameters of the current CV Waveform.
 
 stateCV_t gCVState; // Global state of the current CV waveform.
 
-uint16_t gNumWavePoints; // Number of points in the current waveform.
-
 uint16_t gNumRemainingDataPoints; // Number of data points to read.
 
 // /**
@@ -755,8 +753,6 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 
 			// Step time with the necessary time compensations
 			tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us - tStepOffset_us);
-
-			gNumWavePoints++;
 
 			if (tCurrentAddress + SEQ_NUM_COMMAND_PER_CV_POINT >= pEndingAddress)
 			{
