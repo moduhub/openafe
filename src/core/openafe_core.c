@@ -119,7 +119,8 @@ float openafe_getVoltage()
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 {	
-	if(gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV)
+	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV || 
+		gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
 	{
 		*pVoltage_mV = openafe_getVoltage();
 	} else {
@@ -128,10 +129,11 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 
 	float tCurrent = openafe_readDataFIFO();
 
-	if(gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV)
+	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV || 
+		gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
 	{
 		float tCurrentAtPulse = openafe_readDataFIFO();
-		tCurrent = tCurrentAtPulse - tCurrent; 
+		tCurrent = tCurrent - tCurrentAtPulse; 
 	}
 
 	*pCurrent_uA = tCurrent;
@@ -238,6 +240,51 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 	return NO_ERROR;
 }
 
+int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential,
+						   float pScanRate, float pPulsePotential,
+						   uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse)
+{
+	_zeroVoltageAcrossElectrodes();
+
+	_dataFIFOConfig(2000U);
+
+	_sequencerConfig();
+
+	_interruptConfig();
+
+	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
+
+	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_SWV;
+	
+	gVoltammetryParams.settlingTime = pSettlingTime;
+	gVoltammetryParams.startingPotential = pStartingPotential;
+	gVoltammetryParams.endingPotential = pEndingPotential;
+	gVoltammetryParams.scanRate = pScanRate;
+	gVoltammetryParams.pulsePotential = pPulsePotential;
+	gVoltammetryParams.pulseFrequency = pPulseFrequency;
+	gVoltammetryParams.samplePeriodPulse_ms = pSamplePeriodPulse;
+	gVoltammetryParams.numCycles = 1;
+
+	int tPossibility = _calculateParamsForSWV(&gVoltammetryParams);
+
+	if (IS_ERROR(tPossibility))
+		return tPossibility;
+
+	gVoltammetryParams.state.currentSlope = 1;
+	gVoltammetryParams.state.currentSlopePoint = 0;
+	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
+
+	uint8_t tSentAllWaveSequence = _sendSquareWaveVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
+
+	if (!tSentAllWaveSequence) 
+	{
+		tSentAllWaveSequence = _sendSquareWaveVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
+	}
+
+	return NO_ERROR;
+}
+
+
 
 uint8_t openafe_done(void)
 {
@@ -313,7 +360,7 @@ void openafe_interruptHandler(void)
 
 		gCurrentSequence = !gCurrentSequence;
 
-		if (gVoltammetryParams.state.currentVoltammetryType == 0){
+		if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_CV){
 			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
 				_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
 			} else {
@@ -324,6 +371,12 @@ void openafe_interruptHandler(void)
 				_sendDifferentialPulseVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
 			} else {
 				_sendDifferentialPulseVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
+			}
+		} else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV){
+			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
+				_sendSquareWaveVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
+			} else {
+				_sendSquareWaveVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
 			}
 		}
 	}

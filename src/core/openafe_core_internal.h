@@ -232,6 +232,14 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV);
 int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams);
 
 /**
+ * @brief Calculate the parameters for the given target SWV waveform.
+ *
+ * @param pVoltammetryParams IN -- Voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
+
+/**
  * @brief Generate and send the Cyclic Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
  *
  * This function generates and sends the required commands for a Cyclic Voltammetry sequence to the AFE.
@@ -275,6 +283,28 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
  * @note This function assumes that the AFE has been properly initialized and configured.
  */
 uint8_t _sendDifferentialPulseVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry);
+
+/**
+ * @brief Generate and send the Square Wave Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
+ *
+ * This function generates and sends the required commands for a Square Wave Voltammetry sequence to the AFE.
+ * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
+ * The function uses the parameter and state structures to keep track of the current state of the sequence
+ * and generates the required DAC and ADC commands to execute the sequence.
+ * If the sequence has been filled completely, the function returns True, indicating that all commands have been sent.
+ * Otherwise, the function returns False and the calling function is responsible for calling this function again
+ * to continue sending the remaining commands.
+ * This function also sets the starting address of the SRAM buffer, triggers the custom interrupt 3 to indicate
+ * the completion of the sequence, and configures the sequence info register.
+ *
+ * @param pSequenceIndex IN -- The sequence index to be filled.
+ * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
+ * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
+ * @param pVoltammetry IN -- Pointer to the voltammetry struct.
+ * @return Status code: 1 on all commands sent, 0 otherwise.
+ * @note This function assumes that the AFE has been properly initialized and configured.
+ */
+uint8_t _sendSquareWaveVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry);
 
 /**
  * This function configures the data FIFO mode and size for an ADC device.

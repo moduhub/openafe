@@ -90,6 +90,22 @@ class AFE
 		static int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
 
 		/**
+		 * @brief Generate the desired SWV waveform and fill the sequencer.
+		 *
+		 * @note This function also automatically sets the interrupts and initialize global variables.
+		 *
+		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
+		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
+		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
+		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
+		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+		 * @param pPulseFrequency IN -- Pulse frequency, in Hertz, e.g. 50.
+		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
+		 * @return Error codes.
+		 */
+		static int setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse);
+
+		/**
 		 * Generation of the Cyclic Voltammetry waveform.
 		 *
 		 * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.

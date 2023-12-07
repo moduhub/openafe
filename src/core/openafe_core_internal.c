@@ -681,6 +681,51 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 }
 
 
+int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
+{
+	// Timing calculations
+	pVoltammetryParams->pulsePeriod_ms = (uint32_t)((1.0f / (float)pVoltammetryParams->pulseFrequency) * 1000.f);
+
+	pVoltammetryParams->pulseWidth_ms = pVoltammetryParams->pulsePeriod_ms / 2u;
+
+	// Voltage calculations
+	float tWaveOffset_V = (((pVoltammetryParams->startingPotential - pVoltammetryParams->pulsePotential) + (pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential)) / 2.0f) / 1000.0f;
+
+	pVoltammetryParams->DAC.reference = (uint16_t)(((DAC_6_RNG_V / 2.0f) - tWaveOffset_V) / DAC_6_STEP_V);
+
+	pVoltammetryParams->DAC.pulse = (uint16_t)(pVoltammetryParams->pulsePotential / (1000.0f * DAC_12_STEP_V));
+
+	float refValue_mV = (float)_map((int32_t)(pVoltammetryParams->DAC.reference), 0, 63, 0, 2166);
+
+	float waveTop_mV = refValue_mV + pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential;
+
+	if ((waveTop_mV / 1000.0f) > DAC_12_RNG_V)
+	{
+		return ERROR_PARAM_OUT_BOUNDS; // ERROR: wave can't be generated!
+	}
+
+	float waveBottom_mV = refValue_mV + pVoltammetryParams->startingPotential - pVoltammetryParams->pulsePotential;
+
+	if (waveBottom_mV <= 0.0f)
+	{
+		return ERROR_PARAM_OUT_BOUNDS; // ERROR: wave can't be generated!
+	}
+
+	pVoltammetryParams->stepPotential = pVoltammetryParams->scanRate * ((float)pVoltammetryParams->pulsePeriod_ms / 1000.f);
+	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential / 1000.0f) / DAC_12_STEP_V;
+
+	pVoltammetryParams->DAC.starting = (uint16_t)(((pVoltammetryParams->startingPotential + refValue_mV) / 1000.0f) / DAC_12_STEP_V);
+	pVoltammetryParams->DAC.ending = (uint16_t)(((pVoltammetryParams->endingPotential + refValue_mV) / 1000.0f) / DAC_12_STEP_V);
+
+	// Points calculation
+	pVoltammetryParams->numPoints = (uint16_t)((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) + 1u;
+
+	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1u) / pVoltammetryParams->numCycles;
+
+	return NO_ERROR;
+}
+
+
 /**
  * The function _sequencerSamplePoint performs ADC conversion and returns a constant value.
  * 
@@ -840,6 +885,92 @@ uint8_t _sendDifferentialPulseVoltammetrySequence(uint8_t pSequenceIndex, uint16
 			tCurrentSeqAddress = _sequencerWaitCommand((((uint32_t)pVoltammetry->samplePeriodPulse_ms * 1000u) - tSampleTime));
 
 			if ((tCurrentSeqAddress + SEQ_NUM_COMMAND_PER_DPV_POINT) >= pEndingAddress)
+			{
+				pVoltammetry->state.currentSlopePoint = (slopePoint + 1) >= tNumSlopePoints ? 0 : (slopePoint + 1);
+				tSequenceFilled = 1;
+				break;
+			}
+		}
+
+		if (!tSequenceFilled)
+		{
+			pVoltammetry->state.currentSlopePoint = 0;
+			pVoltammetry->state.currentSlope++;
+		}
+	}
+
+	if (pVoltammetry->state.currentSlope > (pVoltammetry->numCycles))
+	{
+		tSentAllCommands = 1;
+		// trigger custom interrupt 3 - finished!
+		_sequencerWriteCommand(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT);
+		tCurrentSeqAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3);
+	} else {
+		// Generate sequence end interrupt
+		tCurrentSeqAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2);
+	}
+
+	_configureSequence(pSequenceIndex, pStartingAddress, tCurrentSeqAddress);
+
+	return tSentAllCommands;
+}
+
+
+uint8_t _sendSquareWaveVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry)
+{
+	uint8_t tSentAllCommands = 0;
+	uint8_t tSequenceFilled = 0;
+
+	uint16_t tCurrentSeqAddress = pStartingAddress;
+
+	/** Set the starting address of the SRAM */
+	_writeRegister(AD_CMDFIFOWADDR, pStartingAddress, REG_SZ_32);
+
+	uint16_t tNumSlopePoints = pVoltammetry->numSlopePoints;
+
+	uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32); // Needed to trigger the ADC conversion faster.
+
+	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
+
+	while (pVoltammetry->state.currentSlope <= pVoltammetry->numCycles && !tSequenceFilled)
+	{	
+		// If on the last slope, adds another point
+		if (pVoltammetry->state.currentSlope == pVoltammetry->numCycles)
+			tNumSlopePoints++;
+
+		for (uint16_t slopePoint = pVoltammetry->state.currentSlopePoint; slopePoint < tNumSlopePoints; slopePoint++)
+		{
+			uint16_t tBaseDAC12Value;
+
+			if (IS_RISING_SLOPE(pVoltammetry->state.currentSlope))
+			{
+				tBaseDAC12Value = pVoltammetry->DAC.starting + (uint16_t)(pVoltammetry->DAC.step * (float)slopePoint);
+			} else {
+				tBaseDAC12Value = pVoltammetry->DAC.ending - (uint16_t)(pVoltammetry->DAC.step * (float)slopePoint);
+			}
+			
+			if (IS_FIRST_VOLTAMMETRY_POINT(pVoltammetry->state.currentSlope, slopePoint))
+			{
+				// Add the settling time at the beginning of the first slope
+				_sequencerSetDAC(tBaseDAC12Value, pVoltammetry->DAC.reference);
+				_sequencerWriteCommand(AD_FIFOCON, 0);							 // Disable FIFO
+				_sequencerWaitCommand(((uint32_t)pVoltammetry->settlingTime) * 1000u); // settling time on the first ever slope
+				_sequencerWriteCommand(AD_FIFOCON, tFIFOCONValue);				 // Enable FIFO again
+			} 
+			
+			_sequencerSetDAC((tBaseDAC12Value + pVoltammetry->DAC.pulse), pVoltammetry->DAC.reference);
+
+			_sequencerWaitCommand(((uint32_t)((float)pVoltammetry->pulsePeriod_ms / 2.f) - (uint32_t)pVoltammetry->samplePeriodPulse_ms) * 1000u);
+			uint32_t tSampleTime = _sequencerSamplePoint(tAFECONValue);
+			_sequencerWaitCommand((((uint32_t)pVoltammetry->samplePeriodPulse_ms * 1000u) - tSampleTime));
+
+			_sequencerSetDAC((uint32_t)(tBaseDAC12Value - pVoltammetry->DAC.pulse), (uint32_t)pVoltammetry->DAC.reference);
+			
+			_sequencerWaitCommand(((uint32_t)((float)pVoltammetry->pulsePeriod_ms / 2.f) - (uint32_t)pVoltammetry->samplePeriodPulse_ms) * 1000u);
+			tSampleTime = _sequencerSamplePoint(tAFECONValue);
+			tCurrentSeqAddress = _sequencerWaitCommand((((uint32_t)pVoltammetry->samplePeriodPulse_ms * 1000u) - tSampleTime));
+
+			if ((tCurrentSeqAddress + SEQ_NUM_COMMAND_PER_SWV_POINT) >= pEndingAddress)
 			{
 				pVoltammetry->state.currentSlopePoint = (slopePoint + 1) >= tNumSlopePoints ? 0 : (slopePoint + 1);
 				tSequenceFilled = 1;

@@ -1,7 +1,7 @@
 #ifndef _OPENAFE_TYPES_H_
 #define _OPENAFE_TYPES_H_
 
-#define STATE_CURRENT_CV 1  // Cyclic voltammetry in progress flag.
+#define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
 #define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.
 #define STATE_CURRENT_DPV 3 // Differential Pulse voltammetry in progress flag.
 
@@ -74,6 +74,7 @@ typedef struct voltammetry_t
     uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
     uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
     uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
+    float pulseFrequency;           // Pulse Frequency, in Hertz.
     // Calculated Parameters
     uint32_t stepDuration_us; // Duration of each step, in microseconds (us).
     uint32_t baseWidth_ms;    // Base width, in milliseconds.
