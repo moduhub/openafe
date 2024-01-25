@@ -129,11 +129,18 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 
 	float tCurrent = openafe_readDataFIFO();
 
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV || 
-		gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
+	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
 	{
-		float tCurrentAtPulse = openafe_readDataFIFO();
-		tCurrent = tCurrent - tCurrentAtPulse; 
+		float tCurrentAtPulseBase = tCurrent;
+		float tCurrentAtPulseTop = openafe_readDataFIFO();
+		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBase; 
+	}
+
+	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
+	{
+		float tCurrentAtPulseTop = tCurrent;
+		float tCurrentAtPulseBottom = openafe_readDataFIFO();
+		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBottom; 
 	}
 
 	*pCurrent_uA = tCurrent;
