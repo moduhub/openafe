@@ -1091,7 +1091,8 @@ void _interruptConfig(void)
 		(uint32_t)1 << 15 | // End of sequence
 		(uint32_t)1 << 12 | // End of Voltammetry
 		(uint32_t)1 << 10 | // Sequence 1 -> custom interrupt 1
-		(uint32_t)1 << 9,	// Sequence 0 -> custom interrupt 0
+		(uint32_t)1 << 9  |	// Sequence 0 -> custom interrupt 0
+		(uint32_t)1 << 2,	// Sinc2 result is ready
 		REG_SZ_32);
 }
 

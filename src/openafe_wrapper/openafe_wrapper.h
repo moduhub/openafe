@@ -3,8 +3,15 @@
 
 #include <stdint.h>
 
-#define USE_SPI_TRANSFER_WRAPPER 1
+// FOR ARDUINO:
 #define USE_ARDUINO_WRAPPERS 1
+
+// FOR ZEPHYR RTOS:
+#define USE_ZEPHYR_WRAPPERS 0
+
+#if USE_ARDUINO_WRAPPERS
+#define USE_SPI_TRANSFER_WRAPPER 1
+#endif // USE_ARDUINO_WRAPPERS
 
 /**
  * @brief Wrapper function for needed setup during initialization.

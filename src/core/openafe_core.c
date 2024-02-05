@@ -353,6 +353,13 @@ void openafe_interruptHandler(void)
 
 	tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
 
+	if (tInterruptFlags0 & ((uint32_t)1 << 2))
+	{ // a sinc2 result is ready, turn off ADC conversions
+		// THIS HAS TO BE DONE HERE, OTHERWISE THE SINC2 RESULT INTERRUPT WILL ASSERT OVER AND OVER AGAIN:
+		uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
+		_writeRegister(AD_AFECON, tAFECONValue & ~((uint32_t)1 << 8), REG_SZ_32);
+	}
+
 	if (tInterruptFlags0 & ((uint32_t)1 << 12))
 	{ // end of voltammetry
 		_zeroVoltageAcrossElectrodes();
