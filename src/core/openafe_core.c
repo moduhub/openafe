@@ -26,10 +26,17 @@ uint8_t gFinished;
  * @brief Store the index of the sequence that is currently running.
  * @note READ ONLY! This variable is automatically managed by the function _startSequence().
  */
-uint8_t gCurrentSequence;
+uint8_t gCurrentSequence = 0;
 
-uint16_t gDataAvailable; // Whether or not there is data available to read.
+int32_t gDataAvailable = 0; // Whether or not there is data available to read.
 
+uint32_t gRawSampleValue; // The raw sample value read from the ADC.
+
+volatile uint8_t gShouldSkipNextPointAddition = 1;
+
+uint8_t gShouldPointAdditionChangeSEQ = 0;
+
+uint8_t gShouldAddPoints = 0;
 
 void openafe_DEBUG_turnOnPrints(void)
 {
@@ -127,7 +134,8 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 		*pVoltage_mV = _getVoltage();
 	}
 
-	float tCurrent = openafe_readDataFIFO();
+	// float tCurrent = openafe_readDataFIFO();
+	float tCurrent = _getCurrentFromADCValue(_readADC());
 
 	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
 	{
@@ -146,10 +154,8 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 	*pCurrent_uA = tCurrent;
 	
 	gNumRemainingDataPoints--;
-	if (gNumRemainingDataPoints == 0)
-	{
-		gDataAvailable = 0;
-	}
+
+	gDataAvailable = 0;
 
 	uint16_t pointIndex = gNumPointsRead;
 
@@ -181,21 +187,41 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 
 	int tPossibility = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
-	if (IS_ERROR(tPossibility)) 
+	if (IS_ERROR(tPossibility))
 		return tPossibility;
 
-	// Initialize the CV state struct
-	gCVState.currentSlope = 1;
-	gCVState.currentSlopePoint = 0;
+	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
 
-	gNumRemainingDataPoints = gCVParams.numPoints;
+	// Initialize the voltammetry params:
+	gVoltammetryParams.state.SEQ_currentPoint = 0;
+	gVoltammetryParams.state.SEQ_currentSRAMAddress = 0;
+	gVoltammetryParams.state.SEQ_nextSRAMAddress = 0;
+	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_CV;
+	gVoltammetryParams.settlingTime = pSettlingTime;
+	gVoltammetryParams.numSlopePoints = gCVParams.numSlopePoints;
 
-	uint8_t tSentAllWaveSequence = _sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
+	// the passing of the parameters below is a workaround for now:
+	gVoltammetryParams.numPoints = gCVParams.numPoints;
+	gVoltammetryParams.DAC.starting = gCVParams.lowDAC12Value;
+	gVoltammetryParams.DAC.ending = gCVParams.highDAC12Value;
+	gVoltammetryParams.DAC.step = gCVParams.DAC12StepSize;
+	gVoltammetryParams.DAC.reference = gCVParams.DAC6Value;
+	gVoltammetryParams.stepDuration_us = gCVParams.stepDuration_us;
+
+	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
+
+	uint8_t tSentAllWaveSequence = _sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
 
 	if (!tSentAllWaveSequence)
 	{
-		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
+		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
 	}
+
+	gVoltammetryParams.state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
+	gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
+	gDataAvailable = 0;
+	gShouldSkipNextPointAddition = 1;
+	gShouldAddPoints = 0;
 
 	return NO_ERROR;
 }
@@ -345,83 +371,68 @@ float openafe_readDataFIFO(void)
 }
 
 
-void openafe_interruptHandler(void)
+uint32_t openafe_interruptHandler(void)
 {
 	/** There are two reads from the INTCFLAG0 register because the first read returns garbage,
 	 *  the second has the true interrupt flags */
 	uint32_t tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
 
-	tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
+	tInterruptFlags0 |= _readRegister(AD_INTCFLAG0, REG_SZ_32);
 
-	if (tInterruptFlags0 & ((uint32_t)1 << 2))
-	{ // a sinc2 result is ready, turn off ADC conversions
-		// THIS HAS TO BE DONE HERE, OTHERWISE THE SINC2 RESULT INTERRUPT WILL ASSERT OVER AND OVER AGAIN:
-		uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
-		_writeRegister(AD_AFECON, tAFECONValue & ~((uint32_t)1 << 8), REG_SZ_32);
+	if (tInterruptFlags0 & ((uint32_t)1 << 11))
+	{	// trigger ADC result read
+		gDataAvailable++;
+
+		// send next sequence command to the runing sequence, but skips the first point of the sequence
+		// this is done to prevent a sequence command being written on top of a another, considering that
+		// the command to be overwritten is the very command that generated the read result interrupt 
+		if (gShouldAddPoints) {
+			gVoltammetryParams.state.SEQ_currentSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
+			gVoltammetryParams.state.SEQ_nextSRAMAddress = gVoltammetryParams.state.SEQ_currentSRAMAddress + 1;
+
+			if (gVoltammetryParams.state.SEQ_currentSRAMAddress > SEQ0_START_ADDR && gVoltammetryParams.state.SEQ_currentSRAMAddress <= SEQ0_END_ADDR && (gVoltammetryParams.state.SEQ_currentSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ0_END_ADDR)
+			{
+				gVoltammetryParams.state.SEQ_currentSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_currentSRAMAddress);
+			}
+			else if (gVoltammetryParams.state.SEQ_currentSRAMAddress > SEQ1_START_ADDR && gVoltammetryParams.state.SEQ_currentSRAMAddress <= SEQ1_END_ADDR && (gVoltammetryParams.state.SEQ_currentSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ1_END_ADDR)
+			{
+				gVoltammetryParams.state.SEQ_currentSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_currentSRAMAddress);
+			}
+		} 
+		
 	}
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 12))
 	{ // end of voltammetry
 		_zeroVoltageAcrossElectrodes();
-		gDataAvailable = 10;
+		// gDataAvailable = 10;
 		gFinished = 1;
+		gShoulKillVoltammetry = 1;
 	}
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 15))
 	{ // end of sequence
-		// start the next sequence, and fill the sequence that ended with new commands
+		// start the next sequence
 		_startSequence(!gCurrentSequence);
-
 		gCurrentSequence = !gCurrentSequence;
 
-		if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_CV){
-			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
-				_sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gCVParams, &gCVState);
-			} else {
-				_sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gCVParams, &gCVState);
-			}
-		} else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV){
-			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
-				_sendDifferentialPulseVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
-			} else {
-				_sendDifferentialPulseVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
-			}
-		} else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV){
-			if (gCurrentSequence) { // check which sequence is running, and feed the other one with new commands
-				_sendSquareWaveVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
-			} else {
-				_sendSquareWaveVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
-			}
+		if (gShouldAddPoints)
+		{
+			if (gCurrentSequence == 1)
+				gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ1_START_ADDR;
+			else
+				gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
 		}
-	}
 
-	if (tInterruptFlags0 & ((uint32_t)1 << 23))
-	{ // data FIFO full
-		// Start reading data FIFO immediately
-		gDataAvailable = 10; // used just to flag there is data available
-	}
-
-	if (tInterruptFlags0 & ((uint32_t)1 << 25) && !gFinished)
-	{ // data FIFO threshold reached
-		// Start reading data FIFO immediately
-		uint32_t tINTCSEL0Value = _readRegister(AD_INTCSEL0, REG_SZ_32);
-		_writeRegister(AD_INTCSEL0, (tINTCSEL0Value & ~((uint32_t)1 << 25)) | (uint32_t)1 << 24, REG_SZ_32);
-
-		uint32_t tNumDataInFIFO = ((uint32_t)_readRegister(AD_FIFOCNTSTA, REG_SZ_32) >> 16) & (uint32_t)0b1111111111;
-		tNumDataInFIFO = ((uint32_t)_readRegister(AD_FIFOCNTSTA, REG_SZ_32) >> 16) & (uint32_t)0b1111111111;
-
-		gDataAvailable = tNumDataInFIFO;
-	}
-
-	if (tInterruptFlags0 & ((uint32_t)1 << 24))
-	{ // data FIFO empty
-		// stop reading data FIFO
-		uint32_t tINTCSEL0Value = _readRegister(AD_INTCSEL0, REG_SZ_32);
-		_writeRegister(AD_INTCSEL0, (tINTCSEL0Value & ~((uint32_t)1 << 24)) | (uint32_t)1 << 25, REG_SZ_32);
-		gDataAvailable = 0;
+		gShouldAddPoints = 1;
 	}
 
 	_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
+
+	// return gVoltammetryParams.state.SEQ_nextSRAMAddress;
+	return gVoltammetryParams.state.SEQ_currentPoint;
 }
 
 

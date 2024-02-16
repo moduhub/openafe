@@ -12,8 +12,8 @@ extern "C" {
 
 #define ADC_STABILIZATION_TIME_US 500u // ADC stabilization time, in microseconds.
 
-// 800 (samples) * ( 16 (MHz) / 1.6 (MHz)) = 8000 clock pulses per sample, plus 10 for FIFO.
-#define CONV_CLK_CYCLES (8000u + 10u) 
+// 800 (samples) * ( 16 (MHz) / 0.8 (MHz)) = 8000 clock pulses per sample, plus 10 for FIFO.
+#define CONV_CLK_CYCLES (10660u + 20u) 
 
 /** The step offset time, in microseconds. This time refers to the amount of time the ADC
  * stabilization and conversion takes, and shall be  subtracted from the ramp step time.  
@@ -264,7 +264,7 @@ void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockS
 
 uint32_t _readADC(void)
 {
-	return _readRegister(AD_ADCDAT, REG_SZ_32);
+	return _readRegister(AD_SINC2DAT, REG_SZ_32);
 }
 
 
@@ -329,18 +329,18 @@ void _switchConfiguration(void)
 
 	_writeRegister(AD_ADCCON, 
 		(uint32_t)0b10 << 8 | // ADC negative IN: Low power TIA negative input
-		(uint32_t)0b10, 	  // ADC positive IN: Low power TIA positive low-pass filter signal 
+		(uint32_t)0b100001,	  // ADC positive IN: Low power TIA positive low-pass filter signal 
 		REG_SZ_32);
 
 	// Filtering options
 	_writeRegister(AD_ADCFILTERCON, 
 		(uint32_t)0b1 << 18 | 	// Disable DFT clock.
 		(uint32_t)0b0 << 16 |  	// Sinc2 filter clock: 0 -> enable, 1 -> disable.
-		(uint32_t)0b1000 << 8 | // Sinc2 oversampling rate (OSR): 0b0 -> 22, 0b1000 -> 800 samples.
+		(uint32_t)0b1000 << 8 | // Sinc2 oversampling rate (OSR): 0b0 -> 22, 0b1000 -> 800 samples, 0b101 -> 533.
 		(uint32_t)0b0 << 7 | 	// ADC average function (DFT): 0 -> disable, 1 -> enable.
 		(uint32_t)0b1 << 6 | 	// Sinc3 filter: 0 -> enable, 1 -> disable.
 		(uint32_t)0b1 << 4 | 	// 1 - Bypasses, 0 - passes through: the 50 Hz notch and 60 Hz notch filters. 
-		(uint32_t)0b0, 			// ADC data rate: 1 -> 800 kHz, 0 -> 1.6 MHz.
+		(uint32_t)0b1, 			// ADC data rate: 1 -> 800 kHz, 0 -> 1.6 MHz.
 		REG_SZ_32);
 }
 
@@ -748,83 +748,34 @@ uint32_t _sequencerSamplePoint(uint32_t pAFECONValue)
 }
 
 
-uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, paramCV_t *pParamCV, stateCV_t *pStateCV)
+uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint8_t tSentAllCommands = 0;
-
+	uint8_t tSequenceFilled = 0;
 	uint16_t tCurrentAddress = pStartingAddress;
 
 	/** Set the starting address of the SRAM */
 	_writeRegister(AD_CMDFIFOWADDR, pStartingAddress, REG_SZ_32);
 
-	uint8_t tSequenceFilled = 0;
-
-	uint16_t tNumSlopePoints = pParamCV->numSlopePoints;
-
-	uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
-
-	uint32_t tFIFOCONValue = _readRegister(AD_FIFOCON, REG_SZ_32);
-
-	while (pStateCV->currentSlope <= pParamCV->numCycles * 2 && !tSequenceFilled)
+	while (pVoltammetryParams->state.SEQ_currentPoint < pVoltammetryParams->numPoints)
 	{
+		tCurrentAddress = _SEQ_addPoint(tCurrentAddress, pVoltammetryParams);
 
-		if (pStateCV->currentSlope == (pParamCV->numCycles * 2))
-			tNumSlopePoints++;
-
-		for (uint16_t slopePoint = pStateCV->currentSlopePoint; slopePoint < tNumSlopePoints; slopePoint++)
-		{
-			uint16_t tDAC12Value;
-
-			if (IS_RISING_SLOPE(pStateCV->currentSlope))
-			{
-				tDAC12Value = (uint16_t)(pParamCV->DAC12StepSize * (float)slopePoint) + pParamCV->lowDAC12Value;
-			}
-			else
-			{
-				tDAC12Value = pParamCV->highDAC12Value - (uint16_t)(pParamCV->DAC12StepSize * (float)slopePoint);
-			}
-
-			_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pParamCV->DAC6Value << 12) | (uint32_t)tDAC12Value);
-
-			if (IS_FIRST_VOLTAMMETRY_POINT(pStateCV->currentSlope, slopePoint))
-			{
-				// Add the settling time at the beginning of the first slope
-				_sequencerWriteCommand(AD_FIFOCON, 0);							 // Disable FIFO
-				_sequencerWaitCommand((uint32_t)pParamCV->settlingTime * 1000u); // settling time on the first ever slope
-				_sequencerWriteCommand(AD_FIFOCON, tFIFOCONValue);				 // Enable FIFO again
-			}
-
-			uint32_t tStepOffset_us = _sequencerSamplePoint(tAFECONValue);
-
-			// Step time with the necessary time compensations
-			tCurrentAddress = _sequencerWaitCommand(pParamCV->stepDuration_us - tStepOffset_us);
-
-			if (tCurrentAddress + SEQ_NUM_COMMAND_PER_CV_POINT >= pEndingAddress)
-			{
-				pStateCV->currentSlopePoint = (slopePoint + 1) >= tNumSlopePoints ? 0 : (slopePoint + 1);
-				tSequenceFilled = 1;
-				break;
-			}
-		}
-
-		if (!tSequenceFilled)
-		{
-			pStateCV->currentSlopePoint = 0;
-			pStateCV->currentSlope++;
+		if (tCurrentAddress + SEQ_NUM_COMMAND_PER_CV_POINT >= pEndingAddress)
+		{   // filled sequence memory space
+			tSequenceFilled = 1;
+			tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+			break;
 		}
 	}
 
-	if (pStateCV->currentSlope > pParamCV->numCycles * 2)
-	{
+	if (pVoltammetryParams->state.SEQ_currentPoint == pVoltammetryParams->numPoints)
 		tSentAllCommands = 1;
-		tCurrentAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
-	}
-	else
-	{
-		tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
-	}
-
+	
 	_configureSequence(pSequenceIndex, pStartingAddress, tCurrentAddress);
+
+	pVoltammetryParams->state.SEQ_currentSRAMAddress = tCurrentAddress;
+	pVoltammetryParams->state.SEQ_nextSRAMAddress = tCurrentAddress + 1;
 
 	return tSentAllCommands;
 }
@@ -1037,7 +988,7 @@ void _dataFIFOConfig(uint16_t pDataMemoryAmount)
 	_writeRegister(AD_DATAFIFOTHRES, (uint32_t)pDataFIFOThreshold << 16, REG_SZ_32);
 
 	// - bit 13 -- Select data FIFO source: sinc2.
-	tFIFOCONValue &= ~(uint32_t)0b111 << 13;
+	tFIFOCONValue &= ~((uint32_t)0b111 << 13);
 	_writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)0b011 << 13, REG_SZ_32);
 }
 
@@ -1085,14 +1036,11 @@ void _interruptConfig(void)
 	 * - Data FIFO empty
 	 */
 	_writeRegister(AD_INTCSEL0,
-		(uint32_t)1 << 25 |	// Data FIFO threshold
-		(uint32_t)1 << 23 | // Data FIFO empty
-		// (uint32_t)1 << 24 | // Data FIFO full
 		(uint32_t)1 << 15 | // End of sequence
 		(uint32_t)1 << 12 | // End of Voltammetry
+		(uint32_t)1 << 11 | // Read data interrupt
 		(uint32_t)1 << 10 | // Sequence 1 -> custom interrupt 1
-		(uint32_t)1 << 9  |	// Sequence 0 -> custom interrupt 0
-		(uint32_t)1 << 2,	// Sinc2 result is ready
+		(uint32_t)1 << 9,	// Sequence 0 -> custom interrupt 0
 		REG_SZ_32);
 }
 
@@ -1140,6 +1088,68 @@ int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_
 	// Calculate the mapped value
 	return (pX - pInMin) * (pOutMax - pOutMin) / (pInMax - pInMin) + pOutMin;
 }
+
+
+uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
+{
+	uint32_t tCurrentSRAMAddress = pSRAMAddress;
+
+	if (pVoltammetryParams->state.SEQ_currentPoint > pVoltammetryParams->numPoints)
+		return tCurrentSRAMAddress; // all points have been registered in the sequencer, so it skips adding points
+
+	uint8_t tSEQ_numSlopesDoneAlready = pVoltammetryParams->state.SEQ_currentPoint / pVoltammetryParams->numSlopePoints;
+	uint16_t tSEQ_currentSlopePoint = pVoltammetryParams->state.SEQ_currentPoint - (tSEQ_numSlopesDoneAlready * pVoltammetryParams->numSlopePoints);
+	uint8_t tIsCurrentSEQSlopeRising = (tSEQ_numSlopesDoneAlready % 2) == 0 ? 1 : 0;
+
+	// Make sure the commands are written in the same SRAM address passed
+	_writeRegister(AD_CMDFIFOWADDR, tCurrentSRAMAddress, REG_SZ_32);
+
+	if (pVoltammetryParams->state.SEQ_currentPoint == 0) // if it is the first ever point
+	{
+		uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
+		_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pVoltammetryParams->DAC.reference << 12) | (uint32_t)pVoltammetryParams->DAC.starting);
+		_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); // Enable ADC power
+		_sequencerWaitCommand((uint32_t)pVoltammetryParams->settlingTime * 1000u); // settling time on the first ever slope
+		_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
+	}
+
+	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_CV)
+	{
+		uint16_t tDAC12Value = 0;
+
+		if (tIsCurrentSEQSlopeRising)
+			tDAC12Value = pVoltammetryParams->DAC.starting + (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
+		else
+			tDAC12Value = pVoltammetryParams->DAC.ending - (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
+		
+		tCurrentSRAMAddress = _SEQ_stepCommandCV(pVoltammetryParams->stepDuration_us, tDAC12Value, pVoltammetryParams->DAC.reference, 0);
+	} 
+	else if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_DPV)
+	{
+
+	} 
+	else if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_SWV)
+	{
+
+	}
+	
+	pVoltammetryParams->state.SEQ_currentPoint++;
+
+	if (pVoltammetryParams->state.SEQ_currentPoint == pVoltammetryParams->numPoints)
+		tCurrentSRAMAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
+
+	return tCurrentSRAMAddress;
+}
+
+uint32_t _SEQ_stepCommandCV(uint32_t pStepDuration_us, uint16_t pDAC12Value, uint16_t pDAC6Value, float pAlfa)
+{
+	_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pDAC6Value << 12) | (uint32_t)pDAC12Value);
+	_sequencerWaitCommand(pStepDuration_us);
+	uint32_t tCurrentSRAMAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+
+	return tCurrentSRAMAddress;
+}
+
 
 #ifdef __cplusplus
 }

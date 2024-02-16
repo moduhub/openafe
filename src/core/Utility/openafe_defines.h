@@ -1,7 +1,7 @@
 #ifndef _OPENAFE_DEFINES_H_
 #define _OPENAFE_DEFINES_H_
 
-#define SEQ_NUM_COMMAND_PER_CV_POINT 8   // Number of sequencer command per CV point.
+#define SEQ_NUM_COMMAND_PER_CV_POINT 6   // Number of sequencer command per CV point.
 #define SEQ_NUM_COMMAND_PER_DPV_POINT 18 // Number of sequencer command per DPV point.
 #define SEQ_NUM_COMMAND_PER_SWV_POINT 18 // Number of sequencer command per DPV point.
 

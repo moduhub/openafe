@@ -110,5 +110,7 @@ float AFE::readDataFIFO(void)
 
 void AFE::interruptHandler(void)
 {
-	openafe_interruptHandler();
+	uint32_t res = openafe_interruptHandler();
+	Serial.print("interrupt: ");
+	Serial.println(res);
 }

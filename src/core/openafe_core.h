@@ -180,6 +180,6 @@ float openafe_readDataFIFO(void);
 /**
  * @brief Handle interrupts triggered by the AD5941 device.
  */
-void openafe_interruptHandler(void);
+uint32_t openafe_interruptHandler(void);
 
 #endif //_OPENAFE_CORE_H_

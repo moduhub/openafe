@@ -255,12 +255,11 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
  * @param pSequenceIndex IN -- The sequence index to be filled.
  * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
  * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
- * @param pParamCV IN -- Pointer to the parameter structure of the CV sequence.
- * @param pStateCV IN/OUT -- Pointer to the state structure of the CV sequence.
+ * @param pVoltammetryParams IN/OUT -- Voltammetry params. 
  * @return Status code: 1 on all commands sent, 0 otherwise.
  * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
  */
-uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, paramCV_t *pParamCV, stateCV_t *pStateCV);
+uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Generate and send the Differential Pulse Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
@@ -348,5 +347,16 @@ void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint1
  * @return The mapped value within the output range.
  */
 int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_t pOutMax);
+
+/**
+ * @brief
+ *
+ * @param pSRAMAddress IN -- SRAM address to start placing the point.
+ * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
+ * @return Last written SRAM address.
+ */
+uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
+
+uint32_t _SEQ_stepCommandCV(uint32_t pStepDuration_us, uint16_t pDAC12Value, uint16_t pDAC6Value, float pAlfa);
 
 #endif // _OPENAFE_CORE_INTERNAL_H_

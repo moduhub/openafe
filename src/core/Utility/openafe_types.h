@@ -43,6 +43,9 @@ typedef struct voltammetry_state_t
     uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
     uint8_t currentSlope;           // Current slope.
     uint16_t currentSlopePoint;     // Current point of the slope.
+    uint16_t SEQ_currentPoint;      // Current point of the sequencer command in the voltammetry itself.
+    int16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
+    int16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed. 
 } voltammetry_state_t;
 
 
