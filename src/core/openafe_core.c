@@ -406,7 +406,7 @@ uint32_t openafe_interruptHandler(void)
 	if (tInterruptFlags0 & ((uint32_t)1 << 12))
 	{ // end of voltammetry
 		_zeroVoltageAcrossElectrodes();
-		// gDataAvailable = 10;
+		_clearRegisterBit(AD_SEQCON, 0);
 		gFinished = 1;
 		gShoulKillVoltammetry = 1;
 	}
