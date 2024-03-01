@@ -387,18 +387,17 @@ uint32_t openafe_interruptHandler(void)
 		// this is done to prevent a sequence command being written on top of a another, considering that
 		// the command to be overwritten is the very command that generated the read result interrupt 
 		if (gShouldAddPoints) {
-			gVoltammetryParams.state.SEQ_currentSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
-			gVoltammetryParams.state.SEQ_nextSRAMAddress = gVoltammetryParams.state.SEQ_currentSRAMAddress + 1;
+			gVoltammetryParams.state.SEQ_nextSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
 
-			if (gVoltammetryParams.state.SEQ_currentSRAMAddress > SEQ0_START_ADDR && gVoltammetryParams.state.SEQ_currentSRAMAddress <= SEQ0_END_ADDR && (gVoltammetryParams.state.SEQ_currentSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ0_END_ADDR)
+			if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ0_END_ADDR)
 			{
-				gVoltammetryParams.state.SEQ_currentSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
-				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_currentSRAMAddress);
+				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
 			}
-			else if (gVoltammetryParams.state.SEQ_currentSRAMAddress > SEQ1_START_ADDR && gVoltammetryParams.state.SEQ_currentSRAMAddress <= SEQ1_END_ADDR && (gVoltammetryParams.state.SEQ_currentSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ1_END_ADDR)
+			else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ1_END_ADDR)
 			{
-				gVoltammetryParams.state.SEQ_currentSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
-				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_currentSRAMAddress);
+				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
 			}
 		} 
 		
@@ -421,9 +420,9 @@ uint32_t openafe_interruptHandler(void)
 		if (gShouldAddPoints)
 		{
 			if (gCurrentSequence == 1)
-				gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ1_START_ADDR;
-			else
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
+			else
+				gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ1_START_ADDR;
 		}
 
 		gShouldAddPoints = 1;
