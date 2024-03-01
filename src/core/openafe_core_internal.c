@@ -1133,10 +1133,10 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 
 	}
 	
-	pVoltammetryParams->state.SEQ_currentPoint++;
-
 	if (pVoltammetryParams->state.SEQ_currentPoint == pVoltammetryParams->numPoints)
 		tCurrentSRAMAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
+
+	pVoltammetryParams->state.SEQ_currentPoint++;
 
 	return tCurrentSRAMAddress;
 }
