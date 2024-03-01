@@ -38,6 +38,8 @@ uint8_t gShouldPointAdditionChangeSEQ = 0;
 
 uint8_t gShouldAddPoints = 0;
 
+uint32_t gRawSINC2Data = 0;
+
 void openafe_DEBUG_turnOnPrints(void)
 {
 
@@ -135,7 +137,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 	}
 
 	// float tCurrent = openafe_readDataFIFO();
-	float tCurrent = _getCurrentFromADCValue(_readADC());
+	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data);
 
 	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
 	{
@@ -381,6 +383,7 @@ uint32_t openafe_interruptHandler(void)
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 11))
 	{	// trigger ADC result read
+		gRawSINC2Data = _readADC();
 		gDataAvailable++;
 
 		// send next sequence command to the runing sequence, but skips the first point of the sequence
