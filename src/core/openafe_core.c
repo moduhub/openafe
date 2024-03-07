@@ -38,7 +38,7 @@ uint8_t gShouldPointAdditionChangeSEQ = 0;
 
 uint8_t gShouldAddPoints = 0;
 
-uint32_t gRawSINC2Data = 0;
+uint32_t gRawSINC2Data[2];
 
 void openafe_DEBUG_turnOnPrints(void)
 {
@@ -136,20 +136,19 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 		*pVoltage_mV = _getVoltage();
 	}
 
-	// float tCurrent = openafe_readDataFIFO();
-	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data);
+	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data[0]);
 
 	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
 	{
 		float tCurrentAtPulseBase = tCurrent;
-		float tCurrentAtPulseTop = openafe_readDataFIFO();
+		float tCurrentAtPulseTop = _getCurrentFromADCValue(gRawSINC2Data[1]);
 		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBase; 
 	}
 
 	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
 	{
 		float tCurrentAtPulseTop = tCurrent;
-		float tCurrentAtPulseBottom = openafe_readDataFIFO();
+		float tCurrentAtPulseBottom = _getCurrentFromADCValue(gRawSINC2Data[1]);
 		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBottom; 
 	}
 
@@ -199,8 +198,10 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.state.SEQ_currentSRAMAddress = 0;
 	gVoltammetryParams.state.SEQ_nextSRAMAddress = 0;
 	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_CV;
+	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
 	gVoltammetryParams.settlingTime = pSettlingTime;
 	gVoltammetryParams.numSlopePoints = gCVParams.numSlopePoints;
+	gVoltammetryParams.numCurrentPointsPerStep = 1;
 
 	// the passing of the parameters below is a workaround for now:
 	gVoltammetryParams.numPoints = gCVParams.numPoints;
@@ -383,8 +384,15 @@ uint32_t openafe_interruptHandler(void)
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 11))
 	{	// trigger ADC result read
-		gRawSINC2Data = _readADC();
-		gDataAvailable++;
+		gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
+		
+		gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+
+		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep)
+		{
+			gDataAvailable++;
+			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
+		}
 
 		// send next sequence command to the runing sequence, but skips the first point of the sequence
 		// this is done to prevent a sequence command being written on top of a another, considering that
@@ -392,12 +400,12 @@ uint32_t openafe_interruptHandler(void)
 		if (gShouldAddPoints) {
 			gVoltammetryParams.state.SEQ_nextSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
 
-			if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ0_END_ADDR)
+			if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ0_END_ADDR)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
 			}
-			else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + SEQ_NUM_COMMAND_PER_CV_POINT) >= SEQ1_END_ADDR)
+			else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);

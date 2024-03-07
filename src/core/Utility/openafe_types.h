@@ -45,7 +45,9 @@ typedef struct voltammetry_state_t
     uint16_t currentSlopePoint;     // Current point of the slope.
     uint16_t SEQ_currentPoint;      // Current point of the sequencer command in the voltammetry itself.
     int16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
-    int16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed. 
+    int16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
+    uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
+    uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
 } voltammetry_state_t;
 
 
@@ -84,6 +86,7 @@ typedef struct voltammetry_t
     uint16_t numPoints;       // Number of points in the wave.
     uint16_t numSlopePoints;  // Number of points in the slopes.
     DAC_t DAC;                // DAC parameters.
+    uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
 } voltammetry_t;
 
 #endif // _OPENAFE_TYPES_H_
