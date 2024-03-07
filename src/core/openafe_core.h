@@ -118,6 +118,13 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 						   uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse);
 
 /**
+ * @brief Set a general voltammetry in the sequencer.
+ * 
+ * @param pVoltammetryParams IN -- Voltammetry params pointer.
+ */
+void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams);
+
+/**
  * Generation of the Cyclic Voltammetry waveform.
  *
  * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.

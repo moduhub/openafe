@@ -193,17 +193,14 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 
 	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
 
-	// Initialize the voltammetry params:
-	gVoltammetryParams.state.SEQ_currentPoint = 0;
-	gVoltammetryParams.state.SEQ_currentSRAMAddress = 0;
-	gVoltammetryParams.state.SEQ_nextSRAMAddress = 0;
+	// Initialize CV specific params:
 	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_CV;
 	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
-	gVoltammetryParams.settlingTime = pSettlingTime;
-	gVoltammetryParams.numSlopePoints = gCVParams.numSlopePoints;
 	gVoltammetryParams.numCurrentPointsPerStep = 1;
 
-	// the passing of the parameters below is a workaround for now:
+	// the passing of the CV parameters below is a workaround for now:
+	gVoltammetryParams.settlingTime = pSettlingTime;
+	gVoltammetryParams.numSlopePoints = gCVParams.numSlopePoints;
 	gVoltammetryParams.numPoints = gCVParams.numPoints;
 	gVoltammetryParams.DAC.starting = gCVParams.lowDAC12Value;
 	gVoltammetryParams.DAC.ending = gCVParams.highDAC12Value;
@@ -213,18 +210,7 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 
 	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
 
-	uint8_t tSentAllWaveSequence = _sendCyclicVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
-
-	if (!tSentAllWaveSequence)
-	{
-		tSentAllWaveSequence = _sendCyclicVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
-	}
-
-	gVoltammetryParams.state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
-	gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
-	gDataAvailable = 0;
-	gShouldSkipNextPointAddition = 1;
-	gShouldAddPoints = 0;
+	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
 	return NO_ERROR;
 }
@@ -320,6 +306,26 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 	return NO_ERROR;
 }
 
+
+void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
+{
+	pVoltammetryParams->state.SEQ_currentPoint = 0;
+	pVoltammetryParams->state.SEQ_currentSRAMAddress = 0;
+	pVoltammetryParams->state.SEQ_nextSRAMAddress = 0;
+
+	uint8_t tSentAllWaveSequence = _fillSequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, pVoltammetryParams);
+
+	if (!tSentAllWaveSequence)
+	{
+		tSentAllWaveSequence = _fillSequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, pVoltammetryParams);
+	}
+
+	pVoltammetryParams->state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
+	pVoltammetryParams->state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
+	gDataAvailable = 0;
+	gShouldSkipNextPointAddition = 1;
+	gShouldAddPoints = 0;
+} 
 
 
 uint8_t openafe_done(void)

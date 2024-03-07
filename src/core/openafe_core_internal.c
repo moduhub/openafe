@@ -748,7 +748,7 @@ uint32_t _sequencerSamplePoint(uint32_t pAFECONValue)
 }
 
 
-uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
+uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint8_t tSentAllCommands = 0;
 	uint8_t tSequenceFilled = 0;
@@ -761,7 +761,7 @@ uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartin
 	{
 		tCurrentAddress = _SEQ_addPoint(tCurrentAddress, pVoltammetryParams);
 
-		if (tCurrentAddress + SEQ_NUM_COMMAND_PER_CV_POINT >= pEndingAddress)
+		if (tCurrentAddress + pVoltammetryParams->state.SEQ_numCommandsPerStep >= pEndingAddress)
 		{   // filled sequence memory space
 			tSequenceFilled = 1;
 			tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt

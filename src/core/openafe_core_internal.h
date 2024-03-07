@@ -240,9 +240,9 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams);
 int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
 
 /**
- * @brief Generate and send the Cyclic Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
+ * @brief Fill a given sequence index with the required commands for a voltammetry.
  *
- * This function generates and sends the required commands for a Cyclic Voltammetry sequence to the AFE.
+ * This function generates and sends the required commands for a Voltammetry sequence to the AFE.
  * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
  * The function uses the parameter and state structures to keep track of the current state of the sequence
  * and generates the required DAC and ADC commands to execute the sequence.
@@ -259,7 +259,7 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
  * @return Status code: 1 on all commands sent, 0 otherwise.
  * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
  */
-uint8_t _sendCyclicVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
+uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Generate and send the Differential Pulse Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
