@@ -128,13 +128,7 @@ float openafe_getVoltage()
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 {	
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV || 
-		gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV)
-	{
-		*pVoltage_mV = openafe_getVoltage();
-	} else {
-		*pVoltage_mV = _getVoltage();
-	}
+	*pVoltage_mV = openafe_getVoltage();
 
 	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data[0]);
 
@@ -184,8 +178,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	tWaveCV.stepSize = pStepSize;
 	tWaveCV.numCycles = pNumCycles;
 
-	_setVoltammetryParams(&tWaveCV);
-
 	int tPossibility = _calculateParamsForCV(&tWaveCV, &gCVParams);
 
 	if (IS_ERROR(tPossibility))
@@ -209,6 +201,10 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.stepDuration_us = gCVParams.stepDuration_us;
 
 	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
+
+	gVoltammetryParams.startingPotential = pStartingPotential * 1000.f;
+	gVoltammetryParams.endingPotential = pEndingPotential * 1000.f;
+	gVoltammetryParams.stepPotential = pStepSize;
 
 	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
