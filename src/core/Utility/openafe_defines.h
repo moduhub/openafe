@@ -2,8 +2,8 @@
 #define _OPENAFE_DEFINES_H_
 
 #define SEQ_NUM_COMMAND_PER_CV_POINT 6   // Number of sequencer command per CV point.
-#define SEQ_NUM_COMMAND_PER_DPV_POINT 18 // Number of sequencer command per DPV point.
-#define SEQ_NUM_COMMAND_PER_SWV_POINT 18 // Number of sequencer command per DPV point.
+#define SEQ_NUM_COMMAND_PER_DPV_POINT 10 // Number of sequencer command per DPV point.
+#define SEQ_NUM_COMMAND_PER_SWV_POINT 10 // Number of sequencer command per DPV point.
 
 #define IS_RISING_SLOPE(slope) ((uint16_t)slope % 2 == 0 ? 0 : 1)
 #define IS_FIRST_VOLTAMMETRY_POINT(currentSlope, slopePoint) (((uint16_t)currentSlope == 1 && (uint16_t)slopePoint == 0) ? 1 : 0)

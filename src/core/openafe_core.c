@@ -230,8 +230,12 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 
 	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
 
+	// Initialize DPV specific params:
 	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_DPV;
-	
+	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_DPV_POINT;
+	gVoltammetryParams.numCurrentPointsPerStep = 2;
+
+	// passsing parameters the DPV parameters
 	gVoltammetryParams.settlingTime = pSettlingTime;
 	gVoltammetryParams.startingPotential = pStartingPotential;
 	gVoltammetryParams.endingPotential = pEndingPotential;
@@ -245,19 +249,15 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 
 	int tPossibility = _calculateParamsForDPV(&gVoltammetryParams);
 
+	// this is needed, as (currently) the DPV only supports one slope 
+	gVoltammetryParams.numSlopePoints ++;
+
 	if (IS_ERROR(tPossibility))
 		return tPossibility;
 
-	gVoltammetryParams.state.currentSlope = 1;
-	gVoltammetryParams.state.currentSlopePoint = 0;
 	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
 
-	uint8_t tSentAllWaveSequence = _sendDifferentialPulseVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
-
-	if (!tSentAllWaveSequence) 
-	{
-		tSentAllWaveSequence = _sendDifferentialPulseVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
-	}
+	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
 	return NO_ERROR;
 }
@@ -320,6 +320,7 @@ void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
 		tSentAllWaveSequence = _fillSequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, pVoltammetryParams);
 	}
 
+	gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
 	pVoltammetryParams->state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
 	pVoltammetryParams->state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
 	gDataAvailable = 0;

@@ -751,7 +751,6 @@ uint32_t _sequencerSamplePoint(uint32_t pAFECONValue)
 uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint8_t tSentAllCommands = 0;
-	uint8_t tSequenceFilled = 0;
 	uint16_t tCurrentAddress = pStartingAddress;
 
 	/** Set the starting address of the SRAM */
@@ -763,7 +762,6 @@ uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_
 
 		if (tCurrentAddress + pVoltammetryParams->state.SEQ_numCommandsPerStep >= pEndingAddress)
 		{   // filled sequence memory space
-			tSequenceFilled = 1;
 			tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 			break;
 		}
@@ -1094,7 +1092,7 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint32_t tCurrentSRAMAddress = pSRAMAddress;
 
-	if (pVoltammetryParams->state.SEQ_currentPoint > pVoltammetryParams->numPoints)
+	if (pVoltammetryParams->state.SEQ_currentPoint >= pVoltammetryParams->numPoints)
 		return tCurrentSRAMAddress; // all points have been registered in the sequencer, so it skips adding points
 
 	uint8_t tSEQ_numSlopesDoneAlready = pVoltammetryParams->state.SEQ_currentPoint / pVoltammetryParams->numSlopePoints;
@@ -1113,27 +1111,27 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 		_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
 	}
 
+	uint16_t tDAC12Value = 0;
+
+	if (tIsCurrentSEQSlopeRising)
+		tDAC12Value = pVoltammetryParams->DAC.starting + (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
+	else
+		tDAC12Value = pVoltammetryParams->DAC.ending - (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
+	
 	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_CV)
 	{
-		uint16_t tDAC12Value = 0;
-
-		if (tIsCurrentSEQSlopeRising)
-			tDAC12Value = pVoltammetryParams->DAC.starting + (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
-		else
-			tDAC12Value = pVoltammetryParams->DAC.ending - (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
-		
 		tCurrentSRAMAddress = _SEQ_stepCommandCV(pVoltammetryParams->stepDuration_us, tDAC12Value, pVoltammetryParams->DAC.reference, 0);
 	} 
 	else if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_DPV)
 	{
-
+		tCurrentSRAMAddress = _SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
 	} 
 	else if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_SWV)
 	{
-
+		tCurrentSRAMAddress = _SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
 	}
 	
-	if (pVoltammetryParams->state.SEQ_currentPoint == pVoltammetryParams->numPoints)
+	if (pVoltammetryParams->state.SEQ_currentPoint == (pVoltammetryParams->numPoints - 1))
 		tCurrentSRAMAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
 
 	pVoltammetryParams->state.SEQ_currentPoint++;
@@ -1141,15 +1139,47 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 	return tCurrentSRAMAddress;
 }
 
+uint32_t _triggerADCRead(void)
+{
+	return _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+}
+
+
 uint32_t _SEQ_stepCommandCV(uint32_t pStepDuration_us, uint16_t pDAC12Value, uint16_t pDAC6Value, float pAlfa)
 {
 	_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pDAC6Value << 12) | (uint32_t)pDAC12Value);
 	_sequencerWaitCommand(pStepDuration_us);
-	uint32_t tCurrentSRAMAddress = _sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+	uint32_t tCurrentSRAMAddress = _triggerADCRead();
 
 	return tCurrentSRAMAddress;
 }
 
+
+uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value)
+{
+	// base:
+	_sequencerSetDAC(pBaseDAC12Value, pVoltammetryParams->DAC.reference);
+	_sequencerWaitCommand(((pVoltammetryParams->baseWidth_ms - (uint32_t)pVoltammetryParams->samplePeriodBase_ms) * 1000u));
+	_triggerADCRead();
+	_sequencerWaitCommand(((uint32_t)pVoltammetryParams->samplePeriodBase_ms * 1000u));
+
+	// pulse:
+	_sequencerSetDAC((uint32_t)(pBaseDAC12Value + pVoltammetryParams->DAC.pulse), (uint32_t)pVoltammetryParams->DAC.reference);
+	_sequencerWaitCommand((((uint32_t)pVoltammetryParams->pulseWidth_ms - (uint32_t)pVoltammetryParams->samplePeriodPulse_ms) * 1000u));
+	_triggerADCRead();
+	uint32_t tCurrentSeqAddress = _sequencerWaitCommand((((uint32_t)pVoltammetryParams->samplePeriodPulse_ms * 1000u)));
+
+	return tCurrentSeqAddress;
+}
+
+uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value)
+{
+	// pulse up:
+
+	// pulse down:
+
+	return 0;
+}
 
 #ifdef __cplusplus
 }
