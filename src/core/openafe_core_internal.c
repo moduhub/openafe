@@ -407,7 +407,7 @@ uint16_t _sequencerWaitCommandClock(uint32_t pTimeToWait_clk)
  */
 uint16_t _sequencerSetDAC(uint32_t pDAC12Value, uint32_t pDAC6Value)
 {
-	return _sequencerWriteCommand(AD_LPDACDAT0, (uint32_t)pDAC6Value << 12 | (uint32_t)pDAC12Value);
+	return _sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pDAC6Value << 12) | (uint32_t)pDAC12Value);
 }
 
 
@@ -1159,16 +1159,14 @@ uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
 {
 	// base:
 	_sequencerSetDAC(pBaseDAC12Value, pVoltammetryParams->DAC.reference);
-	_sequencerWaitCommand(((pVoltammetryParams->baseWidth_ms - (uint32_t)pVoltammetryParams->samplePeriodBase_ms) * 1000u));
+	_sequencerWaitCommand((pVoltammetryParams->baseWidth_ms) * 1000u);
 	_triggerADCRead();
-	_sequencerWaitCommand(((uint32_t)pVoltammetryParams->samplePeriodBase_ms * 1000u));
 
 	// pulse:
 	_sequencerSetDAC((uint32_t)(pBaseDAC12Value + pVoltammetryParams->DAC.pulse), (uint32_t)pVoltammetryParams->DAC.reference);
-	_sequencerWaitCommand((((uint32_t)pVoltammetryParams->pulseWidth_ms - (uint32_t)pVoltammetryParams->samplePeriodPulse_ms) * 1000u));
-	_triggerADCRead();
-	uint32_t tCurrentSeqAddress = _sequencerWaitCommand((((uint32_t)pVoltammetryParams->samplePeriodPulse_ms * 1000u)));
-
+	_sequencerWaitCommand(((uint32_t)pVoltammetryParams->pulseWidth_ms) * 1000u);
+	uint32_t tCurrentSeqAddress = _triggerADCRead();
+	
 	return tCurrentSeqAddress;
 }
 

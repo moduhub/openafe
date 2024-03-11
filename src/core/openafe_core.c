@@ -150,6 +150,9 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 	
 	gNumRemainingDataPoints--;
 
+	if (gNumRemainingDataPoints == 0)
+		gShoulKillVoltammetry = 1;
+	
 	gDataAvailable = 0;
 
 	uint16_t pointIndex = gNumPointsRead;
