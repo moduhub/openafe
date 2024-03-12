@@ -55,7 +55,7 @@ extern stateCV_t gCVState; // Global state of the current CV waveform.
 
 extern uint16_t gNumWavePoints; // Number of points in the current waveform.
 
-extern uint16_t gNumRemainingDataPoints; // Number of data points to read.
+extern int32_t gNumRemainingDataPoints; // Number of data points to read.
 
 /**
  * @brief Read the 16-bit or 32-bit value from a register.

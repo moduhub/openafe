@@ -33,7 +33,7 @@ paramCV_t gCVParams; // Global parameters of the current CV Waveform.
 
 stateCV_t gCVState; // Global state of the current CV waveform.
 
-uint16_t gNumRemainingDataPoints; // Number of data points to read.
+int32_t gNumRemainingDataPoints; // Number of data points to read.
 
 // /**
 //  * @brief Store the index of the sequence that is currently running.

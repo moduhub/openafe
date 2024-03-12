@@ -150,8 +150,11 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 	
 	gNumRemainingDataPoints--;
 
-	if (gNumRemainingDataPoints == 0)
+	if (gNumRemainingDataPoints <= 0)
+	{
+		gFinished = 1;
 		gShoulKillVoltammetry = 1;
+	}
 	
 	gDataAvailable = 0;
 
@@ -344,7 +347,7 @@ uint8_t openafe_done(void)
 
 uint16_t openafe_dataAvailable(void)
 {
-	return gNumRemainingDataPoints > 0 ? gDataAvailable : 0;
+	return gNumRemainingDataPoints >= 0 ? gDataAvailable : 0;
 }
 
 
@@ -424,8 +427,6 @@ uint32_t openafe_interruptHandler(void)
 	{ // end of voltammetry
 		_zeroVoltageAcrossElectrodes();
 		_clearRegisterBit(AD_SEQCON, 0);
-		gFinished = 1;
-		gShoulKillVoltammetry = 1;
 	}
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 15))
