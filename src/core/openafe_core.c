@@ -278,8 +278,11 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 
 	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
 
+	// initialize SWV parameters
 	gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_SWV;
-	
+	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_SWV_POINT;
+	gVoltammetryParams.numCurrentPointsPerStep = 2;
+
 	gVoltammetryParams.settlingTime = pSettlingTime;
 	gVoltammetryParams.startingPotential = pStartingPotential;
 	gVoltammetryParams.endingPotential = pEndingPotential;
@@ -291,19 +294,15 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 
 	int tPossibility = _calculateParamsForSWV(&gVoltammetryParams);
 
+	// this is needed, as (currently) the SWV only supports one slope
+	gVoltammetryParams.numSlopePoints++;
+
 	if (IS_ERROR(tPossibility))
 		return tPossibility;
 
-	gVoltammetryParams.state.currentSlope = 1;
-	gVoltammetryParams.state.currentSlopePoint = 0;
 	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
 
-	uint8_t tSentAllWaveSequence = _sendSquareWaveVoltammetrySequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, &gVoltammetryParams);
-
-	if (!tSentAllWaveSequence) 
-	{
-		tSentAllWaveSequence = _sendSquareWaveVoltammetrySequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, &gVoltammetryParams);
-	}
+	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
 	return NO_ERROR;
 }
