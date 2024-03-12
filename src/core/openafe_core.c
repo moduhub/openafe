@@ -38,6 +38,8 @@ uint8_t gShouldPointAdditionChangeSEQ = 0;
 
 uint8_t gShouldAddPoints = 0;
 
+uint32_t gNumDataPointsRead = 0; // Number of data points read.
+
 uint32_t gRawSINC2Data[2];
 
 void openafe_DEBUG_turnOnPrints(void)
@@ -104,31 +106,9 @@ void openafe_setupCV(void)
 }
 
 
-float openafe_getVoltage()
-{
-	uint16_t tNumPointsRead = gVoltammetryParams.numPoints - gNumRemainingDataPoints;
-	
-	uint8_t tCurrentSlope = tNumPointsRead / gVoltammetryParams.numSlopePoints;
-
-	uint16_t tCurrentSlopePoint = tNumPointsRead - (tCurrentSlope * gVoltammetryParams.numSlopePoints);
-
-	float voltage_mV;
-
-	if (tCurrentSlope % 2 == 0) { 
-		// Rising slope 
-		voltage_mV = (gVoltammetryParams.startingPotential) + ((float)tCurrentSlopePoint * gVoltammetryParams.stepPotential); 
-	} else {
-		// Falling slope
-		voltage_mV = (gVoltammetryParams.endingPotential) - ((float)tCurrentSlopePoint * gVoltammetryParams.stepPotential);
-	}
-
-	return voltage_mV;
-}
-
-
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 {	
-	*pVoltage_mV = openafe_getVoltage();
+	*pVoltage_mV = _getVoltage(gNumDataPointsRead, &gVoltammetryParams);
 
 	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data[0]);
 
@@ -148,9 +128,9 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 
 	*pCurrent_uA = tCurrent;
 	
-	gNumRemainingDataPoints--;
+	gNumDataPointsRead++;
 
-	if (gNumRemainingDataPoints <= 0)
+	if (gNumDataPointsRead == gVoltammetryParams.numPoints)
 	{
 		gFinished = 1;
 		gShoulKillVoltammetry = 1;
@@ -206,8 +186,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.DAC.reference = gCVParams.DAC6Value;
 	gVoltammetryParams.stepDuration_us = gCVParams.stepDuration_us;
 
-	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
-
 	gVoltammetryParams.startingPotential = pStartingPotential * 1000.f;
 	gVoltammetryParams.endingPotential = pEndingPotential * 1000.f;
 	gVoltammetryParams.stepPotential = pStepSize;
@@ -257,8 +235,6 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 	if (IS_ERROR(tPossibility))
 		return tPossibility;
 
-	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
-
 	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
 	return NO_ERROR;
@@ -300,8 +276,6 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 	if (IS_ERROR(tPossibility))
 		return tPossibility;
 
-	gNumRemainingDataPoints = gVoltammetryParams.numPoints;
-
 	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
 	return NO_ERROR;
@@ -333,12 +307,10 @@ void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
 uint8_t openafe_done(void)
 {
 	if (gShoulKillVoltammetry == 1)
-	{
 		return STATUS_VOLTAMMETRY_DONE;
-	}
 
 	return ((gFinished == 1) && (gDataAvailable == 0)) ||
-				   ((gFinished == 1) && (gNumRemainingDataPoints == 0))
+				   ((gFinished == 1) && (gNumDataPointsRead == gVoltammetryParams.numPoints))
 			   ? STATUS_VOLTAMMETRY_DONE
 			   : STATUS_VOLTAMMETRY_UNDERGOING;
 }
@@ -346,7 +318,7 @@ uint8_t openafe_done(void)
 
 uint16_t openafe_dataAvailable(void)
 {
-	return gNumRemainingDataPoints >= 0 ? gDataAvailable : 0;
+	return gNumDataPointsRead < gVoltammetryParams.numPoints ? gDataAvailable : 0;
 }
 
 
@@ -447,8 +419,7 @@ uint32_t openafe_interruptHandler(void)
 
 	_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
 
-	// return gVoltammetryParams.state.SEQ_nextSRAMAddress;
-	return gVoltammetryParams.state.SEQ_currentPoint;
+	return gVoltammetryParams.numPoints;
 }
 
 

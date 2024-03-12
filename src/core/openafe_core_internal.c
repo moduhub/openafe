@@ -33,8 +33,6 @@ paramCV_t gCVParams; // Global parameters of the current CV Waveform.
 
 stateCV_t gCVState; // Global state of the current CV waveform.
 
-int32_t gNumRemainingDataPoints; // Number of data points to read.
-
 // /**
 //  * @brief Store the index of the sequence that is currently running.
 //  * @note READ ONLY! This variable is automatically managed by the function _startSequence().
@@ -203,22 +201,23 @@ void _resetBySoftware(void)
 }
 
 
-float _getVoltage(void)
+float _getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams)
 {
-	uint16_t tNumPointsRead = gCVParams.numPoints - gNumRemainingDataPoints;
-	
-	uint8_t tCurrentSlope = tNumPointsRead / gCVParams.numSlopePoints;
+	uint8_t tCurrentSlope = pNumPointsRead / pVoltammetryParams->numSlopePoints;
 
-	uint16_t tCurrentSlopePoint = tNumPointsRead - (tCurrentSlope * gCVParams.numSlopePoints);
+	uint16_t tCurrentSlopePoint = pNumPointsRead - (tCurrentSlope * pVoltammetryParams->numSlopePoints);
 
 	float voltage_mV;
 
-	if (tCurrentSlope % 2 == 0) { 
-		// Rising slope 
-		voltage_mV = (gCVWave.startingPotential * 1000.0f) + ((float)tCurrentSlopePoint * gCVWave.stepSize); 
-	} else {
+	if (tCurrentSlope % 2 == 0)
+	{
+		// Rising slope
+		voltage_mV = (pVoltammetryParams->startingPotential) + ((float)tCurrentSlopePoint * pVoltammetryParams->stepPotential);
+	}
+	else
+	{
 		// Falling slope
-		voltage_mV = (gCVWave.endingPotential * 1000.0f) - ((float)tCurrentSlopePoint * gCVWave.stepSize);
+		voltage_mV = (pVoltammetryParams->endingPotential) - ((float)tCurrentSlopePoint * pVoltammetryParams->stepPotential);
 	}
 
 	return voltage_mV;

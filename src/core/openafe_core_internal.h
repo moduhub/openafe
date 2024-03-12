@@ -55,8 +55,6 @@ extern stateCV_t gCVState; // Global state of the current CV waveform.
 
 extern uint16_t gNumWavePoints; // Number of points in the current waveform.
 
-extern int32_t gNumRemainingDataPoints; // Number of data points to read.
-
 /**
  * @brief Read the 16-bit or 32-bit value from a register.
  *
@@ -103,11 +101,13 @@ void _resetByHardware(void);
 void _resetBySoftware(void);
 
 /**
- * @brief Get the voltage of the current data point.
- * 
- * @return Voltage at the current point, in mV.
+ * @brief Get the voltage at the given data point.
+ *
+ * @param pNumPointsRead IN -- data point to get the voltage.
+ * @param pVoltammetryParams IN -- voltammetry parameters.
+ * @return Voltage at the point, in mV.
  */
-float _getVoltage(void);
+float _getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Pass the wave parameters to the internal openafe_core source.
