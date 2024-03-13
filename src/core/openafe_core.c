@@ -372,7 +372,7 @@ void openafe_interruptHandler(void)
 		// send next sequence command to the runing sequence, but skips the first point of the sequence
 		// this is done to prevent a sequence command being written on top of a another, considering that
 		// the command to be overwritten is the very command that generated the read result interrupt 
-		if (gShouldAddPoints) {
+		if (gShouldAddPoints && gDataAvailable) {
 			gVoltammetryParams.state.SEQ_nextSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
 
 			if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ0_END_ADDR)
