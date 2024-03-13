@@ -5,12 +5,6 @@
 #include "Utility/openafe_types.h"
 
 /**
- * @brief Turns on OpenAFE debug prints.
- * 
- */
-void openafe_DEBUG_turnOnPrints(void);
-
-/**
  * @brief Minimal declaration, set a specific SPI Interface Frequency,
  * all other parameters are default.
  *
@@ -173,7 +167,8 @@ uint16_t openafe_dataAvailable(void);
 
 /**
  * @brief Start the voltametry.
- * @note Use this after cyclicVoltammetry.
+ * 
+ * @note Use this after seting a voltammetry.
  */
 void openafe_startVoltammetry(void);
 
@@ -186,7 +181,8 @@ float openafe_readDataFIFO(void);
 
 /**
  * @brief Handle interrupts triggered by the AD5941 device.
+ * 
  */
-uint32_t openafe_interruptHandler(void);
+void openafe_interruptHandler(void);
 
 #endif //_OPENAFE_CORE_H_

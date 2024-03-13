@@ -110,13 +110,6 @@ void _resetBySoftware(void);
 float _getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams);
 
 /**
- * @brief Pass the wave parameters to the internal openafe_core source.
- * 
- * @param pCVWave IN -- Wave parameters.
- */
-void _setVoltammetryParams(const waveCV_t *pCVWave);
-
-/**
  * @brief Read the ADC conversion result.
  */
 uint32_t _readADC(void);
@@ -262,50 +255,6 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
 uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 /**
- * @brief Generate and send the Differential Pulse Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
- *
- * This function generates and sends the required commands for a Differential Pulse Voltammetry sequence to the AFE.
- * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
- * The function uses the parameter and state structures to keep track of the current state of the sequence
- * and generates the required DAC and ADC commands to execute the sequence.
- * If the sequence has been filled completely, the function returns True, indicating that all commands have been sent.
- * Otherwise, the function returns False and the calling function is responsible for calling this function again
- * to continue sending the remaining commands.
- * This function also sets the starting address of the SRAM buffer, triggers the custom interrupt 3 to indicate
- * the completion of the sequence, and configures the sequence info register.
- *
- * @param pSequenceIndex IN -- The sequence index to be filled.
- * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
- * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
- * @param pVoltammetry IN -- Pointer to the voltammetry struct.
- * @return Status code: 1 on all commands sent, 0 otherwise.
- * @note This function assumes that the AFE has been properly initialized and configured.
- */
-uint8_t _sendDifferentialPulseVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry);
-
-/**
- * @brief Generate and send the Square Wave Voltammetry sequence to the AFE until the SRAM is filled with the required commands.
- *
- * This function generates and sends the required commands for a Square Wave Voltammetry sequence to the AFE.
- * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
- * The function uses the parameter and state structures to keep track of the current state of the sequence
- * and generates the required DAC and ADC commands to execute the sequence.
- * If the sequence has been filled completely, the function returns True, indicating that all commands have been sent.
- * Otherwise, the function returns False and the calling function is responsible for calling this function again
- * to continue sending the remaining commands.
- * This function also sets the starting address of the SRAM buffer, triggers the custom interrupt 3 to indicate
- * the completion of the sequence, and configures the sequence info register.
- *
- * @param pSequenceIndex IN -- The sequence index to be filled.
- * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
- * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
- * @param pVoltammetry IN -- Pointer to the voltammetry struct.
- * @return Status code: 1 on all commands sent, 0 otherwise.
- * @note This function assumes that the AFE has been properly initialized and configured.
- */
-uint8_t _sendSquareWaveVoltammetrySequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry);
-
-/**
  * This function configures the data FIFO mode and size for an ADC device.
  *
  * @param pDataMemoryAmount IN -- The amount of memory allocated for the data FIFO in kilobytes (kB). It can
@@ -321,6 +270,7 @@ void _sequencerConfig(void);
 
 /**
  * @brief Configure the interrupts.
+ * 
  */
 void _interruptConfig(void);
 
@@ -349,7 +299,8 @@ void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint1
 int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_t pOutMax);
 
 /**
- * @brief
+ * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
+ * SRAM address.
  *
  * @param pSRAMAddress IN -- SRAM address to start placing the point.
  * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
@@ -357,10 +308,43 @@ int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_
  */
 uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
 
-uint32_t _SEQ_stepCommandCV(uint32_t pStepDuration_us, uint16_t pDAC12Value, uint16_t pDAC6Value, float pAlfa);
+/**
+ * @brief Add commands for a Cyclic Voltammetry step into the SRAM.
+ * 
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster. 
+ * 
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pDAC12Value IN -- DAC 12 value for the step.
+ * @return Address of the last command written into the SRAM.
+ */
+uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
 
+/**
+ * @brief Add commands for a Differential Pulse Voltammetry step into the SRAM.
+ *
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster.
+ *
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
+ * @return Address of the last command written into the SRAM.
+ */
 uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
+/**
+ * @brief Add commands for a Square Wave Voltammetry step into the SRAM.
+ *
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster.
+ *
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
+ * @return Address of the last command written into the SRAM.
+ */
 uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
 #endif // _OPENAFE_CORE_INTERNAL_H_

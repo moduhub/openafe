@@ -42,11 +42,6 @@ uint32_t gNumDataPointsRead = 0; // Number of data points read.
 
 uint32_t gRawSINC2Data[2];
 
-void openafe_DEBUG_turnOnPrints(void)
-{
-
-}
-
 
 int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency)
 {
@@ -354,7 +349,7 @@ float openafe_readDataFIFO(void)
 }
 
 
-uint32_t openafe_interruptHandler(void)
+void openafe_interruptHandler(void)
 {
 	/** There are two reads from the INTCFLAG0 register because the first read returns garbage,
 	 *  the second has the true interrupt flags */
@@ -418,88 +413,6 @@ uint32_t openafe_interruptHandler(void)
 	}
 
 	_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
-
-	return gVoltammetryParams.numPoints;
-}
-
-
-int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
-{
-	waveCV_t tWaveCV;
-	tWaveCV.endingPotential = pPeakVoltage;
-	tWaveCV.startingPotential = pValleyVoltage;
-	tWaveCV.scanRate = pScanRate;
-	tWaveCV.stepSize = pStepSize;
-	tWaveCV.numCycles = pNumCycles;
-
-	static paramCV_t tCVParams;
-
-	int tPossible = _calculateParamsForCV(&tWaveCV, &tCVParams);
-
-	if (!tPossible)
-	{
-		return tPossible;
-	}
-
-	static stateCV_t tCVState;
-	tCVState.currentSlope = 1;
-
-	uint8_t tRisingSlope = 1;
-
-	uint16_t tNumSlopePoints = tCVParams.numPoints / (tCVParams.numCycles * 2);
-
-	uint32_t tAFECONValue = _readRegister(AD_AFECON, REG_SZ_32);
-
-	float tVoltageLevel = pValleyVoltage * 1000; // Voltage level in millivolts.
-
-	while (tCVState.currentSlope <= (tCVParams.numCycles * 2))
-	{
-		uint16_t tDAC12Value;
-
-		// Adds another point on the last slope:
-		uint16_t tNumPointsOnCurrentSlope = tCVState.currentSlope == (tCVParams.numCycles * 2) ? tNumSlopePoints + 1 : tNumSlopePoints;
-
-		for (uint16_t slopePoint = 0; slopePoint < tNumPointsOnCurrentSlope; slopePoint++)
-		{
-			if (tRisingSlope)
-			{
-				tDAC12Value = (uint16_t)(((float)tCVParams.DAC12StepSize * (float)slopePoint) + (float)tCVParams.lowDAC12Value);
-			}
-			else
-			{
-				tDAC12Value = (uint16_t)((float)tCVParams.highDAC12Value - ((float)tCVParams.DAC12StepSize * (float)slopePoint));
-			}
-
-			_writeRegister(AD_LPDACDAT0, (uint32_t)tCVParams.DAC6Value << 12 | tDAC12Value, REG_SZ_32);
-			_writeRegister(AD_AFECON, tAFECONValue | (uint32_t)1 << 8, REG_SZ_32);
-			// openafe_wrapper_delayMicroseconds(tCVParams.stepDuration_us);
-
-
-			if (tRisingSlope)
-			{
-				tVoltageLevel += pStepSize;
-			}
-			else
-			{
-				tVoltageLevel -= pStepSize;
-			}
-		}
-
-		tCVState.currentSlope++;
-
-		if (!(tCVState.currentSlope % 2 == 0))
-		{
-			tRisingSlope = 1;
-		}
-		else
-		{
-			tRisingSlope = 0;
-		}
-	}
-
-	_zeroVoltageAcrossElectrodes();
-
-	return 1;
 }
 
 
