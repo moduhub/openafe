@@ -151,19 +151,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 
 	_interruptConfig();
 
-	waveCV_t tWaveCV;
-	tWaveCV.settlingTime = pSettlingTime;
-	tWaveCV.startingPotential = pStartingPotential;
-	tWaveCV.endingPotential = pEndingPotential;
-	tWaveCV.scanRate = pScanRate;
-	tWaveCV.stepSize = pStepSize;
-	tWaveCV.numCycles = pNumCycles;
-
-	int tPossibility = _calculateParamsForCV(&tWaveCV, &gCVParams);
-
-	if (IS_ERROR(tPossibility))
-		return tPossibility;
-
 	memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
 
 	// Initialize CV specific params:
@@ -171,19 +158,17 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
 	gVoltammetryParams.numCurrentPointsPerStep = 1;
 
-	// the passing of the CV parameters below is a workaround for now:
 	gVoltammetryParams.settlingTime = pSettlingTime;
-	gVoltammetryParams.numSlopePoints = gCVParams.numSlopePoints;
-	gVoltammetryParams.numPoints = gCVParams.numPoints;
-	gVoltammetryParams.DAC.starting = gCVParams.lowDAC12Value;
-	gVoltammetryParams.DAC.ending = gCVParams.highDAC12Value;
-	gVoltammetryParams.DAC.step = gCVParams.DAC12StepSize;
-	gVoltammetryParams.DAC.reference = gCVParams.DAC6Value;
-	gVoltammetryParams.stepDuration_us = gCVParams.stepDuration_us;
-
-	gVoltammetryParams.startingPotential = pStartingPotential * 1000.f;
-	gVoltammetryParams.endingPotential = pEndingPotential * 1000.f;
+	gVoltammetryParams.startingPotential = pStartingPotential;
+	gVoltammetryParams.endingPotential = pEndingPotential;
+	gVoltammetryParams.scanRate = pScanRate;
 	gVoltammetryParams.stepPotential = pStepSize;
+	gVoltammetryParams.numCycles = pNumCycles;
+
+	int tPossibility = _calculateParamsForCV(&gVoltammetryParams);
+
+	if (IS_ERROR(tPossibility))
+		return tPossibility;
 
 	openafe_setVoltammetrySEQ(&gVoltammetryParams);
 
@@ -210,7 +195,6 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 	gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_DPV_POINT;
 	gVoltammetryParams.numCurrentPointsPerStep = 2;
 
-	// passsing parameters the DPV parameters
 	gVoltammetryParams.settlingTime = pSettlingTime;
 	gVoltammetryParams.startingPotential = pStartingPotential;
 	gVoltammetryParams.endingPotential = pEndingPotential;

@@ -27,18 +27,6 @@ unsigned int gRload; // Value of the Rload resistor.
 
 unsigned int gPGA; // PGA Gain.
 
-waveCV_t gCVWave;
-
-paramCV_t gCVParams; // Global parameters of the current CV Waveform.
-
-stateCV_t gCVState; // Global state of the current CV waveform.
-
-// /**
-//  * @brief Store the index of the sequence that is currently running.
-//  * @note READ ONLY! This variable is automatically managed by the function _startSequence().
-//  */
-// uint8_t gCurrentSequence;
-
 
 uint32_t _readRegister(uint16_t pAddress, uint8_t pRegisterSize)
 {
@@ -585,23 +573,21 @@ void _zeroVoltageAcrossElectrodes(void)
 }
 
 
-int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 {
-	pParamCV->settlingTime = pWaveCV->settlingTime;
+	pVoltammetryParams->numPoints = (uint16_t)((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1u;
 
-	pParamCV->numPoints = (uint16_t)(((((pWaveCV->endingPotential - pWaveCV->startingPotential) * 1000.0f) / pWaveCV->stepSize) * 2.0f) * (float)pWaveCV->numCycles) + 1u;
+	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
 
-	pParamCV->stepDuration_us = (uint32_t)((double)pWaveCV->stepSize * 1000000.0 / (double)pWaveCV->scanRate);
+	pVoltammetryParams->DAC.step = (float)pVoltammetryParams->stepPotential * 10000.0f / 5372.0f;
 
-	pParamCV->DAC12StepSize = (float)pWaveCV->stepSize * 10000.0f / 5372.0f;
+	float waveOffset_V = ((pVoltammetryParams->endingPotential + pVoltammetryParams->startingPotential) / 1000.f) / 2.0f;
 
-	float waveOffset_V = (pWaveCV->endingPotential + pWaveCV->startingPotential) / 2.0f;
+	pVoltammetryParams->DAC.reference = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
 
-	pParamCV->DAC6Value = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
+	float refValue_V = (float)_map(pVoltammetryParams->DAC.reference, 0, 63, 0, 2166) / 1000.0f;
 
-	float refValue_V = (float)_map(pParamCV->DAC6Value, 0, 63, 0, 2166) / 1000.0f;
-
-	float waveTop_V = refValue_V + pWaveCV->endingPotential;
+	float waveTop_V = refValue_V + (pVoltammetryParams->endingPotential / 1000.f);
 
 	if (!(waveTop_V <= DAC_6_RNG_V))
 	{
@@ -609,7 +595,7 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-	float waveBottom_V = refValue_V + pWaveCV->startingPotential;
+	float waveBottom_V = refValue_V + (pVoltammetryParams->startingPotential / 1000.f);
 
 	if (!(waveBottom_V >= 0))
 	{
@@ -617,12 +603,10 @@ int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-	pParamCV->highDAC12Value = _map(waveTop_V * 100000, 0, 219983, 0, 4095);
-	pParamCV->lowDAC12Value = _map(waveBottom_V * 100000, 0, 219983, 0, 4095);
+	pVoltammetryParams->DAC.starting = _map(waveBottom_V * 100000, 0, 219983, 0, 4095);
+	pVoltammetryParams->DAC.ending = _map(waveTop_V * 100000, 0, 219983, 0, 4095);
 
-	pParamCV->numCycles = pWaveCV->numCycles;
-
-	pParamCV->numSlopePoints = (pParamCV->numPoints - 1) / (pParamCV->numCycles * 2);
+	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
 
 	return NO_ERROR;
 }

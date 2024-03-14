@@ -61,12 +61,6 @@ int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
 }
 
 
-int AFE::waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles)
-{
-	return openafe_waveformCV(pPeakVoltage, pValleyVoltage, pScanRate, pStepSize, pNumCycles);
-}
-
-
 uint8_t AFE::setCurrentRange(uint16_t pDesiredCurrentRange)
 {
 	return openafe_setCurrentRange(pDesiredCurrentRange);

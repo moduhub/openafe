@@ -63,8 +63,8 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
  * @note This function also automatically sets the interrupts and initialize global variables.
  *
  * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
- * @param pStartingPotential IN -- Starting voltage of the waveform in Volts, e.g. -0.5.
- * @param pEndingPotential IN -- Ending voltage of the waveform in Volts, e.g. 0.5.
+ * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
+ * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
  * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
  * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
  * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
@@ -117,18 +117,6 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
  * @param pVoltammetryParams IN -- Voltammetry params pointer.
  */
 void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams);
-
-/**
- * Generation of the Cyclic Voltammetry waveform.
- *
- * @param pPeakVoltage IN -- Peak voltage of the waveform in Volts, e.g. 0.5.
- * @param pValleyVoltage IN -- Valley voltage of the waveform in Volts, e.g. -0.5.
- * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
- * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
- * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
- * @return >0 if successful, -1 if error.
- */
-int openafe_waveformCV(float pPeakVoltage, float pValleyVoltage, float pScanRate, float pStepSize, int pNumCycles);
 
 /**
  * @brief Set the TIA gain resistor based on the desired current range.

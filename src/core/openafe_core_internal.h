@@ -47,13 +47,6 @@
 #define SEQ1_START_ADDR 0x200u // Address of the SRAM where Sequence 1 starts
 #define SEQ1_END_ADDR 0x3FFu   // Address of the SRAM where Sequence 1 ends
 
-extern uint32_t gSPI_CLK_HZ; // SPI interface frequency, in Hertz.
-
-extern paramCV_t gCVParams; // Global parameters of the current CV Waveform.
-
-extern stateCV_t gCVState; // Global state of the current CV waveform.
-
-extern uint16_t gNumWavePoints; // Number of points in the current waveform.
 
 /**
  * @brief Read the 16-bit or 32-bit value from a register.
@@ -210,11 +203,10 @@ void _zeroVoltageAcrossElectrodes(void);
 /**
  * @brief Calculate the parameters for a given target CV waveform.
  *
- * @param pWaveCV IN -- Desired parameters of a CV wave.
- * @param pParamCV OUT -- Resulting parameters to generate the given CV wave.
+ * @param pVoltammetryParams IN/OUT -- voltammetry params.
  * @return Error code on error.
  */
-int _calculateParamsForCV(waveCV_t *pWaveCV, paramCV_t *pParamCV);
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Calculate the parameters for the given target DPV waveform.
