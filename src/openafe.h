@@ -51,11 +51,6 @@ class AFE
 		static void resetBySoftware(void);
 
 		/**
-		 * @brief Setup process of the Cyclic Voltammetry.
-		 */
-		static void setupCV(void);
-
-		/**
 		 * @brief Generate the desired CV waveform and fill the sequencer.
 		 * 
 		 * @note This function also automatically sets the interrupts and initialize global variables.

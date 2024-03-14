@@ -44,11 +44,6 @@ int openafe_isResponding(void);
 void openafe_killVoltammetry(void);
 
 /**
- * @brief Setup process of the Cyclic Voltammetry.
- */
-void openafe_setupCV(void);
-
-/**
  * @brief Get both voltage and current of a point.
  * 
  * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV. 

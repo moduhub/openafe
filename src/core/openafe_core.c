@@ -56,7 +56,9 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
 
 	// Initializes the system:
 	_initAFE(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
+	_switchConfiguration(); // Set the switches in the required configuration
 	_setTIAGain(3000u); 
+	
 	return 1;
 }
 
@@ -92,12 +94,6 @@ void openafe_killVoltammetry(void)
 	_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Reset the sequencer
 
 	_zeroVoltageAcrossElectrodes();
-}
-
-
-void openafe_setupCV(void)
-{
-	_switchConfiguration(); // Set the switches in the required configuration
 }
 
 

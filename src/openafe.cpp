@@ -37,12 +37,6 @@ void AFE::resetBySoftware(void)
 }
 
 
-void AFE::setupCV(void)
-{
-	openafe_setupCV();
-}
-
-
 int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles)
 {
 	return openafe_setCVSequence(pSettlingTime, pStartingPotential, pEndingPotential, pScanRate, pStepSize, pNumCycles);
