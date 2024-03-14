@@ -90,9 +90,6 @@ void openafe_killVoltammetry(void)
 	_writeRegister(AD_INTCSEL0, 0, REG_SZ_32); // Disable interrupts
 	_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32); // Disable all int flags
 
-	_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Reset FIFO
-	_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Reset the sequencer
-
 	_zeroVoltageAcrossElectrodes();
 }
 
@@ -141,8 +138,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 {
 	_zeroVoltageAcrossElectrodes();
 
-	_dataFIFOConfig(2000U);
-
 	_sequencerConfig();
 
 	_interruptConfig();
@@ -177,8 +172,6 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 						   uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase)
 {
 	_zeroVoltageAcrossElectrodes();
-
-	_dataFIFOConfig(2000U);
 
 	_sequencerConfig();
 
@@ -220,8 +213,6 @@ int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
 						   uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse)
 {
 	_zeroVoltageAcrossElectrodes();
-
-	_dataFIFOConfig(2000U);
 
 	_sequencerConfig();
 

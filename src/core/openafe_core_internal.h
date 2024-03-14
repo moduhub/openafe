@@ -247,7 +247,9 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
 uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 /**
- * This function configures the data FIFO mode and size for an ADC device.
+ * @brief This function configures the data FIFO mode and size for an ADC device.
+ *
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
  *
  * @param pDataMemoryAmount IN -- The amount of memory allocated for the data FIFO in kilobytes (kB). It can
  * be 2, 4, or 6 kB.

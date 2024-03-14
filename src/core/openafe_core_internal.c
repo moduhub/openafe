@@ -8,15 +8,35 @@ extern "C" {
 
 #include <string.h>
 
-#define CURRENT_OFFSET_uA 8.89f // Current offset, in microamps.
 
+/**
+ * @brief Current offset, in microamps
+ *
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
+ */
+#define CURRENT_OFFSET_uA 8.89f
+
+/**
+ * @brief ADC stabilization time, in microseconds.
+ *
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
+ */
 #define ADC_STABILIZATION_TIME_US 500u // ADC stabilization time, in microseconds.
 
-// 800 (samples) * ( 16 (MHz) / 0.8 (MHz)) = 8000 clock pulses per sample, plus 10 for FIFO.
-#define CONV_CLK_CYCLES (10660u + 20u) 
+/**
+ * @brief Amount of system clock pulses per cycles.
+ *
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
+ */
+#define CONV_CLK_CYCLES (10660u + 20u)
 
-/** The step offset time, in microseconds. This time refers to the amount of time the ADC
- * stabilization and conversion takes, and shall be  subtracted from the ramp step time.  
+/**
+ * @brief The step offset time, in microseconds.
+ * 
+ * This time refers to the amount of time the ADC stabilization and conversion takes, 
+ * and shall be  subtracted from the ramp step time.
+ * 
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
  */
 #define STEP_OFFSET_TIME_US ((uint32_t)((float)(CONV_CLK_CYCLES)*0.0625f) + ADC_STABILIZATION_TIME_US)
 
