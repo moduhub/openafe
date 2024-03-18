@@ -3,7 +3,7 @@ OpenAFE is a pioneering open-source initiative focused on Electrochemical Analog
 
 Here is a Cyclic Voltammetry done with OpenAFE library and the shield, the graph was acquired using [OpenAFE_PythonPlotter](https://github.com/ig-66/OpenAFE_PythonPlotter):
 
-![plotterexample](https://github.com/moduhub/openafe/blob/resources/images/CV_salt_water.png)
+![plotterexample](https://github.com/moduhub/openafe/blob/main/resources/images/CV_salt_water.png)
 
 # How to Use with Python
 
