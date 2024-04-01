@@ -6,17 +6,10 @@ extern "C" {
 
 #if USE_ARDUINO_WRAPPERS
 #include "arduino/arduino_peripherals_access.h"
-#include <Arduino.h>
-#include "util/delay.h"
+#define SHIELD_PIN_SPI_CS 10
+#define SHIELD_PIN_RESET 3
 #endif // USE_ARDUINO_WRAPPERS
 
-// SPI Commands
-#define SPICMD_SETADDR 0x20  // Set register address for SPI transaction
-#define SPICMD_READREG 0x6D  // Specifies SPI transaction is a read transaction
-#define SPICMD_WRITEREG 0x2D // Specifies SPI transaction is a write transaction
-#define SPICMD_READFIFO 0x5F // Command to read FIFO
-
-#define SPI_CS_PIN 10
 
 void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
 {
@@ -24,7 +17,8 @@ void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32
 	(void)pShieldResetPin; // Intentionally left unused
 
 	arduino_spi_begin(pShieldCSPin, pSPIClockSpeed);
-	arduino_pin_3_low();
+	// arduino_pin_3_low();
+	digitalWrite(SHIELD_PIN_RESET, LOW);
 	#else
 	/**
 	 * Put in here any thing that needs to run during the setup
@@ -36,7 +30,7 @@ void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32
 void openafe_wrapper_CSLow(void)
 {
 	#if USE_ARDUINO_WRAPPERS
-	digitalWrite(SPI_CS_PIN, LOW);
+	digitalWrite(SHIELD_PIN_SPI_CS, LOW);
 	#else
 	/**
 	 * Put here the command to set the SPI CS pin to LOW.
@@ -47,7 +41,7 @@ void openafe_wrapper_CSLow(void)
 void openafe_wrapper_CSHigh(void)
 {
 	#if USE_ARDUINO_WRAPPERS
-	digitalWrite(SPI_CS_PIN, HIGH);
+	digitalWrite(SHIELD_PIN_SPI_CS, HIGH);
 	#else
 	/**
 	 * Put here the command to set the SPI CS pin to HIGH.
@@ -58,11 +52,10 @@ void openafe_wrapper_CSHigh(void)
 void openafe_wrapper_delayMicroseconds(uint64_t pDelay_us)
 {
 	#if USE_ARDUINO_WRAPPERS
-	if (pDelay_us > 10000u){
+	if (pDelay_us > 10000u)
 		delay(pDelay_us / 1000);
-	} else {
+	else
 		delayMicroseconds(pDelay_us);
-	}
 	#else
 	/**
 	 * Put here a function to call a delay of pDelay_us microseconds.
@@ -73,9 +66,11 @@ void openafe_wrapper_delayMicroseconds(uint64_t pDelay_us)
 void openafe_wrapper_reset(void)
 {
 	#if USE_ARDUINO_WRAPPERS
-	arduino_pin_3_high();
-	_delay_ms(1);
-	arduino_pin_3_low();
+	// arduino_pin_3_high();
+	digitalWrite(SHIELD_PIN_RESET, HIGH);
+	openafe_wrapper_delayMicroseconds(1000);
+	digitalWrite(SHIELD_PIN_RESET, LOW);
+	// arduino_pin_3_low();
 	#else
 	// [Place in here a function to make reset pin go to low]
 

@@ -2,6 +2,8 @@
 #define _ARDUINO_PERIPHERALS_ACCESS_H_
 
 #include <stdint.h>
+#include <Arduino.h>
+#include <util/delay.h>
 
 /**
  * @brief Initializes Arduino's SPI, using SPI.begin() method.

@@ -4,8 +4,11 @@ extern "C" {
 
 #include "arduino_peripherals_access.h"
 
+#ifndef ARDUINO_ARCH_AVR
+#error "This library only supports boards with an AVR processor."
+#endif
+
 #include <avr/io.h>
-#include <util/delay.h>
 #include <stdio.h>
 
 #define SPI_PORT_DDR DDRB
