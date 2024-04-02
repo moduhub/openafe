@@ -595,17 +595,22 @@ void _zeroVoltageAcrossElectrodes(void)
 
 int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 {
+	float tRequiredPotentialRange = (pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / 1000.f;
+
+	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
+		return ERROR_PARAM_OUT_BOUNDS;
+	
 	pVoltammetryParams->numPoints = (uint16_t)((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1u;
 
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
 
-	pVoltammetryParams->DAC.step = (float)pVoltammetryParams->stepPotential * 10000.0f / 5372.0f;
+	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential * 10000.0f) / 5372.0f;
 
 	float waveOffset_V = ((pVoltammetryParams->endingPotential + pVoltammetryParams->startingPotential) / 1000.f) / 2.0f;
 
-	pVoltammetryParams->DAC.reference = (uint32_t)(((DAC_6_RNG_V / 2.0f) - waveOffset_V) / DAC_6_STEP_V);
+	pVoltammetryParams->DAC.reference = (uint32_t)((DAC_6_HALF_RNG - waveOffset_V) / DAC_6_STEP_V);
 
-	float refValue_V = (float)_map(pVoltammetryParams->DAC.reference, 0, 63, 0, 2166) / 1000.0f;
+	float refValue_V = ((float)pVoltammetryParams->DAC.reference) * DAC_6_STEP_V;
 
 	float waveTop_V = refValue_V + (pVoltammetryParams->endingPotential / 1000.f);
 
@@ -614,7 +619,7 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 		// ERROR: wave can't be generated!
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
-
+	
 	float waveBottom_V = refValue_V + (pVoltammetryParams->startingPotential / 1000.f);
 
 	if (!(waveBottom_V >= 0))
@@ -623,8 +628,8 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-	pVoltammetryParams->DAC.starting = _map(waveBottom_V * 100000, 0, 219983, 0, 4095);
-	pVoltammetryParams->DAC.ending = _map(waveTop_V * 100000, 0, 219983, 0, 4095);
+	pVoltammetryParams->DAC.starting = waveBottom_V / DAC_12_STEP_V;
+	pVoltammetryParams->DAC.ending = waveTop_V / DAC_12_STEP_V;
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
 
@@ -634,6 +639,11 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 
 int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 {
+	float tRequiredPotentialRange = ((pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential) - pVoltammetryParams->startingPotential) / 1000.f;
+
+	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
+		return ERROR_PARAM_OUT_BOUNDS;
+
 	// Voltage calculations
 	float tWaveOffset_V = ((pVoltammetryParams->startingPotential + (pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential)) / 2.0f) / 1000.0f;
 	
@@ -641,7 +651,7 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 
 	pVoltammetryParams->DAC.pulse = (uint16_t)((pVoltammetryParams->pulsePotential / 1000.0f) / DAC_12_STEP_V);
 
-	float refValue_mV = (float)_map((int32_t)(pVoltammetryParams->DAC.reference), 0, 63, 0, 2166);
+	float refValue_mV = pVoltammetryParams->DAC.reference * DAC_6_STEP_V * 1000.f;
 
 	float waveTop_mV = refValue_mV + pVoltammetryParams->endingPotential;
 
@@ -680,6 +690,11 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 
 int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 {
+	float tRequiredPotentialRange = ((pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential) - (pVoltammetryParams->startingPotential - pVoltammetryParams->pulsePotential)) / 1000.f;
+
+	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
+		return ERROR_PARAM_OUT_BOUNDS;
+
 	// Timing calculations
 	pVoltammetryParams->pulsePeriod_ms = (uint32_t)((1.0f / (float)pVoltammetryParams->pulseFrequency) * 1000.f);
 
@@ -692,7 +707,7 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 
 	pVoltammetryParams->DAC.pulse = (uint16_t)(pVoltammetryParams->pulsePotential / (1000.0f * DAC_12_STEP_V));
 
-	float refValue_mV = (float)_map((int32_t)(pVoltammetryParams->DAC.reference), 0, 63, 0, 2166);
+	float refValue_mV = pVoltammetryParams->DAC.reference * DAC_6_STEP_V * 1000.f;
 
 	float waveTop_mV = refValue_mV + pVoltammetryParams->endingPotential + pVoltammetryParams->pulsePotential;
 
@@ -953,6 +968,7 @@ uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
 	return tCurrentSeqAddress;
 }
 
+
 uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value)
 {
 	// pulse up:
@@ -967,6 +983,7 @@ uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
 
 	return tCurrentSeqAddress;
 }
+
 
 #ifdef __cplusplus
 }
