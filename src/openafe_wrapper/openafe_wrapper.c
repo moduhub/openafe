@@ -7,7 +7,6 @@ extern "C" {
 #if USE_ARDUINO_WRAPPERS
 #include "arduino/arduino_peripherals_access.h"
 #define SHIELD_PIN_SPI_CS 10
-#define SHIELD_PIN_RESET 3
 #endif // USE_ARDUINO_WRAPPERS
 
 
@@ -17,8 +16,7 @@ void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32
 	(void)pShieldResetPin; // Intentionally left unused
 
 	arduino_spi_begin(pShieldCSPin, pSPIClockSpeed);
-	// arduino_pin_3_low();
-	digitalWrite(SHIELD_PIN_RESET, LOW);
+	arduino_pin_3_low();
 	#else
 	/**
 	 * Put in here any thing that needs to run during the setup
@@ -66,11 +64,9 @@ void openafe_wrapper_delayMicroseconds(uint64_t pDelay_us)
 void openafe_wrapper_reset(void)
 {
 	#if USE_ARDUINO_WRAPPERS
-	// arduino_pin_3_high();
-	digitalWrite(SHIELD_PIN_RESET, HIGH);
+	arduino_pin_3_high();
 	openafe_wrapper_delayMicroseconds(1000);
-	digitalWrite(SHIELD_PIN_RESET, LOW);
-	// arduino_pin_3_low();
+	arduino_pin_3_low();
 	#else
 	// [Place in here a function to make reset pin go to low]
 
