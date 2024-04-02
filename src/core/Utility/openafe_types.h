@@ -38,8 +38,8 @@ typedef struct voltammetry_t
     voltammetry_state_t state;
     // Passed Parameters
     uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
-    float startingPotential;        // Target starting voltage value of the CV wave, in mV.
-    float endingPotential;          // Target ending voltage value of the CV wave, in mV.
+    float startingPotential;        // Target starting voltage value of the wave, in mV.
+    float endingPotential;          // Target ending voltage value of the wave, in mV.
     float scanRate;                 // Target scan rate, in mV/s.
     float stepPotential;            // Target step potential, in mV.
     uint8_t numCycles;              // Target number of cycles of the CV wave.
