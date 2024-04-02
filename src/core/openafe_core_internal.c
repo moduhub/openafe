@@ -723,28 +723,6 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 }
 
 
-/**
- * The function _sequencerSamplePoint performs ADC conversion and returns a constant value.
- * 
- * @param pAFECONValue IN -- The AFECON register value before the voltammetry start.
- * 
- * @return the value of the constant `STEP_OFFSET_TIME_US`.
- */
-uint32_t _sequencerSamplePoint(uint32_t pAFECONValue)
-{
-	// Turn on ADC
-	_sequencerWriteCommand(AD_AFECON, pAFECONValue | (uint32_t)1 << 7); // Enable ADC power
-	_sequencerWaitCommand(ADC_STABILIZATION_TIME_US);					// wait for it to stabilize
-
-	// ADC conversion
-	_sequencerWriteCommand(AD_AFECON, pAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
-	_sequencerWaitCommandClock(CONV_CLK_CYCLES);												   // Wait the conversion
-	_sequencerWriteCommand(AD_AFECON, (pAFECONValue & ~((uint32_t)1 << 7)) & ~((uint32_t)1 << 8)); // Stop ADC conversion
-
-	return STEP_OFFSET_TIME_US;
-}
-
-
 uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint8_t tSentAllCommands = 0;
@@ -893,23 +871,6 @@ void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint1
 	default:
 		break;
 	}
-}
-
-
-int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_t pOutMax)
-{
-	// Ensure the input value is within the specified range
-	if (pX < pInMin)
-	{
-		pX = pInMin;
-	}
-	else if (pX > pInMax)
-	{
-		pX = pInMax;
-	}
-
-	// Calculate the mapped value
-	return (pX - pInMin) * (pOutMax - pOutMin) / (pInMax - pInMin) + pOutMin;
 }
 
 

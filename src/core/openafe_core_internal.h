@@ -278,21 +278,6 @@ void _interruptConfig(void);
 void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
 
 /**
- * @brief Maps an input value from one range to another.
- *
- * This function scales an input value `pX` from the input range [pInMin, pInMax]
- * to the output range [pOutMin, pOutMax].
- *
- * @param pX IN -- The input value to be mapped.
- * @param pInMin IN -- The minimum value of the input range.
- * @param pInMax IN -- The maximum value of the input range.
- * @param pOutMin IN -- The minimum value of the output range.
- * @param pOutMax IN -- The maximum value of the output range.
- * @return The mapped value within the output range.
- */
-int32_t _map(int32_t pX, int32_t pInMin, int32_t pInMax, int32_t pOutMin, int32_t pOutMax);
-
-/**
  * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
  * SRAM address.
  *
