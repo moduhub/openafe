@@ -47,6 +47,8 @@ unsigned int gRload; // Value of the Rload resistor.
 
 unsigned int gPGA; // PGA Gain.
 
+float gTimeDivisor; // Time divider for the number of cycles
+
 
 uint32_t _readRegister(uint16_t pAddress, uint8_t pRegisterSize)
 {
@@ -206,6 +208,7 @@ void _resetBySoftware(void)
 {
 	_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
 	_writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
+	openafe_wrapper_delayMicroseconds(1000); /* Delay for AD initialization */
 }
 
 
@@ -378,9 +381,9 @@ uint16_t _sequencerTimerCommand(unsigned long pTimer_us)
 }
 
 
-uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us)
-{
-	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.0f / SEQ_DEFAULT_TIME_RESULUTION_NS;
+uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us){
+	
+	uint32_t tWaitCounter = (float)pTimeToWait_us * gTimeDivisor / SEQ_DEFAULT_TIME_RESULUTION_NS;
 
 	uint32_t tSequencerCommand = tWaitCounter & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 
@@ -593,8 +596,19 @@ void _zeroVoltageAcrossElectrodes(void)
 }
 
 
-int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
-{
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
+
+
+	if (pVoltammetryParams->numCycles < 0){
+		// ERROR: Number of cycle must be positive
+		return ERROR_PARAM_OUT_BOUNDS;
+	}
+
+	if (pVoltammetryParams->scanRate < 150 || pVoltammetryParams->scanRate >= 300){
+		// ERROR: Min and Max scan rate to prevent crash or bug(Needs to be verified in the future)
+		return ERROR_PARAM_OUT_BOUNDS;
+	}
+        
 	float tRequiredPotentialRange = (pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / 1000.f;
 
 	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
@@ -632,6 +646,8 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams)
 	pVoltammetryParams->DAC.ending = waveTop_V / DAC_12_STEP_V;
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
+
+	gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
 
 	return NO_ERROR;
 }
@@ -737,7 +753,6 @@ int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 	return NO_ERROR;
 }
 
-
 uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams)
 {
 	uint8_t tSentAllCommands = 0;
@@ -767,7 +782,6 @@ uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_
 
 	return tSentAllCommands;
 }
-
 
 void _dataFIFOConfig(uint16_t pDataMemoryAmount)
 {
