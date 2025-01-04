@@ -6,6 +6,7 @@ extern "C" {
 #include "openafe_core_internal.h"
 #include "Utility/openafe_status_codes.h"
 #include <string.h>
+#include <Arduino.h>
 
 // Number of points read in the current voltammetry. Can be used as point index.
 uint16_t gNumPointsRead;
@@ -28,7 +29,6 @@ uint8_t gFinished;
  */
 uint8_t gCurrentSequence = 0;
 
-int32_t gDataAvailable = 0; // Whether or not there is data available to read.
 
 uint32_t gRawSampleValue; // The raw sample value read from the ADC.
 
@@ -42,6 +42,7 @@ uint32_t gNumDataPointsRead = 0; // Number of data points read.
 
 uint32_t gRawSINC2Data[2];
 
+uint32_t gCheckFlag = 0;
 
 int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency)
 {
@@ -319,6 +320,9 @@ float openafe_readDataFIFO(void)
 	return _getCurrentFromADCValue(tDataFIFOValue);
 }
 
+uint32_t openafe_CheckFlags(void){
+	return gCheckFlag;
+}
 
 void openafe_interruptHandler(void)
 {
@@ -350,11 +354,13 @@ void openafe_interruptHandler(void)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+				//gCheckFlag = 0;
 			}
 			else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+				//gCheckFlag = 1;
 			}
 		} 
 		
@@ -371,6 +377,7 @@ void openafe_interruptHandler(void)
 		// start the next sequence
 		_startSequence(!gCurrentSequence);
 		gCurrentSequence = !gCurrentSequence;
+		//gCheckFlag = gCurrentSequence;
 
 		if (gShouldAddPoints)
 		{

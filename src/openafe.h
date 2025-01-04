@@ -162,6 +162,8 @@ class AFE
 		 */
 		static void interruptHandler(void);
 
+		uint32_t CheckFlags(void);
+
 	private:
 
 };

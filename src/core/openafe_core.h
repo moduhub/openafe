@@ -168,4 +168,6 @@ float openafe_readDataFIFO(void);
  */
 void openafe_interruptHandler(void);
 
+uint32_t openafe_CheckFlags(void);
+
 #endif //_OPENAFE_CORE_H_

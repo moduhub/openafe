@@ -100,3 +100,7 @@ void AFE::interruptHandler(void)
 {
 	openafe_interruptHandler();
 }
+
+uint32_t AFE::CheckFlags(void){
+	return openafe_CheckFlags();
+}
