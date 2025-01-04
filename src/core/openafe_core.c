@@ -29,6 +29,7 @@ uint8_t gFinished;
  */
 uint8_t gCurrentSequence = 0;
 
+uint32_t gDataAvailable = 0; // Whether or not there is data available to read.
 
 uint32_t gRawSampleValue; // The raw sample value read from the ADC.
 
@@ -265,7 +266,7 @@ void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
 	gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
 	pVoltammetryParams->state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
 	pVoltammetryParams->state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
-	gDataAvailable = 0;
+	gCheckFlag = 0;
 	gShouldSkipNextPointAddition = 1;
 	gShouldAddPoints = 0;
 } 
