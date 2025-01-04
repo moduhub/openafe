@@ -383,7 +383,7 @@ uint16_t _sequencerTimerCommand(unsigned long pTimer_us)
 
 uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us){
 	
-	uint32_t tWaitCounter = (float)pTimeToWait_us * gTimeDivisor / SEQ_DEFAULT_TIME_RESULUTION_NS;
+	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.f / SEQ_DEFAULT_TIME_RESULUTION_NS;
 
 	uint32_t tSequencerCommand = tWaitCounter & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 
@@ -647,7 +647,7 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
 
-	gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
+	//gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
 
 	return NO_ERROR;
 }
@@ -702,7 +702,6 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 
 	return NO_ERROR;
 }
-
 
 int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 {
