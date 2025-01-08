@@ -599,10 +599,10 @@ void _zeroVoltageAcrossElectrodes(void)
 int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 
-	if (pVoltammetryParams->numCycles < 0){
-		// ERROR: Number of cycle must be positive
-		return ERROR_PARAM_OUT_BOUNDS;
+	if (pVoltammetryParams->numCycles == 0 || pVoltammetryParams->stepPotential == 0) {
+    	return ERROR_PARAM_OUT_BOUNDS;
 	}
+
 
 	if (pVoltammetryParams->scanRate < 150 || pVoltammetryParams->scanRate >= 300){
 		// ERROR: Min and Max scan rate to prevent crash or bug(Needs to be verified in the future)
@@ -614,7 +614,11 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
 		return ERROR_PARAM_OUT_BOUNDS;
 	
-	pVoltammetryParams->numPoints = (uint16_t)((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1u;
+	// Cálculo do número de pontos com arredondamento manual para evitar erro acumulado
+	float tempNumPoints = ((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1.0f;
+
+	pVoltammetryParams->numPoints = (uint16_t)(tempNumPoints + 0.5f); // Arredondamento manual
+
 
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
 
