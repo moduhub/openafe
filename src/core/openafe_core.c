@@ -158,6 +158,8 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.stepPotential = pStepSize;
 	gVoltammetryParams.numCycles = pNumCycles;
 
+	gCheckFlag = pNumCycles;
+
 	int tPossibility = _calculateParamsForCV(&gVoltammetryParams);
 
 	if (IS_ERROR(tPossibility))
@@ -266,7 +268,7 @@ void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
 	gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
 	pVoltammetryParams->state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
 	pVoltammetryParams->state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
-	gCheckFlag = 0;
+	//gCheckFlag = 0;
 	gShouldSkipNextPointAddition = 1;
 	gShouldAddPoints = 0;
 } 
@@ -335,9 +337,12 @@ void openafe_interruptHandler(void)
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 11))
 	{	// trigger ADC result read
-		gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
-		
-		gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+
+	
+		if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep < 2) { // Limite do buffer
+			gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
+			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+		}
 
 		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep)
 		{
@@ -378,7 +383,7 @@ void openafe_interruptHandler(void)
 		// start the next sequence
 		_startSequence(!gCurrentSequence);
 		gCurrentSequence = !gCurrentSequence;
-		//gCheckFlag = gCurrentSequence;
+		gCheckFlag = gCurrentSequence;
 
 		if (gShouldAddPoints)
 		{
