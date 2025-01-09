@@ -328,4 +328,21 @@ uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
  */
 uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
+/*================EIS======================*/
+/**
+ * @brief Calculate the parameters for a given target EIS Sinusoidal waveform.
+ *
+ * @param pEISParams IN/OUT -- voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForEISSin(EIS_t *pEISParams);
+
+/**
+ * @brief Calculate the parameters for a given target EIS Trapezoidal waveform.
+ *
+ * @param pEISParams IN/OUT -- voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForEISTrap(EIS_t *pEISParams);
+
 #endif // _OPENAFE_CORE_INTERNAL_H_

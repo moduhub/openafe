@@ -128,6 +128,7 @@
 #define AD_FIFOCNTSTA		0x2200 // Command and data FIFO internal data count register
 #define AD_SYNCEXTDEVICE	0x2054 // Sync external devices register
 #define AD_TRIGSEQ			0x0430 // Trigger sequence register
+#define AD_CMDFIFOWADDR     0x2074 // Command FIFO address register
 
 /** WAVEFORM GENERATOR REGISTERS */
 #define AD_WGCON		0x2014 // Waveform generator configuration register

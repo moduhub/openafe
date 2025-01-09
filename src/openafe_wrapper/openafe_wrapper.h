@@ -1,5 +1,5 @@
-#ifndef _OPENAFE_SRAPPER_H_
-#define _OPENAFE_SRAPPER_H_
+#ifndef _OPENAFEEIS_SRAPPER_H_
+#define _OPENAFEEIS_SRAPPER_H_
 
 #include <stdint.h>
 
@@ -79,4 +79,4 @@ uint8_t openafe_wrapper_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize);
  */
 uint8_t openafe_wrapper_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize);
 
-#endif // _OPENAFE_WRAPPER_H_
+#endif // _OPENAFEEIS_WRAPPER_H_

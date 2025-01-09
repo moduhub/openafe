@@ -58,4 +58,32 @@ typedef struct voltammetry_t
     uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
 } voltammetry_t;
 
+/*================EIS======================*/
+/** Type that store all the necessary data for the EIS process. */ // Substituir variaveis
+typedef struct EIS_t{
+    // State Parameters
+    uint8_t currentEISType;           // Type of EIS waveform: sine or trapezoidal.
+    uint8_t SEQ_numCommandsPerStep;  // Number of commands per step in the sequencer.
+
+    // Passed Parameters
+    uint16_t settlingTime;    // Settling time before starting the waveform, in milliseconds.
+    float startFrequency;     // Starting frequency of the EIS experiment, in Hz.
+    float endFrequency;       // Ending frequency of the EIS experiment, in Hz.
+    int numPoints;            // Number of frequency points for the experiment.
+    float amplitude;          // Amplitude of the waveform, in mV.
+    float offset;             // Offset of the waveform, in mV.
+    uint16_t sampleDuration;  // Duration of sampling at each frequency, in milliseconds.
+
+    // Parameters for Trapezoidal Waveform
+    float riseTime;  // Rise time of the trapezoidal waveform, in milliseconds.
+    float fallTime;  // Fall time of the trapezoidal waveform, in milliseconds.
+
+    // Calculated Parameters
+    float stepFrequency;       // Step size between frequencies (linear or logarithmic).
+    uint32_t timerValue;       // Timer value for the sequencer at each frequency step.
+    uint16_t numCycles;        // Number of cycles at each frequency point.
+    uint32_t DAC_amplitude;    // Calculated DAC amplitude.
+    uint32_t DAC_offset;       // Calculated DAC offset.
+} EIS_t;
+
 #endif // _OPENAFE_TYPES_H_

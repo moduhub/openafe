@@ -162,6 +162,42 @@ class AFE
 		 */
 		static void interruptHandler(void);
 
+		/*================EIS======================*/
+			/**
+		 * @brief Generate a sinusoidal EIS waveform using the waveform generator and fill the sequencer.
+		 * 
+		 * @note This function also automatically sets the interrupts and initializes global variables.
+		 * 
+		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
+		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
+		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
+		 * @param numPoints IN -- Number of frequency points, e.g. 50.
+		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
+		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
+		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
+		 * @return >0 if successful, otherwise error.
+		 */
+		static int setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration);
+
+		/**
+		 * @brief Generate a trapezoidal EIS waveform using the waveform generator and fill the sequencer.
+		 * 
+		 * @note This function also automatically sets the interrupts and initializes global variables.
+		 * 
+		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
+		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
+		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
+		 * @param numPoints IN -- Number of frequency points, e.g. 50.
+		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
+		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
+		 * @param riseTime IN -- Rise time of the trapezoidal waveform in milliseconds, e.g. 10.
+		 * @param fallTime IN -- Fall time of the trapezoidal waveform in milliseconds, e.g. 10.
+		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
+		 * @return >0 if successful, otherwise error.
+		 */
+		static int setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
+
+
 	private:
 
 };

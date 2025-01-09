@@ -168,4 +168,51 @@ float openafe_readDataFIFO(void);
  */
 void openafe_interruptHandler(void);
 
+/*================EIS======================*/
+int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, 
+                                int numPoints, float amplitude, float offset, float riseTime, float fallTime, 
+                                uint16_t sampleDuration);
+
+                                /**
+ * @brief Set a general EIS in the sequencer.
+ * 
+ * @param pEISParams IN -- Voltammetry params pointer.
+ */
+void openafe_setEISSEQ(EIS_t *pEISParams);
+
+/**
+ * @brief Configures the FIFO to read impedance data from the DFT output.
+ * 
+ * @return >0 if successful, otherwise error.
+ */
+int openafe_configureFIFOForImpedance(void);
+
+/**
+ * @brief Configures the DFT for impedance measurement.
+ * 
+ * @param dftNum IN -- Number of DFT points.
+ * @param dftSrc IN -- Source of the DFT (e.g., excitation).
+ * @return >0 if successful, otherwise error.
+ */
+int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc);
+
+/**
+ * @brief Reads impedance data (magnitude and phase) from the DFT.
+ * 
+ * @param magnitude OUT -- Magnitude of the impedance.
+ * @param phase OUT -- Phase of the impedance.
+ * @return >0 if successful, otherwise error.
+ */
+int openafe_readImpedanceFIFO(float *magnitude, float *phase);
+
+/**
+ * @brief Collects impedance data for the entire experiment.
+ * 
+ * @param magnitudeBuffer OUT -- Buffer to store the magnitude of the impedance at each frequency.
+ * @param phaseBuffer OUT -- Buffer to store the phase of the impedance at each frequency.
+ * @param numPoints IN -- Number of points to collect.
+ * @return >0 if successful, otherwise error.
+ */
+int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints);
+
 #endif //_OPENAFE_CORE_H_

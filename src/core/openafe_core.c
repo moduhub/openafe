@@ -319,11 +319,92 @@ float openafe_readDataFIFO(void)
 	return _getCurrentFromADCValue(tDataFIFOValue);
 }
 
+/*================EIS======================*/
+void openafe_interruptHandler(void)
+{
+    /** There are two reads from the INTCFLAG0 register because the first read returns garbage,
+     *  the second has the true interrupt flags */
+    uint32_t tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
+    tInterruptFlags0 |= _readRegister(AD_INTCFLAG0, REG_SZ_32);
 
+    // Trigger ADC result read or DFT data read
+    if (tInterruptFlags0 & ((uint32_t)1 << 11))
+    {
+        if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_CV ||
+            gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV ||
+            gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV)
+        {
+            // Handle Voltammetry Data
+            gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
+            gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+
+            if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep)
+            {
+                gDataAvailable++;
+                gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
+            }
+
+            if (gShouldAddPoints && gDataAvailable)
+            {
+                gVoltammetryParams.state.SEQ_nextSRAMAddress = _SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress, &gVoltammetryParams);
+
+                if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ0_END_ADDR)
+                {
+                    gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+                    _configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+                }
+                else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR)
+                {
+                    gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+                    _configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+                }
+            }
+        }
+        else if (gEISParams.state.currentEISType == STATE_CURRENT_SINE || 
+                 gEISParams.state.currentEISType == STATE_CURRENT_TRAP)
+        {
+            // Handle EIS Data
+            float magnitude = 0, phase = 0;
+            openafe_readImpedanceFIFO(&magnitude, &phase);
+
+            // Store the results in buffers or process further
+            gEISParams.state.SEQ_currentPoint++;
+        }
+    }
+
+    // End of voltammetry
+    if (tInterruptFlags0 & ((uint32_t)1 << 12))
+    {
+        _zeroVoltageAcrossElectrodes();
+        _clearRegisterBit(AD_SEQCON, 0);
+    }
+
+    // End of sequence
+    if (tInterruptFlags0 & ((uint32_t)1 << 15))
+    {
+        // Start the next sequence
+        _startSequence(!gCurrentSequence);
+        gCurrentSequence = !gCurrentSequence;
+
+        if (gShouldAddPoints)
+        {
+            if (gCurrentSequence == 1)
+                gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
+            else
+                gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ1_START_ADDR;
+        }
+
+        gShouldAddPoints = 1;
+    }
+
+    _writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear all interrupt flags
+}
+
+/*
 void openafe_interruptHandler(void)
 {
 	/** There are two reads from the INTCFLAG0 register because the first read returns garbage,
-	 *  the second has the true interrupt flags */
+	 *  the second has the true interrupt flags *//*
 	uint32_t tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
 
 	tInterruptFlags0 |= _readRegister(AD_INTCFLAG0, REG_SZ_32);
@@ -384,7 +465,7 @@ void openafe_interruptHandler(void)
 	}
 
 	_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
-}
+}*/
 
 
 uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange)
@@ -450,6 +531,169 @@ unsigned long openafe_setTIAGain(unsigned long pTIAGain)
 {
 	return _setTIAGain(pTIAGain);
 }
+
+/*================EIS======================*/
+int openafe_setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){
+    _zeroVoltageAcrossElectrodes();
+
+    _sequencerConfig();
+
+    _interruptConfig();
+
+    // Inicializa os parâmetros para o EIS senoidal
+    memset(&gEISParams, 0, sizeof(EIS_t));
+
+    gEISParams.state.currentEISType = STATE_CURRENT_SINE;
+    gEISParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_EIS_POINT;
+
+    gEISParams.settlingTime = settlingTime;
+    gEISParams.startFrequency = startFrequency;
+    gEISParams.endFrequency = endFrequency;
+    gEISParams.numPoints = numPoints;
+    gEISParams.amplitude = amplitude;
+    gEISParams.offset = offset;
+    gEISParams.sampleDuration = sampleDuration;
+
+    // Calcula os parâmetros para o EIS senoidal
+    int calculationResult = _calculateParamsForEISSin(&gEISParams);
+    if (IS_ERROR(calculationResult))
+        return calculationResult;
+
+    // Configura o sequenciador para o experimento
+    openafe_setEISSEQ(&gEISParams);
+
+	// Configura FIFO e DFT
+    openafe_configureFIFOForImpedance();
+    openafe_configureDFT(DFT_NUM_POINTS, DFT_SRC_EXCITATION);
+
+    return NO_ERROR;
+}
+
+
+int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration){
+    _zeroVoltageAcrossElectrodes();
+
+    _sequencerConfig();
+
+    _interruptConfig();
+
+    // Inicializa os parâmetros para o EIS trapezoidal
+    memset(&gEISParams, 0, sizeof(EIS_t));
+
+    gEISParams.state.currentEISType = STATE_CURRENT_TRAP;
+    gEISParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_EIS_POINT;
+
+    gEISParams.settlingTime = settlingTime;
+    gEISParams.startFrequency = startFrequency;
+    gEISParams.endFrequency = endFrequency;
+    gEISParams.numPoints = numPoints;
+    gEISParams.amplitude = amplitude;
+    gEISParams.offset = offset;
+    gEISParams.riseTime = riseTime;
+    gEISParams.fallTime = fallTime;
+    gEISParams.sampleDuration = sampleDuration;
+
+    // Calcula os parâmetros para o EIS trapezoidal
+    int calculationResult = _calculateParamsForEISTrap(&gEISParams);
+    if (IS_ERROR(calculationResult))
+        return calculationResult;
+
+    // Configura o sequenciador para o experimento
+    openafe_setEISSEQ(&gEISParams);
+
+	// Configura FIFO e DFT
+    openafe_configureFIFOForImpedance();
+    openafe_configureDFT(DFT_NUM_POINTS, DFT_SRC_EXCITATION);
+
+    return NO_ERROR;
+}
+
+int openafe_configureFIFOForImpedance(void)
+{
+    // Configura o FIFO para capturar dados de DFT
+    uint32_t fifoConfig = 0;
+    fifoConfig |= (1 << 0); // Habilita FIFO
+    fifoConfig |= (1 << 1); // Seleciona dados de DFT
+    fifoConfig |= (0 << 2); // Define profundidade do FIFO (padrão)
+    _writeRegister(AD_FIFOCON, fifoConfig);
+
+    return NO_ERROR;
+}
+
+int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc)
+{
+    // Configura o DFT para processar valores com base na fonte fornecida
+    uint32_t dftConfig = 0;
+    dftConfig |= (1 << 0); // Habilita DFT
+    dftConfig |= (dftSrc << 1); // Define a fonte (exemplo: Excitação)
+    dftConfig |= (dftNum << 4); // Define o número de pontos do DFT
+    _writeRegister(AD_DFTCON, dftConfig);
+
+    return NO_ERROR;
+}
+
+int openafe_readImpedance(float *magnitude, float *phase)
+{
+    // Lê o valor real da DFT
+    uint32_t realData = _readRegister(AD_DFTREAL, REG_SZ_32);
+    int32_t realValue = (int32_t)(realData << 8) >> 8; // Converte para 24 bits com sinal
+
+    // Lê o valor imaginário da DFT
+    uint32_t imagData = _readRegister(AD_DFTIMAG, REG_SZ_32);
+    int32_t imagValue = (int32_t)(imagData << 8) >> 8; // Converte para 24 bits com sinal
+
+    // Calcula a magnitude e a fase
+    *magnitude = sqrtf((float)realValue * realValue + (float)imagValue * imagValue);
+    *phase = atan2f((float)imagValue, (float)realValue);
+
+    return NO_ERROR;
+}
+
+int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints)
+{
+    for (uint16_t i = 0; i < numPoints; i++)
+    {
+        float magnitude = 0;
+        float phase = 0;
+
+        // Lê a impedância no ponto atual
+        int status = openafe_readImpedance(&magnitude, &phase);
+        if (IS_ERROR(status))
+            return status;
+
+        // Armazena os valores nos buffers
+        magnitudeBuffer[i] = magnitude;
+        phaseBuffer[i] = phase;
+    }
+
+    return NO_ERROR;
+}
+
+void openafe_setEISSEQ(EIS_t *pEISParams){
+
+    // Inicializa o estado do sequenciador para o EIS
+    pEISParams->state.SEQ_currentPoint = 0;
+    pEISParams->state.SEQ_currentSRAMAddress = 0;
+    pEISParams->state.SEQ_nextSRAMAddress = 0;
+
+    // Tenta preencher o sequenciador com a sequência inicial
+    uint8_t tSentAllWaveSequence = _fillEISSequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, pEISParams);
+
+    // Se a sequência não couber no SEQ0, tenta preencher no SEQ1
+    if (!tSentAllWaveSequence)
+    {
+        tSentAllWaveSequence = _fillEISSequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, pEISParams);
+    }
+
+    // Atualiza os estados globais e reinicia contadores para o EIS
+    pEISParams->state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
+    pEISParams->state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
+
+    gEISParams.state.SEQ_numCurrentPointsReadOnStep = 0;
+    gDataAvailable = 0;
+    gShouldSkipNextPointAddition = 1;
+    gShouldAddPoints = 0;
+} 
 
 
 #ifdef __cplusplus

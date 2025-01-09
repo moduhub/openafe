@@ -2,7 +2,7 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "openafe_wrapper.h"
+#include "openafeEIS_wrapper.h"
 
 #if USE_ARDUINO_WRAPPERS
 #include "arduino/arduino_peripherals_access.h"

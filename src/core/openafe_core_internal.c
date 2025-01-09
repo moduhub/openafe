@@ -998,6 +998,142 @@ uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
 	return tCurrentSeqAddress;
 }
 
+/*================EIS======================*/
+int _calculateParamsForEISSin(EIS_t *pEISParams){
+
+	    if (pEISParams->numPoints <= 0)
+    {
+        // ERROR: Number of points must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG)
+    {
+        // ERROR: Amplitude out of bounds
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Calcula o passo de frequência em escala logarítmica
+    pEISParams->stepFrequency = (log10(pEISParams->endFrequency) - log10(pEISParams->startFrequency)) / (pEISParams->numPoints - 1);
+
+    // Calcula o tempo necessário por ciclo e valida
+    float period_ms = 1000.0f / pEISParams->startFrequency; // Período da menor frequência
+    if (pEISParams->sampleDuration < period_ms)
+    {
+        // ERROR: Sample duration too short
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Calcula os valores do DAC
+    pEISParams->DAC_amplitude = (uint32_t)((pEISParams->amplitude * 10000.0f) / DAC_12_STEP_V);
+    pEISParams->DAC_offset = (uint32_t)((pEISParams->offset * 10000.0f) / DAC_12_STEP_V);
+
+    // Calcula o número de ciclos em cada frequência
+    pEISParams->numCycles = (uint16_t)(pEISParams->sampleDuration / period_ms);
+
+    return NO_ERROR;
+}
+
+int _calculateParamsForEISTrap(EIS_t *pEISParams){
+
+	if (pEISParams->numPoints <= 0)
+    {
+        // ERROR: Number of points must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG)
+    {
+        // ERROR: Amplitude out of bounds
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->riseTime <= 0 || pEISParams->fallTime <= 0)
+    {
+        // ERROR: Rise or fall time must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Calcula o passo de frequência em escala logarítmica
+    pEISParams->stepFrequency = (log10(pEISParams->endFrequency) - log10(pEISParams->startFrequency)) / (pEISParams->numPoints - 1);
+
+    // Calcula o tempo necessário por ciclo e valida
+    float period_ms = 1000.0f / pEISParams->startFrequency; // Período da menor frequência
+    if (pEISParams->sampleDuration < period_ms)
+    {
+        // ERROR: Sample duration too short
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Calcula os valores do DAC
+    pEISParams->DAC_amplitude = (uint32_t)((pEISParams->amplitude * 10000.0f) / DAC_12_STEP_V);
+    pEISParams->DAC_offset = (uint32_t)((pEISParams->offset * 10000.0f) / DAC_12_STEP_V);
+
+    // Calcula o número de ciclos em cada frequência
+    pEISParams->numCycles = (uint16_t)(pEISParams->sampleDuration / period_ms);
+
+    // Calcula os tempos de subida e descida
+    pEISParams->timerValue = (uint32_t)((pEISParams->riseTime + pEISParams->fallTime) * 1000);
+
+    return NO_ERROR;
+}
+
+uint8_t _fillEISSequence(uint8_t sequencerIndex, uint16_t startAddress, uint16_t endAddress, eis_t *pEISParams){
+    uint16_t tCurrentAddress = startAddress;
+
+    while (pEISParams->state.SEQ_currentPoint < pEISParams->numPoints)
+    {
+        // Adiciona o ponto atual ao sequenciador
+        tCurrentAddress = _SEQ_addEISPoint(tCurrentAddress, pEISParams);
+
+        // Verifica se o próximo comando ultrapassa o espaço disponível na memória
+        if (tCurrentAddress + pEISParams->state.SEQ_numCommandsPerStep >= endAddress)
+        {
+            // Finaliza a sequência com um comando de interrupção
+            tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2);
+            break;
+        }
+    }
+
+    // Retorna 1 se todos os pontos foram preenchidos com sucesso, 0 caso contrário
+    return (pEISParams->state.SEQ_currentPoint >= pEISParams->numPoints);
+}
+
+uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams){
+    // Obtém o ponto atual
+    uint16_t currentPoint = pEISParams->state.SEQ_currentPoint;
+
+    // Calcula a frequência para o ponto atual
+    float currentFrequency = pow(10, log10(pEISParams->startFrequency) + (currentPoint * pEISParams->stepFrequency));
+
+    // Configura o tipo de onda (senoidal ou trapezoidal)
+    uint32_t waveType = (pEISParams->state.currentEISType == STATE_CURRENT_TRAP) ? 1 : 0; // 1 = trapezoidal, 0 = senoidal
+    currentAddress = _sequencerWriteCommand(currentAddress, AD_WGTYPE, waveType);
+
+    // Configura o DAC para amplitude e offset
+    currentAddress = _sequencerWriteCommand(currentAddress, AD_WGAMPLITUDE, pEISParams->DAC_amplitude);
+    currentAddress = _sequencerWriteCommand(currentAddress, AD_WGOFFSET, pEISParams->DAC_offset);
+
+    // Configuração específica para ondas trapezoidais
+    if (waveType == 1) // Trapezoidal
+    {
+        currentAddress = _sequencerWriteCommand(currentAddress, AD_WGRISE, (uint32_t)(pEISParams->riseTime * 1000)); // ms para us
+        currentAddress = _sequencerWriteCommand(currentAddress, AD_WGFALL, (uint32_t)(pEISParams->fallTime * 1000)); // ms para us
+    }
+
+    // Configura a frequência no gerador de ondas
+    currentAddress = _sequencerWriteCommand(currentAddress, AD_WGFREQ, (uint32_t)currentFrequency);
+
+    // Adiciona o comando de espera para capturar os dados
+    uint32_t waitTime = (uint32_t)((float)pEISParams->sampleDuration * 1000.0f); // Converter ms para us
+    currentAddress = _sequencerWaitCommand(waitTime);
+
+    // Incrementa o ponto atual
+    pEISParams->state.SEQ_currentPoint++;
+
+    return currentAddress;
+}
+
 
 #ifdef __cplusplus
 }

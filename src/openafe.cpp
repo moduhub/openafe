@@ -100,3 +100,16 @@ void AFE::interruptHandler(void)
 {
 	openafe_interruptHandler();
 }
+
+/*================EIS======================*/
+
+int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration)
+{
+    return openafe_setEISSinSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, sampleDuration);
+}
+
+
+int AFE::setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration)
+{
+    return openafe_setEISTrapSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, riseTime, fallTime, sampleDuration);
+}
