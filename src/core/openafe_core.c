@@ -533,11 +533,15 @@ unsigned long openafe_setTIAGain(unsigned long pTIAGain)
 }
 
 /*================EIS======================*/
-int openafe_setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){
+int openafe_setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration) {
+    // Verifica parâmetros de entrada
+    if (numPoints <= 0 || amplitude <= 0 || amplitude > DAC_12_MAX_RNG || startFrequency <= 0 || endFrequency <= 0 || startFrequency >= endFrequency || sampleDuration <= 0) {
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Configura o sistema
     _zeroVoltageAcrossElectrodes();
-
     _sequencerConfig();
-
     _interruptConfig();
 
     // Inicializa os parâmetros para o EIS senoidal
@@ -556,25 +560,29 @@ int openafe_setEISSinSequence(uint16_t settlingTime, float startFrequency, float
 
     // Calcula os parâmetros para o EIS senoidal
     int calculationResult = _calculateParamsForEISSin(&gEISParams);
-    if (IS_ERROR(calculationResult))
+    if (IS_ERROR(calculationResult)) {
         return calculationResult;
+    }
 
     // Configura o sequenciador para o experimento
     openafe_setEISSEQ(&gEISParams);
 
-	// Configura FIFO e DFT
+    // Configura FIFO e DFT
     openafe_configureFIFOForImpedance();
     openafe_configureDFT(DFT_NUM_POINTS, DFT_SRC_EXCITATION);
 
     return NO_ERROR;
 }
 
+int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration) {
+    // Verifica parâmetros de entrada
+    if (numPoints <= 0 || amplitude <= 0 || amplitude > DAC_12_MAX_RNG || startFrequency <= 0 || endFrequency <= 0 || startFrequency >= endFrequency || sampleDuration <= 0 || riseTime <= 0 || fallTime <= 0) {
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
 
-int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration){
+    // Configura o sistema
     _zeroVoltageAcrossElectrodes();
-
     _sequencerConfig();
-
     _interruptConfig();
 
     // Inicializa os parâmetros para o EIS trapezoidal
@@ -595,45 +603,61 @@ int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, floa
 
     // Calcula os parâmetros para o EIS trapezoidal
     int calculationResult = _calculateParamsForEISTrap(&gEISParams);
-    if (IS_ERROR(calculationResult))
+    if (IS_ERROR(calculationResult)) {
         return calculationResult;
+    }
 
     // Configura o sequenciador para o experimento
     openafe_setEISSEQ(&gEISParams);
 
-	// Configura FIFO e DFT
+    // Configura FIFO e DFT
     openafe_configureFIFOForImpedance();
     openafe_configureDFT(DFT_NUM_POINTS, DFT_SRC_EXCITATION);
 
     return NO_ERROR;
 }
 
-int openafe_configureFIFOForImpedance(void)
-{
+int openafe_configureFIFOForImpedance(void) {
     // Configura o FIFO para capturar dados de DFT
     uint32_t fifoConfig = 0;
     fifoConfig |= (1 << 0); // Habilita FIFO
     fifoConfig |= (1 << 1); // Seleciona dados de DFT
     fifoConfig |= (0 << 2); // Define profundidade do FIFO (padrão)
-    _writeRegister(AD_FIFOCON, fifoConfig);
+
+    // Verifica erro de escrita
+    if (_writeRegister(AD_FIFOCON, fifoConfig) != NO_ERROR) {
+        return ERROR_REGISTER_WRITE_FAIL;
+    }
 
     return NO_ERROR;
 }
 
-int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc)
-{
-    // Configura o DFT para processar valores com base na fonte fornecida
+int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc) {
+    // Verifica os parâmetros
+    if (dftNum <= 0 || dftSrc > MAX_DFT_SRC) {
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    // Configura o DFT
     uint32_t dftConfig = 0;
     dftConfig |= (1 << 0); // Habilita DFT
     dftConfig |= (dftSrc << 1); // Define a fonte (exemplo: Excitação)
     dftConfig |= (dftNum << 4); // Define o número de pontos do DFT
-    _writeRegister(AD_DFTCON, dftConfig);
+
+    // Verifica erro de escrita
+    if (_writeRegister(AD_DFTCON, dftConfig) != NO_ERROR) {
+        return ERROR_REGISTER_WRITE_FAIL;
+    }
 
     return NO_ERROR;
 }
 
-int openafe_readImpedance(float *magnitude, float *phase)
-{
+int openafe_readImpedance(float *magnitude, float *phase) {
+    // Verifica ponteiros
+    if (magnitude == NULL || phase == NULL) {
+        return ERROR_NULL_POINTER;
+    }
+
     // Lê o valor real da DFT
     uint32_t realData = _readRegister(AD_DFTREAL, REG_SZ_32);
     int32_t realValue = (int32_t)(realData << 8) >> 8; // Converte para 24 bits com sinal
@@ -649,17 +673,21 @@ int openafe_readImpedance(float *magnitude, float *phase)
     return NO_ERROR;
 }
 
-int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints)
-{
-    for (uint16_t i = 0; i < numPoints; i++)
-    {
+int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints) {
+    // Verifica ponteiros
+    if (magnitudeBuffer == NULL || phaseBuffer == NULL) {
+        return ERROR_NULL_POINTER;
+    }
+
+    for (uint16_t i = 0; i < numPoints; i++) {
         float magnitude = 0;
         float phase = 0;
 
         // Lê a impedância no ponto atual
         int status = openafe_readImpedance(&magnitude, &phase);
-        if (IS_ERROR(status))
+        if (IS_ERROR(status)) {
             return status;
+        }
 
         // Armazena os valores nos buffers
         magnitudeBuffer[i] = magnitude;
@@ -669,7 +697,11 @@ int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uin
     return NO_ERROR;
 }
 
-void openafe_setEISSEQ(EIS_t *pEISParams){
+void openafe_setEISSEQ(EIS_t *pEISParams) {
+    // Verifica ponteiro
+    if (pEISParams == NULL) {
+        return;
+    }
 
     // Inicializa o estado do sequenciador para o EIS
     pEISParams->state.SEQ_currentPoint = 0;
@@ -680,8 +712,7 @@ void openafe_setEISSEQ(EIS_t *pEISParams){
     uint8_t tSentAllWaveSequence = _fillEISSequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR, pEISParams);
 
     // Se a sequência não couber no SEQ0, tenta preencher no SEQ1
-    if (!tSentAllWaveSequence)
-    {
+    if (!tSentAllWaveSequence) {
         tSentAllWaveSequence = _fillEISSequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR, pEISParams);
     }
 
@@ -693,7 +724,8 @@ void openafe_setEISSEQ(EIS_t *pEISParams){
     gDataAvailable = 0;
     gShouldSkipNextPointAddition = 1;
     gShouldAddPoints = 0;
-} 
+}
+
 
 
 #ifdef __cplusplus

@@ -999,17 +999,29 @@ uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
 }
 
 /*================EIS======================*/
-int _calculateParamsForEISSin(EIS_t *pEISParams){
+int _calculateParamsForEISSin(EIS_t *pEISParams) {
+    if (pEISParams == NULL) {
+        // ERROR: Null pointer passed
+        return ERROR_NULL_POINTER;
+    }
 
-	    if (pEISParams->numPoints <= 0)
-    {
+    if (pEISParams->numPoints <= 0) {
         // ERROR: Number of points must be positive
         return ERROR_PARAM_OUT_BOUNDS;
     }
 
-    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG)
-    {
+    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG) {
         // ERROR: Amplitude out of bounds
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->startFrequency <= 0 || pEISParams->endFrequency <= 0) {
+        // ERROR: Frequency values must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->startFrequency >= pEISParams->endFrequency) {
+        // ERROR: Start frequency must be less than end frequency
         return ERROR_PARAM_OUT_BOUNDS;
     }
 
@@ -1018,8 +1030,7 @@ int _calculateParamsForEISSin(EIS_t *pEISParams){
 
     // Calcula o tempo necessário por ciclo e valida
     float period_ms = 1000.0f / pEISParams->startFrequency; // Período da menor frequência
-    if (pEISParams->sampleDuration < period_ms)
-    {
+    if (pEISParams->sampleDuration < period_ms) {
         // ERROR: Sample duration too short
         return ERROR_PARAM_OUT_BOUNDS;
     }
@@ -1034,23 +1045,34 @@ int _calculateParamsForEISSin(EIS_t *pEISParams){
     return NO_ERROR;
 }
 
-int _calculateParamsForEISTrap(EIS_t *pEISParams){
+int _calculateParamsForEISTrap(EIS_t *pEISParams) {
+    if (pEISParams == NULL) {
+        // ERROR: Null pointer passed
+        return ERROR_NULL_POINTER;
+    }
 
-	if (pEISParams->numPoints <= 0)
-    {
+    if (pEISParams->numPoints <= 0) {
         // ERROR: Number of points must be positive
         return ERROR_PARAM_OUT_BOUNDS;
     }
 
-    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG)
-    {
+    if (pEISParams->amplitude <= 0 || pEISParams->amplitude > DAC_12_MAX_RNG) {
         // ERROR: Amplitude out of bounds
         return ERROR_PARAM_OUT_BOUNDS;
     }
 
-    if (pEISParams->riseTime <= 0 || pEISParams->fallTime <= 0)
-    {
+    if (pEISParams->riseTime <= 0 || pEISParams->fallTime <= 0) {
         // ERROR: Rise or fall time must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->startFrequency <= 0 || pEISParams->endFrequency <= 0) {
+        // ERROR: Frequency values must be positive
+        return ERROR_PARAM_OUT_BOUNDS;
+    }
+
+    if (pEISParams->startFrequency >= pEISParams->endFrequency) {
+        // ERROR: Start frequency must be less than end frequency
         return ERROR_PARAM_OUT_BOUNDS;
     }
 
@@ -1059,8 +1081,7 @@ int _calculateParamsForEISTrap(EIS_t *pEISParams){
 
     // Calcula o tempo necessário por ciclo e valida
     float period_ms = 1000.0f / pEISParams->startFrequency; // Período da menor frequência
-    if (pEISParams->sampleDuration < period_ms)
-    {
+    if (pEISParams->sampleDuration < period_ms) {
         // ERROR: Sample duration too short
         return ERROR_PARAM_OUT_BOUNDS;
     }
@@ -1078,17 +1099,20 @@ int _calculateParamsForEISTrap(EIS_t *pEISParams){
     return NO_ERROR;
 }
 
-uint8_t _fillEISSequence(uint8_t sequencerIndex, uint16_t startAddress, uint16_t endAddress, eis_t *pEISParams){
+uint8_t _fillEISSequence(uint8_t sequencerIndex, uint16_t startAddress, uint16_t endAddress, eis_t *pEISParams) {
+    if (pEISParams == NULL) {
+        // ERROR: Null pointer passed
+        return 0;
+    }
+
     uint16_t tCurrentAddress = startAddress;
 
-    while (pEISParams->state.SEQ_currentPoint < pEISParams->numPoints)
-    {
+    while (pEISParams->state.SEQ_currentPoint < pEISParams->numPoints) {
         // Adiciona o ponto atual ao sequenciador
         tCurrentAddress = _SEQ_addEISPoint(tCurrentAddress, pEISParams);
 
         // Verifica se o próximo comando ultrapassa o espaço disponível na memória
-        if (tCurrentAddress + pEISParams->state.SEQ_numCommandsPerStep >= endAddress)
-        {
+        if (tCurrentAddress + pEISParams->state.SEQ_numCommandsPerStep >= endAddress) {
             // Finaliza a sequência com um comando de interrupção
             tCurrentAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2);
             break;
@@ -1099,7 +1123,12 @@ uint8_t _fillEISSequence(uint8_t sequencerIndex, uint16_t startAddress, uint16_t
     return (pEISParams->state.SEQ_currentPoint >= pEISParams->numPoints);
 }
 
-uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams){
+uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams) {
+    if (pEISParams == NULL) {
+        // ERROR: Null pointer passed
+        return currentAddress;
+    }
+
     // Obtém o ponto atual
     uint16_t currentPoint = pEISParams->state.SEQ_currentPoint;
 
@@ -1115,8 +1144,7 @@ uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams){
     currentAddress = _sequencerWriteCommand(currentAddress, AD_WGOFFSET, pEISParams->DAC_offset);
 
     // Configuração específica para ondas trapezoidais
-    if (waveType == 1) // Trapezoidal
-    {
+    if (waveType == 1) { // Trapezoidal
         currentAddress = _sequencerWriteCommand(currentAddress, AD_WGRISE, (uint32_t)(pEISParams->riseTime * 1000)); // ms para us
         currentAddress = _sequencerWriteCommand(currentAddress, AD_WGFALL, (uint32_t)(pEISParams->fallTime * 1000)); // ms para us
     }
