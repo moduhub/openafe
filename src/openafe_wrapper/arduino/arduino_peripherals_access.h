@@ -33,4 +33,28 @@ void arduino_pin_3_high(void);
  */
 void arduino_pin_3_low(void);
 
+/**
+ * @brief The function sets pin 6 on an Arduino board to a high state.
+ *
+ */
+void arduino_pin_6_high(void);
+
+/**
+ * @brief The function sets pin 6 on an Arduino board to a low state.
+ *
+ */
+void arduino_pin_6_low(void);
+
+/**
+ * @brief The function sets pin 7 on an Arduino board to a high state.
+ *
+ */
+void arduino_pin_7_high(void);
+
+/**
+ * @brief The function sets pin 7 on an Arduino board to a low state.
+ *
+ */
+void arduino_pin_7_low(void);
+
 #endif // _ARDUINO_PERIPHERALS_ACCESS_H_
