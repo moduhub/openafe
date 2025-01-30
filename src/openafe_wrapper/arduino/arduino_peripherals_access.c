@@ -85,7 +85,6 @@ void arduino_pin_7_low(void)
     PORTD &= ~(1 << PD7); // Definir PD7 como LOW
 }
 
-
 #ifdef __cplusplus
 }
 #endif // __cplusplus

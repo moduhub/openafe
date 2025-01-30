@@ -51,6 +51,7 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
 	arduino_pin_6_high();
 	arduino_pin_7_low();
 	uint32_t tSPIClockSpeed; // SPI interface frequency, in Hertz.
+	arduino_pin_6_high();
 
 	if (!pSPIFrequency) {
 		tSPIClockSpeed = SPI_CLK_DEFAULT_HZ;
@@ -334,6 +335,8 @@ uint32_t openafe_CheckFlags(void){
 
 void openafe_interruptHandler(void)
 {
+	arduino_pin_7_high();
+	arduino_pin_6_high();
 	/** There are two reads from the INTCFLAG0 register because the first read returns garbage,
 	 *  the second has the true interrupt flags */
 	uint32_t tInterruptFlags0 = _readRegister(AD_INTCFLAG0, REG_SZ_32);
@@ -345,8 +348,11 @@ void openafe_interruptHandler(void)
 
 	
 		if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep < 2) { // Limite do buffer
+			arduino_pin_6_low();
 			gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
 			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+			arduino_pin_7_high();
+			arduino_pin_6_high();
 		}
 
 		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep){
