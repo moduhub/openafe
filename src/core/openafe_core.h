@@ -170,4 +170,6 @@ void openafe_interruptHandler(void);
 
 uint32_t openafe_CheckFlags(void);
 
+uint8_t Aux_dONE();
+
 #endif //_OPENAFE_CORE_H_

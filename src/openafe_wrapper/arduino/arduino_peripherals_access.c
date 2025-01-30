@@ -61,6 +61,31 @@ void arduino_pin_3_low(void)
 	PORTD &= ~(1 << PD3); // Set PD3 LOW
 }
 
+void arduino_pin_6_high(void)
+{
+    DDRD |= (1 << PD6);  // Configurar PD6 como saída
+    PORTD |= (1 << PD6); // Definir PD6 como HIGH
+}
+
+void arduino_pin_6_low(void)
+{
+    DDRD |= (1 << PD6);   // Configurar PD6 como saída
+    PORTD &= ~(1 << PD6); // Definir PD6 como LOW
+}
+
+void arduino_pin_7_high(void)
+{
+    DDRD |= (1 << PD7);  // Configurar PD7 como saída
+    PORTD |= (1 << PD7); // Definir PD7 como HIGH
+}
+
+void arduino_pin_7_low(void)
+{
+    DDRD |= (1 << PD7);   // Configurar PD7 como saída
+    PORTD &= ~(1 << PD7); // Definir PD7 como LOW
+}
+
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

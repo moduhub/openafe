@@ -5,6 +5,7 @@ extern "C" {
 #include "openafe_core.h"
 #include "openafe_core_internal.h"
 #include "Utility/openafe_status_codes.h"
+#include "../openafe_wrapper/arduino/arduino_peripherals_access.h"
 #include <string.h>
 #include <Arduino.h>
 
@@ -47,6 +48,8 @@ uint32_t gCheckFlag = 0;
 
 int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency)
 {
+	arduino_pin_6_high();
+	arduino_pin_7_low();
 	uint32_t tSPIClockSpeed; // SPI interface frequency, in Hertz.
 
 	if (!pSPIFrequency) {
@@ -59,11 +62,9 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
 	// Initializes the system:
 	_initAFE(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
 	_switchConfiguration(); // Set the switches in the required configuration
-	_setTIAGain(3000u); 
-	
+	_setTIAGain(3000u); 	
 	return 1;
 }
-
 
 void openafe_resetByHardware(void)
 {
@@ -98,6 +99,7 @@ void openafe_killVoltammetry(void)
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA)
 {	
+
 	*pVoltage_mV = _getVoltage(gNumDataPointsRead, &gVoltammetryParams);
 
 	float tCurrent = _getCurrentFromADCValue(gRawSINC2Data[0]);
@@ -273,6 +275,10 @@ void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams)
 	gShouldAddPoints = 0;
 } 
 
+uint8_t Aux_Done(){
+	arduino_pin_7_high();
+	return STATUS_VOLTAMMETRY_DONE;
+}
 
 uint8_t openafe_done(void)
 {
@@ -281,10 +287,9 @@ uint8_t openafe_done(void)
 
 	return ((gFinished == 1) && (gDataAvailable == 0)) ||
 				   ((gFinished == 1) && (gNumDataPointsRead == gVoltammetryParams.numPoints))
-			   ? STATUS_VOLTAMMETRY_DONE
+			   ? Aux_Done()
 			   : STATUS_VOLTAMMETRY_UNDERGOING;
 }
-
 
 uint16_t openafe_dataAvailable(void)
 {
@@ -303,7 +308,7 @@ void openafe_startVoltammetry(void)
 	_writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13, REG_SZ_32);
 	// Enable FIFO again
 	_writeRegister(AD_FIFOCON, (uint32_t)0b11 << 13 | (uint32_t)1 << 11, REG_SZ_32);
-
+	arduino_pin_6_low();
 	_startSequence(0);
 	gCurrentSequence = 0;
 }
@@ -344,8 +349,7 @@ void openafe_interruptHandler(void)
 			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
 		}
 
-		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep)
-		{
+		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep){
 			gDataAvailable++;
 			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
 		}
@@ -360,13 +364,11 @@ void openafe_interruptHandler(void)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
-				//gCheckFlag = 0;
 			}
 			else if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR)
 			{
 				gVoltammetryParams.state.SEQ_nextSRAMAddress = _sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 				_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
-				//gCheckFlag = 1;
 			}
 		} 
 		

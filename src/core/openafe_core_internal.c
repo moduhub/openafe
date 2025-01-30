@@ -5,6 +5,7 @@ extern "C" {
 #include "openafe_core_internal.h"
 #include "../openafe_wrapper/openafe_wrapper.h"
 #include "Utility/openafe_status_codes.h"
+#include "../openafe_wrapper/arduino/arduino_peripherals_access.h"
 
 #include <string.h>
 
@@ -599,13 +600,13 @@ void _zeroVoltageAcrossElectrodes(void)
 int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 
-	if (pVoltammetryParams->numCycles == 0 || pVoltammetryParams->stepPotential == 0) {
-    	return ERROR_PARAM_OUT_BOUNDS;
+	if (pVoltammetryParams->numCycles < 0){
+		// ERROR: Number of cycle must be positive
+		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-
-	if (pVoltammetryParams->scanRate < 150 || pVoltammetryParams->scanRate >= 300){
-		// ERROR: Min and Max scan rate to prevent crash or bug(Needs to be verified in the future)
+	if (pVoltammetryParams->scanRate < 0){
+		// ERROR: Min and scan rate to prevent crash or bug(Needs to be verified in the future)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
         
@@ -621,6 +622,10 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
+
+	if (pVoltammetryParams->stepDuration_us <= 150)
+		return ERROR_PARAM_OUT_BOUNDS; // Minimum value required for the microcontroller to perform a reading (ATMEGA 328P)
+	
 
 	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential * 10000.0f) / 5372.0f;
 
@@ -650,8 +655,6 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 	pVoltammetryParams->DAC.ending = waveTop_V / DAC_12_STEP_V;
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
-
-	//gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
 
 	return NO_ERROR;
 }
