@@ -599,13 +599,13 @@ void _zeroVoltageAcrossElectrodes(void)
 int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 
-	if (pVoltammetryParams->numCycles == 0 || pVoltammetryParams->stepPotential == 0) {
-    	return ERROR_PARAM_OUT_BOUNDS;
+	if (pVoltammetryParams->numCycles < 0){
+		// ERROR: Number of cycle must be positive
+		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
-
-	if (pVoltammetryParams->scanRate < 150 || pVoltammetryParams->scanRate >= 300){
-		// ERROR: Min and Max scan rate to prevent crash or bug(Needs to be verified in the future)
+	if (pVoltammetryParams->scanRate < 0){
+		// ERROR: Min and scan rate to prevent crash or bug(Needs to be verified in the future)
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
         
@@ -621,6 +621,10 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
+
+	if (pVoltammetryParams->stepDuration_us <= 150)
+		return ERROR_PARAM_OUT_BOUNDS; // Minimum value required for the microcontroller to perform a reading (ATMEGA 328P)
+	
 
 	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential * 10000.0f) / 5372.0f;
 
