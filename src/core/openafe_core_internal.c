@@ -596,11 +596,11 @@ void _zeroVoltageAcrossElectrodes(void)
 }
 
 
-int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
-
-
-	if (pVoltammetryParams->numCycles < 0){
-		// ERROR: Number of cycle must be positive
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
+	//Basic parameter checks
+	if (pVoltammetryParams->numCycles == 0
+	|| pVoltammetryParams->scanRate < 0)
+	|| pVoltammetryParams->endingPotential < pVoltammetryParams->startingPotential{
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
 
@@ -619,7 +619,7 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 
 	pVoltammetryParams->numPoints = (uint16_t)(tempNumPoints + 0.5f); // Arredondamento manual
 
-
+	
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
 
 	if (pVoltammetryParams->stepDuration_us <= 150)
