@@ -47,9 +47,6 @@ unsigned int gRload; // Value of the Rload resistor.
 
 unsigned int gPGA; // PGA Gain.
 
-float gTimeDivisor; // Time divider for the number of cycles
-
-
 uint32_t _readRegister(uint16_t pAddress, uint8_t pRegisterSize)
 {
 	#if USE_SPI_TRANSFER_WRAPPER
@@ -383,7 +380,7 @@ uint16_t _sequencerTimerCommand(unsigned long pTimer_us)
 
 uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us){
 	
-	uint32_t tWaitCounter = (float)pTimeToWait_us * gTimeDivisor / SEQ_DEFAULT_TIME_RESULUTION_NS;
+	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.f / SEQ_DEFAULT_TIME_RESULUTION_NS;
 
 	uint32_t tSequencerCommand = tWaitCounter & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 
@@ -596,27 +593,27 @@ void _zeroVoltageAcrossElectrodes(void)
 }
 
 
-int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
-
-
-	if (pVoltammetryParams->numCycles < 0){
-		// ERROR: Number of cycle must be positive
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
+	//Basic parameter checks
+	if (pVoltammetryParams->numCycles == 0
+	|| pVoltammetryParams->scanRate < 0)
+	|| pVoltammetryParams->endingPotential < pVoltammetryParams->startingPotential{
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
-
-	if (pVoltammetryParams->scanRate < 150 || pVoltammetryParams->scanRate >= 300){
-		// ERROR: Min and Max scan rate to prevent crash or bug(Needs to be verified in the future)
-		return ERROR_PARAM_OUT_BOUNDS;
-	}
-        
+	//Device limits
 	float tRequiredPotentialRange = (pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / 1000.f;
-
-	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
+	if (tRequiredPotentialRange > DAC_12_MAX_RNG) {
 		return ERROR_PARAM_OUT_BOUNDS;
+	}
+	// Cálculo do número de pontos com arredondamento manual para evitar erro acumulado
+	const float tNumPoints = ((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1.0f;
+	pVoltammetryParams->numPoints = (uint16_t)(tNumPoints + 0.5f); // Arredondamento manual
 	
-	pVoltammetryParams->numPoints = (uint16_t)((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1u;
-
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
+
+	if (pVoltammetryParams->stepDuration_us <= 150) {
+		return ERROR_PARAM_OUT_BOUNDS; // Minimum value required for the microcontroller to perform a reading (ATMEGA 328P)
+	}
 
 	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential * 10000.0f) / 5372.0f;
 
@@ -646,8 +643,6 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams){
 	pVoltammetryParams->DAC.ending = waveTop_V / DAC_12_STEP_V;
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
-
-	gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
 
 	return NO_ERROR;
 }
@@ -702,7 +697,6 @@ int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams)
 
 	return NO_ERROR;
 }
-
 
 int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams)
 {

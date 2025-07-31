@@ -411,9 +411,12 @@ void openafe_interruptHandler(void)
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 11))
 	{	// trigger ADC result read
-		gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
-		
-		gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+
+	
+		if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep < 2) { // Limite do buffer
+			gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = _readADC();
+			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+		}
 
 		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep)
 		{
