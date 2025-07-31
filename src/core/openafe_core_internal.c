@@ -47,9 +47,6 @@ unsigned int gRload; // Value of the Rload resistor.
 
 unsigned int gPGA; // PGA Gain.
 
-float gTimeDivisor; // Time divider for the number of cycles
-
-
 uint32_t _readRegister(uint16_t pAddress, uint8_t pRegisterSize)
 {
 	#if USE_SPI_TRANSFER_WRAPPER
@@ -646,8 +643,6 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
 	pVoltammetryParams->DAC.ending = waveTop_V / DAC_12_STEP_V;
 
 	pVoltammetryParams->numSlopePoints = (pVoltammetryParams->numPoints - 1) / (pVoltammetryParams->numCycles * 2);
-
-	//gTimeDivisor = ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
 
 	return NO_ERROR;
 }
