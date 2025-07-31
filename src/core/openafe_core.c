@@ -156,8 +156,6 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
 	gVoltammetryParams.stepPotential = pStepSize;
 	gVoltammetryParams.numCycles = pNumCycles;
 
-	gCheckFlag = pNumCycles;
-
 	int tPossibility = _calculateParamsForCV(&gVoltammetryParams);
 
 	if (IS_ERROR(tPossibility))
