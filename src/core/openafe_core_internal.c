@@ -603,28 +603,20 @@ int _calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
 	|| pVoltammetryParams->endingPotential < pVoltammetryParams->startingPotential{
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
-
-	if (pVoltammetryParams->scanRate < 0){
-		// ERROR: Min and scan rate to prevent crash or bug(Needs to be verified in the future)
+	//Device limits
+	float tRequiredPotentialRange = (pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / 1000.f;
+	if (tRequiredPotentialRange > DAC_12_MAX_RNG) {
 		return ERROR_PARAM_OUT_BOUNDS;
 	}
-        
-	float tRequiredPotentialRange = (pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / 1000.f;
-
-	if (tRequiredPotentialRange > DAC_12_MAX_RNG)
-		return ERROR_PARAM_OUT_BOUNDS;
-	
 	// Cálculo do número de pontos com arredondamento manual para evitar erro acumulado
-	float tempNumPoints = ((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1.0f;
-
-	pVoltammetryParams->numPoints = (uint16_t)(tempNumPoints + 0.5f); // Arredondamento manual
-
+	const float tNumPoints = ((((pVoltammetryParams->endingPotential - pVoltammetryParams->startingPotential) / pVoltammetryParams->stepPotential) * 2.0f) * (float)pVoltammetryParams->numCycles) + 1.0f;
+	pVoltammetryParams->numPoints = (uint16_t)(tNumPoints + 0.5f); // Arredondamento manual
 	
 	pVoltammetryParams->stepDuration_us = (uint32_t)((double)pVoltammetryParams->stepPotential * 1000000.0 / (double)pVoltammetryParams->scanRate);
 
-	if (pVoltammetryParams->stepDuration_us <= 150)
+	if (pVoltammetryParams->stepDuration_us <= 150) {
 		return ERROR_PARAM_OUT_BOUNDS; // Minimum value required for the microcontroller to perform a reading (ATMEGA 328P)
-	
+	}
 
 	pVoltammetryParams->DAC.step = (pVoltammetryParams->stepPotential * 10000.0f) / 5372.0f;
 
