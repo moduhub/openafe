@@ -1,11 +1,5 @@
-/**
-* This file and its source file are meant for
-* openafe_core functions that shall not be exposed 
-* to other files.
-*/
-
-#ifndef _OPENAFE_CORE_INTERNAL_H_
-#define _OPENAFE_CORE_INTERNAL_H_
+#ifndef _OPENAFE_AD5941_H_
+#define _OPENAFE_AD5941_H_
 
 #include <stdint.h>
 #include "Utility/openafe_types.h"
@@ -49,6 +43,14 @@
 #define SEQ1_START_ADDR 0x200u // Address of the SRAM where Sequence 1 starts
 #define SEQ1_END_ADDR 0x3FFu   // Address of the SRAM where Sequence 1 ends
 
+/** Structure to store the required values for the DAC operation. */
+typedef struct DAC_t {
+    uint16_t starting;  // The 12-bit DAC value for the starting potential.
+    uint16_t ending;    // The 12-bit DAC value for the ending potential.
+    float step;         // The 12-bit DAC value for the step potential.
+    uint16_t pulse;     // The 12-bit DAC value for the pulse potential.
+    uint16_t reference; // The 6-bit DAC value for the reference potential.
+} DAC_t;
 
 /**
  * @brief Read the 16-bit or 32-bit value from a register.
@@ -59,7 +61,7 @@
  * @note The registerSize parameter defaults to 16 if not defined correctly.
  * @return Value read from the register.
  */
-uint32_t _readRegister(uint16_t address, uint8_t registerSize);
+uint32_t AD5941_readRegister(uint16_t address, uint8_t registerSize);
 
 /**
  * @brief Write a 16-bit or 32-bit value into a AD5941 register.
@@ -70,7 +72,7 @@ uint32_t _readRegister(uint16_t address, uint8_t registerSize);
  * use either REG_SZ_16 or REG_SZ_32.
  * @note The registerSize parameter defaults to 16 if not defined correctly.
  */
-void _writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
+void AD5941_writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
 
 /**
  * @brief Make the initialization sequence.
@@ -79,35 +81,20 @@ void _writeRegister(uint16_t address, uint32_t value, uint8_t registerSize);
  * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
  * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
  */
-void _initAFE(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
-
-/**
- * @brief Reset the AD5941 by hardware.
- *
- * @note This is the most compreheensive reset, everything is reset to the reset value.
- */
-void _resetByHardware(void);
+void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
 
 /**
  * @brief Reset the AD5941 by software.
  *
  * @note This only resets the digital part of the AD5941. The lowpower, potentiostat amplifier and low power TIA circuitry is not reset.
  */
-void _resetBySoftware(void);
-
-/**
- * @brief Get the voltage at the given data point.
- *
- * @param pNumPointsRead IN -- data point to get the voltage.
- * @param pVoltammetryParams IN -- voltammetry parameters.
- * @return Voltage at the point, in mV.
- */
-float _getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams);
+void AD5941_softwareReset(void);
 
 /**
  * @brief Read the ADC conversion result.
+ * @return uint32_t Raw ADC value.
  */
-uint32_t _readADC(void);
+uint32_t AD5941_readADC(void);
 
 /**
  * @brief Configure the internal switches.
@@ -279,70 +266,5 @@ void _interruptConfig(void);
  */
 void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
 
-/**
- * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
- * SRAM address.
- *
- * @param pSRAMAddress IN -- SRAM address to start placing the point.
- * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
- * @return Last written SRAM address.
- */
-uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
 
-/**
- * @brief Add commands for a Cyclic Voltammetry step into the SRAM.
- * 
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster. 
- * 
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pDAC12Value IN -- DAC 12 value for the step.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
-
-/**
- * @brief Add commands for a Differential Pulse Voltammetry step into the SRAM.
- *
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster.
- *
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
-
-/**
- * @brief Add commands for a Square Wave Voltammetry step into the SRAM.
- *
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster.
- *
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
-
-/*================EIS======================*/
-/**
- * @brief Calculate the parameters for a given target EIS Sinusoidal waveform.
- *
- * @param pEISParams IN/OUT -- voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForEISSin(EIS_t *pEISParams);
-
-/**
- * @brief Calculate the parameters for a given target EIS Trapezoidal waveform.
- *
- * @param pEISParams IN/OUT -- voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForEISTrap(EIS_t *pEISParams);
-
-#endif // _OPENAFE_CORE_INTERNAL_H_
+#endif // _OPENAFE_AD5941_H_

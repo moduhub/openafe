@@ -1,8 +1,53 @@
-#ifndef _OPENAFE_CORE_H_
-#define _OPENAFE_CORE_H_
+#ifndef _OPENAFE_VOLTAMMETRY_H_
+#define _OPENAFE_VOLTAMMETRY_H_
 
 #include <stdint.h>
-#include "Utility/openafe_types.h"
+
+#define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
+#define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.
+#define STATE_CURRENT_DPV 3 // Differential Pulse voltammetry in progress flag.
+
+
+/** Variable type to store the current state of the voltammetry wave generation. */
+typedef struct voltammetry_state_struct
+{
+    uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
+    uint8_t currentSlope;           // Current slope.
+    uint16_t currentSlopePoint;     // Current point of the slope.
+    uint16_t SEQ_currentPoint;      // Current point of the sequencer command in the voltammetry itself.
+    uint16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
+    uint16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
+    uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
+    uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
+} voltammetry_state_t;
+
+typedef struct voltammetry_parameters_struct {
+    uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
+    float startingPotential;        // Target starting voltage value of the wave, in mV.
+    float endingPotential;          // Target ending voltage value of the wave, in mV.
+    float scanRate;                 // Target scan rate, in mV/s.
+    float stepPotential;            // Target step potential, in mV.
+    uint8_t numCycles;              // Target number of cycles of the CV wave.
+    float pulsePotential;           // Pulse potential, in mV.
+    uint16_t pulseWidth_ms;         // Pulse width, in milliseconds.
+    uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
+    uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
+    uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
+    float pulseFrequency;           // Pulse Frequency, in Hertz.
+} voltammetry_parameters_t;
+
+/** Type that store all the necessary data for the voltammetry process. */
+typedef struct voltammetry_t {
+    voltammetry_state_t state;
+    voltammetry_parameters_t parameters;
+    // Calculated Parameters
+    uint32_t stepDuration_us; // Duration of each step, in microseconds (us).
+    uint32_t baseWidth_ms;    // Base width, in milliseconds.
+    uint16_t numPoints;       // Number of points in the wave.
+    uint16_t numSlopePoints;  // Number of points in the slopes.
+    DAC_t DAC;                // DAC parameters.
+    uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
+} voltammetry_t;
 
 /**
  * @brief Minimal declaration, set a specific SPI Interface Frequency,
@@ -16,18 +61,13 @@
 int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency);
 
 /**
- * @brief Reset the AD5941 by hardware.
+ * @brief Get the voltage at the given data point.
  *
- * @note This is the most compreheensive reset, everything is reset to the reset value.
+ * @param pNumPointsRead IN -- data point to get the voltage.
+ * @param pVoltammetryParams IN -- voltammetry parameters.
+ * @return Voltage at the point, in mV.
  */
-void openafe_resetByHardware(void);
-
-/**
- * @brief Reset the AD5941 by software.
- *
- * @note This only resets the digital part of the AD5941. The lowpower, potentiostat amplifier and low power TIA circuitry is not reset.
- */
-void openafe_resetBySoftware(void);
+float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Check wheter the value in the ADIID register is the expected 0x4144.
@@ -168,51 +208,53 @@ float openafe_readDataFIFO(void);
  */
 void openafe_interruptHandler(void);
 
-/*================EIS======================*/
-int openafe_setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, 
-                                int numPoints, float amplitude, float offset, float riseTime, float fallTime, 
-                                uint16_t sampleDuration);
-
-                                /**
- * @brief Set a general EIS in the sequencer.
- * 
- * @param pEISParams IN -- Voltammetry params pointer.
+/**
+ * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
+ * SRAM address.
+ *
+ * @param pSRAMAddress IN -- SRAM address to start placing the point.
+ * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
+ * @return Last written SRAM address.
  */
-void openafe_setEISSEQ(EIS_t *pEISParams);
+uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
 
 /**
- * @brief Configures the FIFO to read impedance data from the DFT output.
+ * @brief Add commands for a Cyclic Voltammetry step into the SRAM.
  * 
- * @return >0 if successful, otherwise error.
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster. 
+ * 
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pDAC12Value IN -- DAC 12 value for the step.
+ * @return Address of the last command written into the SRAM.
  */
-int openafe_configureFIFOForImpedance(void);
+uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
 
 /**
- * @brief Configures the DFT for impedance measurement.
- * 
- * @param dftNum IN -- Number of DFT points.
- * @param dftSrc IN -- Source of the DFT (e.g., excitation).
- * @return >0 if successful, otherwise error.
+ * @brief Add commands for a Differential Pulse Voltammetry step into the SRAM.
+ *
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster.
+ *
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
+ * @return Address of the last command written into the SRAM.
  */
-int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc);
+uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
 /**
- * @brief Reads impedance data (magnitude and phase) from the DFT.
- * 
- * @param magnitude OUT -- Magnitude of the impedance.
- * @param phase OUT -- Phase of the impedance.
- * @return >0 if successful, otherwise error.
+ * @brief Add commands for a Square Wave Voltammetry step into the SRAM.
+ *
+ * @warning The initial address of the SRAM into which the commands are to be placed
+ * must be set before calling this function, this is done in order to make the SRAM
+ * filling faster.
+ *
+ * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
+ * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
+ * @return Address of the last command written into the SRAM.
  */
-int openafe_readImpedanceFIFO(float *magnitude, float *phase);
+uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
-/**
- * @brief Collects impedance data for the entire experiment.
- * 
- * @param magnitudeBuffer OUT -- Buffer to store the magnitude of the impedance at each frequency.
- * @param phaseBuffer OUT -- Buffer to store the phase of the impedance at each frequency.
- * @param numPoints IN -- Number of points to collect.
- * @return >0 if successful, otherwise error.
- */
-int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints);
-
-#endif //_OPENAFE_CORE_H_
+#endif //_OPENAFE_VOLTAMMETRY_H_

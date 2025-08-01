@@ -2,13 +2,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "openafeEIS_wrapper.h"
-
-#if USE_ARDUINO_WRAPPERS
-#include "arduino/arduino_peripherals_access.h"
+#include "../platform.h"
 #define SHIELD_PIN_SPI_CS 10
-#endif // USE_ARDUINO_WRAPPERS
-
 
 void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
 {
