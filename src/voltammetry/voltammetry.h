@@ -2,6 +2,7 @@
 #define _OPENAFE_VOLTAMMETRY_H_
 
 #include <stdint.h>
+#include "../device/ad5941.h"
 
 #define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
 #define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.
@@ -67,7 +68,7 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
  * @param pVoltammetryParams IN -- voltammetry parameters.
  * @return Voltage at the point, in mV.
  */
-float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams);
+float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetryT);
 
 /**
  * @brief Check wheter the value in the ADIID register is the expected 0x4144.
@@ -90,7 +91,8 @@ void openafe_killVoltammetry(void);
  * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
  * @return The point index, it starts at 0.
  */
-uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
+//uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
+float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetryT);
 
 /**
  * @brief Generate the desired CV waveform and fill the sequencer.
@@ -106,7 +108,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
  * @return >0 if successful, otherwise error.
  *
  */
-int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
+//int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 /**
  * @brief Generate the desired DPV waveform and fill the sequencer.
@@ -124,9 +126,8 @@ int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, floa
  * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
  * @return Error codes.
  */
-int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential,
-                           float pPulsePotential, float pStepPotential, uint16_t pPulseWidth,
-                           uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+//int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth,uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+
 
 /**
  * @brief Generate the desired SWV waveform and fill the sequencer.
@@ -142,15 +143,14 @@ int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, flo
  * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
  * @return Error code.
  */
-int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential,
-						   float pScanRate, float pPulsePotential,
-						   uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse);
+//int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential,uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse);
 
 /**
  * @brief Set a general voltammetry in the sequencer.
  * 
  * @param pVoltammetryParams IN -- Voltammetry params pointer.
  */
+
 void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams);
 
 /**
@@ -256,5 +256,51 @@ uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDA
  * @return Address of the last command written into the SRAM.
  */
 uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
+
+/**
+ * @brief Calculate the parameters for a given target CV waveform.
+ *
+ * @param pVoltammetryParams IN/OUT -- voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForCV(voltammetry_t *pVoltammetryParams);
+
+/**
+ * @brief Calculate the parameters for the given target DPV waveform.
+ *
+ * @param pVoltammetryParams IN -- Voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams);
+
+/**
+ * @brief Calculate the parameters for the given target SWV waveform.
+ *
+ * @param pVoltammetryParams IN -- Voltammetry params.
+ * @return Error code on error.
+ */
+int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
+
+/**
+ * @brief Fill a given sequence index with the required commands for a voltammetry.
+ *
+ * This function generates and sends the required commands for a Voltammetry sequence to the AFE.
+ * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
+ * The function uses the parameter and state structures to keep track of the current state of the sequence
+ * and generates the required DAC and ADC commands to execute the sequence.
+ * If the sequence has been filled completely, the function returns True, indicating that all commands have been sent.
+ * Otherwise, the function returns False and the calling function is responsible for calling this function again
+ * to continue sending the remaining commands.
+ * This function also sets the starting address of the SRAM buffer, triggers the custom interrupt 3 to indicate
+ * the completion of the sequence, and configures the sequence info register.
+ *
+ * @param pSequenceIndex IN -- The sequence index to be filled.
+ * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
+ * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
+ * @param pVoltammetryParams IN/OUT -- Voltammetry params. 
+ * @return Status code: 1 on all commands sent, 0 otherwise.
+ * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
+ */
+uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 #endif //_OPENAFE_VOLTAMMETRY_H_

@@ -2,7 +2,7 @@
 extern "C" {
 #endif
 
-#include "ad5941.h"
+#include "../device/ad5941.h"
 #include "voltammetry.h"
 #include "openafe_status_codes.h"
 #include <string.h>
@@ -63,9 +63,9 @@ void openafe_killVoltammetry(void) {
 	AD5941AD5941_zeroVoltageAcrossElectrodes();
 }
 
-float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryParams) {
-	uint8_t tCurrentSlope = pNumPointsRead / pVoltammetryParams->numSlopePoints;
-	uint16_t tCurrentSlopePoint = pNumPointsRead - (tCurrentSlope * pVoltammetryParams->numSlopePoints);
+float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetryT) {
+	uint8_t tCurrentSlope = pNumPointsRead / pVoltammetryT->numSlopePoints;
+	uint16_t tCurrentSlopePoint = pNumPointsRead - (tCurrentSlope * pVoltammetryT->numSlopePoints);
 	float tVoltage_mV;
 	if (tCurrentSlope % 2 == 0) { // Rising slope
 		tVoltage_mV = (pVoltammetryParams->startingPotential) + ((float)tCurrentSlopePoint * pVoltammetryParams->stepPotential);
@@ -75,8 +75,9 @@ float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetryPar
 	return tVoltage_mV;
 }
 
+/*
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
-	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead, &gVoltammetryParams);
+	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead, &gVoltammetryParams, &gVoltammetryStates);
 	float tCurrent = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
 	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
 		float tCurrentAtPulseBase = tCurrent;
@@ -98,7 +99,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
 	uint16_t pointIndex = gNumPointsRead;
 	gNumPointsRead++;
 	return pointIndex; 
-}
+}*/
 
 uint8_t AD5941_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry) {
 	uint8_t tSentAllCommands = 0;
@@ -292,13 +293,13 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 	uint8_t tIsCurrentSEQSlopeRising = (tSEQ_numSlopesDoneAlready % 2) == 0 ? 1 : 0;
 	// Make sure the commands are written in the same SRAM address passed
 	AD5941_writeRegister(AD_CMDFIFOWADDR, tCurrentSRAMAddress, REG_SZ_32);
-	if (pVoltammetryParams->state.SEQ_currentPoint == 0) {// if it is the first ever point
-		uint32_t tAFECONValue = AD5941_readRegister(AD_AFECON, REG_SZ_32);
-		AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pVoltammetryParams->DAC.reference << 12) | (uint32_t)pVoltammetryParams->DAC.starting);
-		AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); // Enable ADC power
-		AD5941_sequencerWaitCommand((uint32_t)pVoltammetryParams->settlingTime * 1000u); // settling time on the first ever slope
-		AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));	   // Start ADC conversion
-	}
+	if (pVoltammetryParams->state.SEQ_currentPoint == 0) {
+    uint32_t tAFECONValue = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pVoltammetryParams->DAC.reference << 12) | (uint32_t)pVoltammetryParams->DAC.starting);
+    AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); 
+    AD5941_sequencerWaitCommand((uint32_t)pVoltammetryParams->parameters.settlingTime * 1000u);
+    AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));
+  }
 	uint16_t tDAC12Value = 0;
 	if (tIsCurrentSEQSlopeRising) {
 		tDAC12Value = pVoltammetryParams->DAC.starting + (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);

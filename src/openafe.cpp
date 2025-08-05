@@ -1,17 +1,17 @@
 #include "openafe.h"
 extern "C" {
-	#include "core/openafe_core.h"
+	//#include "core/openafe_core.h"
 }
 
 AFE::AFE(void)
 {
-	openafe_init(0, 0, 0);
+	AD5941_init(0, 0, 0);
 }
 
 
 AFE::AFE(uint32_t pSPIFrequency)
 {
-	openafe_init(0, 0, pSPIFrequency);
+	AD5941_init(0, 0, pSPIFrequency);
 }
 
 

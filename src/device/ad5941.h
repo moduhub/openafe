@@ -2,10 +2,10 @@
 #define _OPENAFE_AD5941_H_
 
 #include <stdint.h>
-#include "Utility/openafe_types.h"
-#include "Utility/openafe_defines.h"
-#include "Utility/ad5941_registers.h"
-#include "Utility/ad5941_defines.h"
+//#include "Utility/openafe_types.h"
+#include "../openafe_defines.h"
+#include "ad5941_registers.h"
+#include "ad5941_defines.h"
 
 #define SPI_CLK_DEFAULT_HZ 1000000UL
 
@@ -42,6 +42,13 @@
 #define SEQ0_END_ADDR 0x1FFu   // Address of the SRAM where Sequence 0 ends
 #define SEQ1_START_ADDR 0x200u // Address of the SRAM where Sequence 1 starts
 #define SEQ1_END_ADDR 0x3FFu   // Address of the SRAM where Sequence 1 ends
+
+/**
+ * @brief Current offset, in microamps
+ *
+ * @note UNUSED, USED BY FIFO, MIGHT BE USED AGAIN IN FUTURE
+ */
+#define CURRENT_OFFSET_uA 8.89f
 
 /** Structure to store the required values for the DAC operation. */
 typedef struct DAC_t {
@@ -188,52 +195,6 @@ void _clearRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
  * @brief Zero the voltage across the electrode.
  */
 void _zeroVoltageAcrossElectrodes(void);
-
-/**
- * @brief Calculate the parameters for a given target CV waveform.
- *
- * @param pVoltammetryParams IN/OUT -- voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForCV(voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Calculate the parameters for the given target DPV waveform.
- *
- * @param pVoltammetryParams IN -- Voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Calculate the parameters for the given target SWV waveform.
- *
- * @param pVoltammetryParams IN -- Voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Fill a given sequence index with the required commands for a voltammetry.
- *
- * This function generates and sends the required commands for a Voltammetry sequence to the AFE.
- * The sequence starts from the given starting address and fills the SRAM buffer up to the ending address.
- * The function uses the parameter and state structures to keep track of the current state of the sequence
- * and generates the required DAC and ADC commands to execute the sequence.
- * If the sequence has been filled completely, the function returns True, indicating that all commands have been sent.
- * Otherwise, the function returns False and the calling function is responsible for calling this function again
- * to continue sending the remaining commands.
- * This function also sets the starting address of the SRAM buffer, triggers the custom interrupt 3 to indicate
- * the completion of the sequence, and configures the sequence info register.
- *
- * @param pSequenceIndex IN -- The sequence index to be filled.
- * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
- * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
- * @param pVoltammetryParams IN/OUT -- Voltammetry params. 
- * @return Status code: 1 on all commands sent, 0 otherwise.
- * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
- */
-uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief This function configures the data FIFO mode and size for an ADC device.

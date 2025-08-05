@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 #include <stdint.h>
-
+#include "device/ad5941.h"
 
 class AFE
 {

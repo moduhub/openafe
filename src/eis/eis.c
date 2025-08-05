@@ -3,7 +3,7 @@ extern "C" {
 #endif
 
 #include "eis.h"
-#include "ad5941.h"
+#include "../device/ad5941.h"
 
 void openafe_interruptHandler(void) {
     /** There are two reads from the INTCFLAG0 register because the first read returns garbage,

@@ -3,6 +3,7 @@ extern "C" {
 #endif // __cplusplus
 
 #include "../platform.h"
+#include "Arduino.h"
 #define SHIELD_PIN_SPI_CS 10
 
 void openafe_wrapper_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed)
