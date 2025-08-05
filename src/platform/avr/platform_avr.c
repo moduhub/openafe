@@ -2,23 +2,13 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "../platform.h"
-
 #ifndef ARDUINO_ARCH_AVR
 #error "This library only supports boards with an AVR processor."
 #endif
 
-#include <avr/io.h>
-#include <stdio.h>
+#include "platform_avr.h"
 
-#define SPI_PORT_DDR DDRB
-#define SPI_PORT PORTB
-#define SPI_SS PB2
-#define SPI_MOSI PB3
-#define SPI_MISO PB4
-#define SPI_SCK PB5
-
-void arduino_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed) {
+void avr_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed) {
 	/**
 	 * If your Arduino board supports SPI speeds higher
 	 * than 1 MHz you can go for those speeds, but AVOID
@@ -35,8 +25,7 @@ void arduino_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed) {
 	SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
 }
 
-uint8_t arduino_spi_transfer(uint8_t pByte)
-{
+uint8_t avr_spi_transfer(uint8_t pByte){
 	// Start transmission
 	SPDR = pByte;
 
@@ -46,18 +35,6 @@ uint8_t arduino_spi_transfer(uint8_t pByte)
 
 	// Return received byte
 	return SPDR;
-}
-
-void arduino_pin_3_high(void)
-{
-	DDRD |= (1 << PD3);	 // Set PD3 as an output
-	PORTD |= (1 << PD3); // Set PD3 HIGH
-}
-
-void arduino_pin_3_low(void)
-{
-	DDRD |= (1 << PD3);	  // Set PD3 as an output
-	PORTD &= ~(1 << PD3); // Set PD3 LOW
 }
 
 #ifdef __cplusplus

@@ -10,44 +10,43 @@
 
 
 /** Variable type to store the current state of the voltammetry wave generation. */
-typedef struct voltammetry_state_struct
-{
-    uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
-    uint8_t currentSlope;           // Current slope.
-    uint16_t currentSlopePoint;     // Current point of the slope.
-    uint16_t SEQ_currentPoint;      // Current point of the sequencer command in the voltammetry itself.
-    uint16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
-    uint16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
-    uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
-    uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
+typedef struct voltammetry_state_struct{
+  uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
+  uint8_t currentSlope;           // Current slope.
+  uint16_t currentSlopePoint;     // Current point of the slope.
+  uint16_t SEQ_currentPoint;      // Current point of the sequencer command in the voltammetry itself.
+  uint16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
+  uint16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
+  uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
+  uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
 } voltammetry_state_t;
 
 typedef struct voltammetry_parameters_struct {
-    uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
-    float startingPotential;        // Target starting voltage value of the wave, in mV.
-    float endingPotential;          // Target ending voltage value of the wave, in mV.
-    float scanRate;                 // Target scan rate, in mV/s.
-    float stepPotential;            // Target step potential, in mV.
-    uint8_t numCycles;              // Target number of cycles of the CV wave.
-    float pulsePotential;           // Pulse potential, in mV.
-    uint16_t pulseWidth_ms;         // Pulse width, in milliseconds.
-    uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
-    uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
-    uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
-    float pulseFrequency;           // Pulse Frequency, in Hertz.
+  uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
+  float startingPotential;        // Target starting voltage value of the wave, in mV.
+  float endingPotential;          // Target ending voltage value of the wave, in mV.
+  float scanRate;                 // Target scan rate, in mV/s.
+  float stepPotential;            // Target step potential, in mV.
+  uint8_t numCycles;              // Target number of cycles of the CV wave.
+  float pulsePotential;           // Pulse potential, in mV.
+  uint16_t pulseWidth_ms;         // Pulse width, in milliseconds.
+  uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
+  uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
+  uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
+  float pulseFrequency;           // Pulse Frequency, in Hertz.
 } voltammetry_parameters_t;
 
 /** Type that store all the necessary data for the voltammetry process. */
 typedef struct voltammetry_t {
-    voltammetry_state_t state;
-    voltammetry_parameters_t parameters;
-    // Calculated Parameters
-    uint32_t stepDuration_us; // Duration of each step, in microseconds (us).
-    uint32_t baseWidth_ms;    // Base width, in milliseconds.
-    uint16_t numPoints;       // Number of points in the wave.
-    uint16_t numSlopePoints;  // Number of points in the slopes.
-    DAC_t DAC;                // DAC parameters.
-    uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
+  voltammetry_state_t state;
+  voltammetry_parameters_t parameters;
+  // Calculated Parameters
+  uint32_t stepDuration_us; // Duration of each step, in microseconds (us).
+  uint32_t baseWidth_ms;    // Base width, in milliseconds.
+  uint16_t numPoints;       // Number of points in the wave.
+  uint16_t numSlopePoints;  // Number of points in the slopes.
+  DAC_t DAC;                // DAC parameters.
+  uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
 } voltammetry_t;
 
 /**
@@ -91,59 +90,12 @@ void openafe_killVoltammetry(void);
  * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
  * @return The point index, it starts at 0.
  */
-//uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
+
+/**
+ *
+ */
 float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetryT);
-
-/**
- * @brief Generate the desired CV waveform and fill the sequencer.
- *
- * @note This function also automatically sets the interrupts and initialize global variables.
- *
- * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
- * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
- * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
- * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
- * @param pStepSize IN -- Step size of the wave in mV, e.g. 5.
- * @param pNumCycles IN -- Number of cycles of the wave, e.g. 2.
- * @return >0 if successful, otherwise error.
- *
- */
-//int openafe_setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
-
-/**
- * @brief Generate the desired DPV waveform and fill the sequencer.
- *
- * @note This function also automatically sets the interrupts and initialize global variables.
- *
- * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
- * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
- * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
- * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
- * @param pStepPotential IN -- Step potential of the wave, in mV, e.g. 5.
- * @param pPulseWidth IN -- Pulse width, in milliseconds, e.g. 1.
- * @param pPulsePeriod IN -- Pulse period, it is the inverse of frequency, in ms, e.g. 20.
- * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
- * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
- * @return Error codes.
- */
-//int openafe_setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth,uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
-
-
-/**
- * @brief Generate the desired SWV waveform and fill the sequencer.
- *
- * @note This function also automatically sets the interrupts and initialize global variables.
- *
- * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
- * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
- * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
- * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
- * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
- * @param pPulseFrequency IN -- Pulse frequency, in Hertz, e.g. 50.
- * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
- * @return Error code.
- */
-//int openafe_setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential,uint16_t pPulseFrequency, uint16_t pSamplePeriodPulse);
 
 /**
  * @brief Set a general voltammetry in the sequencer.
@@ -217,69 +169,6 @@ void openafe_interruptHandler(void);
  * @return Last written SRAM address.
  */
 uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Add commands for a Cyclic Voltammetry step into the SRAM.
- * 
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster. 
- * 
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pDAC12Value IN -- DAC 12 value for the step.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
-
-/**
- * @brief Add commands for a Differential Pulse Voltammetry step into the SRAM.
- *
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster.
- *
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
-
-/**
- * @brief Add commands for a Square Wave Voltammetry step into the SRAM.
- *
- * @warning The initial address of the SRAM into which the commands are to be placed
- * must be set before calling this function, this is done in order to make the SRAM
- * filling faster.
- *
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
- * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
- * @return Address of the last command written into the SRAM.
- */
-uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
-
-/**
- * @brief Calculate the parameters for a given target CV waveform.
- *
- * @param pVoltammetryParams IN/OUT -- voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForCV(voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Calculate the parameters for the given target DPV waveform.
- *
- * @param pVoltammetryParams IN -- Voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForDPV(voltammetry_t *pVoltammetryParams);
-
-/**
- * @brief Calculate the parameters for the given target SWV waveform.
- *
- * @param pVoltammetryParams IN -- Voltammetry params.
- * @return Error code on error.
- */
-int _calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
 
 /**
  * @brief Fill a given sequence index with the required commands for a voltammetry.

@@ -6,12 +6,21 @@
 // FOR ARDUINO:
 #define USE_ARDUINO_WRAPPERS 1
 
+// FOR AVR:
+#define USE_AVR_WRAPPERS 0
+
 // FOR ZEPHYR RTOS:
 #define USE_ZEPHYR_WRAPPERS 0
 
 #if USE_ARDUINO_WRAPPERS
-#define USE_SPI_TRANSFER_WRAPPER 1
-#endif // USE_ARDUINO_WRAPPERS
+#include "arduino/platform_arduino.hpp"
+#endif
+#if USE_AVR_WRAPPERS  
+#include "avr/platform_avr.h"
+#endif
+#if USE_ZEPHYR_WRAPPERS
+#include "zephyr/platform_zephyr.h"
+#endif
 
 /**
  * @brief Wrapper function for needed setup during initialization.

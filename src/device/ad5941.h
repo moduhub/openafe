@@ -227,5 +227,9 @@ void _interruptConfig(void);
  */
 void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
 
+/**
+ * @brief Check if the ad is responding.
+ */
+int AD5941_isResponding(void);
 
 #endif // _OPENAFE_AD5941_H_

@@ -497,7 +497,7 @@ void AD5941_configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress,
 }
 
 int AD5941_isResponding(void) {
-	uint32_t tADIIDValue = _readRegister(AD_ADIID, REG_SZ_16);
+	uint32_t tADIIDValue = AD5941_readRegister(AD_ADIID, REG_SZ_16);
 	return tADIIDValue == AD_VALUE_ADIID ? NO_ERROR : ERROR_AFE_NOT_WORKING;
 }
 

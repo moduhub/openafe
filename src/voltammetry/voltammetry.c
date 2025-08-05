@@ -75,7 +75,6 @@ float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_parameters_t *pVol
 	return tVoltage_mV;
 }
 
-/*
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
 	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead, &gVoltammetryParams, &gVoltammetryStates);
 	float tCurrent = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
@@ -99,7 +98,7 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
 	uint16_t pointIndex = gNumPointsRead;
 	gNumPointsRead++;
 	return pointIndex; 
-}*/
+}
 
 uint8_t AD5941_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetry) {
 	uint8_t tSentAllCommands = 0;
@@ -225,8 +224,7 @@ void openafe_interruptHandler(void) {
 	AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
 }
 
-uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange)
-{
+uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange){
 	// the range goes from 1.75 uA to 4.5 mA
 
 	uint32_t tCalculatedTIAResistor = (uint32_t)(900000.0f / (float)pDesiredCurrentRange);

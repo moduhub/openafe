@@ -4,11 +4,17 @@
 #include "Arduino.h"
 #include <stdint.h>
 #include "device/ad5941.h"
+#include "voltammetry/voltammetry.h"
+#include "voltammetry/cv.h"
+#include "voltammetry/dpv.h"
+#include "voltammetry/swv.h"
+#include "platform/platform.h"
 
 class AFE
 {
 	public:
-	
+    voltammetry_t voltametry;
+
 		/**
 		 * @brief The most minimal declaration use all default params.
 		 */
@@ -64,7 +70,7 @@ class AFE
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		static int setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
+		int setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
 		 * @brief Generate the desired DPV waveform and fill the sequencer.
@@ -82,7 +88,7 @@ class AFE
 		 * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
 		 * @return Error codes.
 		 */
-		static int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+		int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
 
 		/**
 		 * @brief Generate the desired SWV waveform and fill the sequencer.
@@ -98,7 +104,7 @@ class AFE
 		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
 		 * @return Error codes.
 		 */
-		static int setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse);
+		int setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse);
 
 		/**
 		 * @brief Set the TIA gain resistor based on the desired current range.
