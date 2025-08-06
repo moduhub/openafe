@@ -219,7 +219,7 @@ uint16_t AD5941_sequencerWriteCommand(uint16_t pRegister, uint32_t pData) {
 	uint32_t tData = pData & 0xFFFFFF; // mask 24 bits
 	uint32_t tSequencerCommand = ((uint32_t)1 << 31) | ((uint32_t)tRegister << 24) | tData;
 	AD5941_writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
-	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+	return AD5941_increaseSequencerMemoryAddress(); // increase the SRAM Address
 }
 
 uint16_t AD5941_sequencerTimerCommand(unsigned long pTimer_us) {
@@ -227,20 +227,20 @@ uint16_t AD5941_sequencerTimerCommand(unsigned long pTimer_us) {
 	uint32_t tSequencerCommand = tTimerCounter & 0x3FFFFFFF; // mask out the 2 MSB
 	tSequencerCommand |= (uint32_t)1 << 30; // Timer command
 	AD5941_writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
-	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+	return AD5941_increaseSequencerMemoryAddress(); // increase the SRAM Address
 }
 
 uint16_t AD5941_sequencerWaitCommand(uint32_t pTimeToWait_us) {
 	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.f / SEQ_DEFAULT_TIME_RESULUTION_NS;
 	uint32_t tSequencerCommand = tWaitCounter & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 	AD5941_writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
-	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+	return AD5941_increaseSequencerMemoryAddress(); // increase the SRAM Address
 }
 
 uint16_t AD5941_sequencerWaitCommandClock(uint32_t pTimeToWait_clk) {
 	uint32_t tSequencerCommand = pTimeToWait_clk & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 	AD5941_writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
-	return _increaseSequencerMemoryAddress(); // increase the SRAM Address
+	return AD5941_increaseSequencerMemoryAddress(); // increase the SRAM Address
 }
 
 /**

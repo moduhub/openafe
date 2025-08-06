@@ -5,9 +5,9 @@ extern "C" {
 #include "eis.h"
 #include "../device/ad5941.h"
 
+/*
 void openafe_interruptHandler(void) {
-    /** There are two reads from the INTCFLAG0 register because the first read returns garbage,
-     *  the second has the true interrupt flags */
+    // There are two reads from the INTCFLAG0 register because the first read returns garbage, the second has the true interrupt flags 
     uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
     tInterruptFlags0 |= AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
     // Trigger ADC result read or DFT data read
@@ -375,6 +375,7 @@ uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams) {
 
     return currentAddress;
 }
+*/
 
 #ifdef __cplusplus
 }

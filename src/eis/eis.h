@@ -30,23 +30,22 @@ typedef struct EIS_t{
     uint32_t DAC_offset;       // Calculated DAC offset.
 } EIS_t;
 
-int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, 
-                                int numPoints, float amplitude, float offset, float riseTime, float fallTime, 
-                                uint16_t sampleDuration);
+
+//int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 
 /**
  * @brief Set a general EIS in the sequencer.
  * 
  * @param pEISParams IN -- Voltammetry params pointer.
  */
-void openafe_setEISSEQ(EIS_t *pEISParams);
+//void openafe_setEISSEQ(EIS_t *pEISParams);
 
 /**
  * @brief Configures the FIFO to read impedance data from the DFT output.
  * 
  * @return >0 if successful, otherwise error.
  */
-int openafe_configureFIFOForImpedance(void);
+//int openafe_configureFIFOForImpedance(void);
 
 /**
  * @brief Configures the DFT for impedance measurement.
@@ -55,7 +54,7 @@ int openafe_configureFIFOForImpedance(void);
  * @param dftSrc IN -- Source of the DFT (e.g., excitation).
  * @return >0 if successful, otherwise error.
  */
-int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc);
+//int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc);
 
 /**
  * @brief Reads impedance data (magnitude and phase) from the DFT.
@@ -64,7 +63,7 @@ int openafe_configureDFT(uint32_t dftNum, uint32_t dftSrc);
  * @param phase OUT -- Phase of the impedance.
  * @return >0 if successful, otherwise error.
  */
-int openafe_readImpedanceFIFO(float *magnitude, float *phase);
+//int openafe_readImpedanceFIFO(float *magnitude, float *phase);
 
 /**
  * @brief Collects impedance data for the entire experiment.
@@ -74,7 +73,7 @@ int openafe_readImpedanceFIFO(float *magnitude, float *phase);
  * @param numPoints IN -- Number of points to collect.
  * @return >0 if successful, otherwise error.
  */
-int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints);
+//int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uint16_t numPoints);
 
 /**
  * @brief Calculate the parameters for a given target EIS Sinusoidal waveform.
@@ -82,7 +81,7 @@ int openafe_collectImpedanceData(float *magnitudeBuffer, float *phaseBuffer, uin
  * @param pEISParams IN/OUT -- voltammetry params.
  * @return Error code on error.
  */
-int _calculateParamsForEISSin(EIS_t *pEISParams);
+//int _calculateParamsForEISSin(EIS_t *pEISParams);
 
 /**
  * @brief Calculate the parameters for a given target EIS Trapezoidal waveform.
@@ -90,6 +89,7 @@ int _calculateParamsForEISSin(EIS_t *pEISParams);
  * @param pEISParams IN/OUT -- voltammetry params.
  * @return Error code on error.
  */
-int _calculateParamsForEISTrap(EIS_t *pEISParams);
+//int _calculateParamsForEISTrap(EIS_t *pEISParams);
+
 
 #endif // SRC_CORE_EIS_H

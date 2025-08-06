@@ -106,12 +106,12 @@ uint32_t AD5941_readADC(void);
 /**
  * @brief Configure the internal switches.
  */
-void _switchConfiguration(void);
+void AD5941_switchConfiguration(void);
 
 /**
  * @brief Send a write command to the sequencer.
  */
-uint16_t _sequencerWriteCommand(uint16_t pRegister, uint32_t pData);
+uint16_t AD5941_sequencerWriteCommand(uint16_t pRegister, uint32_t pData);
 
 /**
  * @brief Send a timer command to the sequencer.
@@ -119,21 +119,21 @@ uint16_t _sequencerWriteCommand(uint16_t pRegister, uint32_t pData);
  * @param pTimer_us IN -- Amount of microseconds of the timer.
  * @return
  */
-uint16_t _sequencerTimerCommand(unsigned long pTimer_us);
+uint16_t AD5941_sequencerTimerCommand(unsigned long pTimer_us);
 
 /**
  * @brief Send a wait command to the sequencer.
  *
  * @param pTimeToWait_us IN -- Amount of microseconds to wait.
  */
-uint16_t _sequencerWaitCommand(uint32_t pTimeToWait_us);
+uint16_t AD5941_sequencerWaitCommand(uint32_t pTimeToWait_us);
 
 /**
  * @brief Send a wait command to the sequencer.
  *
  * @param pTimeToWait_clk IN -- Amount of clock cycles to wait.
  */
-uint16_t _sequencerWaitCommandClock(uint32_t pTimeToWait_clk);
+uint16_t AD5941_sequencerWaitCommandClock(uint32_t pTimeToWait_clk);
 
 /**
  * @brief Trigger the start of a specific sequence.
@@ -141,14 +141,14 @@ uint16_t _sequencerWaitCommandClock(uint32_t pTimeToWait_clk);
  * @param pSequenceIndex IN -- Index of the sequence to start.
  * @note This function does not check if the sequence is setup or not.
  */
-void _startSequence(uint8_t pSequenceIndex);
+void AD5941_startSequence(uint8_t pSequenceIndex);
 
 /**
  * @brief Increase the memory address of the SRAM.
  *
  * @return Current SRAM address.
  */
-uint16_t _increaseSequencerMemoryAddress(void);
+uint16_t AD5941_increaseSequencerMemoryAddress(void);
 
 /**
  * @brief Set the gain of the RTIA.
@@ -158,14 +158,14 @@ uint16_t _increaseSequencerMemoryAddress(void);
  * gain values use the AD_LPTIACON0_TIAGAIN_xx values.
  * @return The TIA gain set.
  */
-uint32_t _setTIAGain(uint32_t pTIAGain);
+uint32_t AD5941_setTIAGain(uint32_t pTIAGain);
 
 /**
  * @brief Set the value of the RTIA resistor.
  *
  * @param pTIAGainResistor IN -- The bits to be written in the LPTIACON0 register TIAGAIN bits, e.g. AD_LPTIACON0_TIAGAIN_3K.
  */
-void _setTIAGainResistor(uint32_t pTIAGainResistor);
+void AD5941_setTIAGainResistor(uint32_t pTIAGainResistor);
 
 /**
  * @brief Get the current value in micro Amps (uA) for the value read in the ADC and
@@ -173,7 +173,7 @@ void _setTIAGainResistor(uint32_t pTIAGainResistor);
  * @param pADCValue IN -- Raw value read by the ADC.
  * @return Current measured, in uA.
  */
-float _getCurrentFromADCValue(uint32_t pADCValue);
+float AD5941_getCurrentFromADCValue(uint32_t pADCValue);
 
 /**
  * @brief Set a specific bit in a register to 1.
@@ -181,7 +181,7 @@ float _getCurrentFromADCValue(uint32_t pADCValue);
  * @param pAddress IN -- Address of the register.
  * @param pBitIndex IN -- Index of the bit to be set.
  */
-void _setRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
+void AD5941_setRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
 
 /**
  * @brief Clear a specific bit in a register, set a bit to 0.
@@ -189,12 +189,12 @@ void _setRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
  * @param pAddress IN -- Address of the register.
  * @param pBitIndex IN -- Index of the bit to be cleared.
  */
-void _clearRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
+void AD5941_clearRegisterBit(uint16_t pAddress, uint8_t pBitIndex);
 
 /**
  * @brief Zero the voltage across the electrode.
  */
-void _zeroVoltageAcrossElectrodes(void);
+void AD5941_zeroVoltageAcrossElectrodes(void);
 
 /**
  * @brief This function configures the data FIFO mode and size for an ADC device.
@@ -204,19 +204,19 @@ void _zeroVoltageAcrossElectrodes(void);
  * @param pDataMemoryAmount IN -- The amount of memory allocated for the data FIFO in kilobytes (kB). It can
  * be 2, 4, or 6 kB.
  */
-void _dataFIFOConfig(uint16_t pDataMemoryAmount);
+void AD5941_dataFIFOConfig(uint16_t pDataMemoryAmount);
 
 /**
  * @brief This function configures the command sequencer.
  * 
  */
-void _sequencerConfig(void);
+void AD5941_sequencerConfig(void);
 
 /**
  * @brief Configure the interrupts.
  * 
  */
-void _interruptConfig(void);
+void AD5941_interruptConfig(void);
 
 /**
  * @brief Sets the starting point and the amount of commands in a specific sequence.
@@ -225,7 +225,7 @@ void _interruptConfig(void);
  * @param pStartingAddress IN -- Starting index of the sequence in the SRAM.
  * @param pCurrentAddress IN -- Ending index of the sequence in the SRAM.
  */
-void _configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
+void AD5941_configureSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pCurrentAddress);
 
 /**
  * @brief Check if the ad is responding.

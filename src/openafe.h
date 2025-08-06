@@ -3,17 +3,19 @@
 
 #include "Arduino.h"
 #include <stdint.h>
-#include "device/ad5941.h"
-#include "voltammetry/voltammetry.h"
-#include "voltammetry/cv.h"
-#include "voltammetry/dpv.h"
-#include "voltammetry/swv.h"
-#include "platform/platform.h"
 
-class AFE
-{
+extern "C" {
+  #include "device/ad5941.h"
+  #include "voltammetry/voltammetry.h"
+  #include "voltammetry/cv.h"
+  #include "voltammetry/dpv.h"
+  #include "voltammetry/swv.h"
+  #include "platform/platform.h"
+}
+
+class AFE {
 	public:
-    voltammetry_t voltametry;
+    voltammetry_t voltammetry;
 
 		/**
 		 * @brief The most minimal declaration use all default params.
@@ -132,7 +134,7 @@ class AFE
 		 * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
 		 * @return The point index, it starts at 0.
 		 */
-		static uint16_t getPoint(float *pVoltage_mV, float *pCurrent_uA);
+		uint16_t getPoint(float *pVoltage_mV, float *pCurrent_uA);
 
 		/**
 		 * @brief Check if the AFE device has finished operations.

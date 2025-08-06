@@ -3,7 +3,7 @@
 int openafe_setupDPV(const voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetry) {
 	memset(pVoltammetry, 0, sizeof(voltammetry_t));
 	pVoltammetry->parameters = *pVoltammetryParams;
-	int tPossibility = _calculateParamsForDPV(pVoltammetry);
+	int tPossibility = openafe_calculateParamsForDPV(pVoltammetry);
 	if (IS_ERROR(tPossibility)) return tPossibility;
   pVoltammetry->state.currentVoltammetryType = STATE_CURRENT_DPV;
   pVoltammetry->state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_DPV_POINT;
@@ -59,14 +59,15 @@ int openafe_calculateParamsForDPV(voltammetry_t *pVoltammetryParams) {
 
 uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value) {
   // base:
-  _sequencerSetDAC(pBaseDAC12Value, pVoltammetryParams->DAC.reference);
-  _sequencerWaitCommand((pVoltammetryParams->baseWidth_ms) * 1000u);
-  _triggerADCRead();
+  //_sequencerSetDAC(pBaseDAC12Value, pVoltammetryParams->DAC.reference);
+  AD5941_sequencerWaitCommand((pVoltammetryParams->baseWidth_ms) * 1000u);
+  //_triggerADCRead();
 
   // pulse:
-  _sequencerSetDAC((uint32_t)(pBaseDAC12Value + pVoltammetryParams->DAC.pulse), (uint32_t)pVoltammetryParams->DAC.reference);
-  _sequencerWaitCommand(((uint32_t)pVoltammetryParams->parameters.pulseWidth_ms) * 1000u);
-  uint32_t tCurrentSeqAddress = _triggerADCRead();
+  //_sequencerSetDAC((uint32_t)(pBaseDAC12Value + pVoltammetryParams->DAC.pulse), (uint32_t)pVoltammetryParams->DAC.reference);
+  AD5941_sequencerWaitCommand(((uint32_t)pVoltammetryParams->parameters.pulseWidth_ms) * 1000u);
+  //uint32_t tCurrentSeqAddress = _triggerADCRead();
+  uint32_t tCurrentSeqAddress = 0;
 
   return tCurrentSeqAddress;
 }

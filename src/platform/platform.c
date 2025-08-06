@@ -42,7 +42,7 @@ void platform_delayMicroseconds(uint64_t pDelay_us){
 
 void platform_reset(void){
   if(USE_ARDUINO_WRAPPERS==1)
-    openafe_wrapper_reset();
+    arduino_reset();
   
   else if(USE_AVR_WRAPPERS==1);
 

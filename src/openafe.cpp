@@ -1,7 +1,4 @@
 #include "openafe.h"
-extern "C" {
-	//#include "core/openafe_core.h"
-}
 
 AFE::AFE(void){
 	AD5941_init(0, 0, 0);
@@ -38,7 +35,7 @@ int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float p
   parametersCV.scanRate = pScanRate;
   parametersCV.stepPotential = pStepSize;
   parametersCV.numCycles = pNumCycles;
-  return openafe_setupCV(&parametersCV, &voltametry);
+  return openafe_setupCV(&parametersCV, &this->voltammetry);
 }
 
 int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase){
@@ -52,11 +49,10 @@ int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
   parametersDPV.samplePeriodPulse_ms = pSamplePeriodPulse;
   parametersDPV.samplePeriodBase_ms = pSamplePeriodBase;
   parametersDPV.stepPotential = pStepPotential;
-  return openafe_setupDPV(&parametersDPV, &voltametry);
+  return openafe_setupDPV(&parametersDPV, &this->voltammetry);
 }
 
-int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate,
-   float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse){
+int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse){
 	voltammetry_parameters_t parametersSWV;
   parametersSWV.settlingTime = pSettlingTime;
   parametersSWV.startingPotential = pStartingPotential;
@@ -65,7 +61,7 @@ int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
   parametersSWV.pulsePotential = pPulsePotential;
   parametersSWV.pulseFrequency = pPulseFrequency;
   parametersSWV.samplePeriodPulse_ms = pSamplePeriodPulse;
-  return openafe_setupDPV(&parametersSWV, &voltametry);
+  return openafe_setupDPV(&parametersSWV, &this->voltammetry);
 }
 
 
@@ -75,12 +71,12 @@ uint8_t AFE::setCurrentRange(uint16_t pDesiredCurrentRange){
 
 
 uint32_t AFE::setTIAGain(unsigned long pTIAGain){
-	return openafe_setTIAGain(pTIAGain);
+	return AD5941_setTIAGain(pTIAGain);
 }
 
 
 uint16_t AFE::getPoint(float *pVoltage_mV, float *pCurrent_uA){
-	return openafe_getPoint(pVoltage_mV, pCurrent_uA);
+	return openafe_getPoint(pVoltage_mV, pCurrent_uA, &this->voltammetry);
 }
 
 bool AFE::done(void){
@@ -110,10 +106,10 @@ void AFE::interruptHandler(void){
 /*================EIS======================*/
 
 int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){
-    return openafe_setEISSinSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, sampleDuration);
+  //return openafe_setEISSinSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, sampleDuration);
 }
 
 
 int AFE::setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration){
-    return openafe_setEISTrapSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, riseTime, fallTime, sampleDuration);
+  //return openafe_setEISTrapSequence(settlingTime, startFrequency, endFrequency, numPoints, amplitude, offset, riseTime, fallTime, sampleDuration);
 }
