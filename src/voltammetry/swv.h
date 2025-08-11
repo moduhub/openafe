@@ -42,7 +42,7 @@ int openafe_calculateParamsForSWV(voltammetry_t *pVoltammetryParams);
  * @param pBaseDAC12Value IN -- DAC 12 value for the step base.
  * @return Address of the last command written into the SRAM.
  */
-uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
+uint32_t openafe_SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value);
 
 #ifdef __cplusplus
 }

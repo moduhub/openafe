@@ -67,7 +67,7 @@ int openafe_calculateParamsForSWV(voltammetry_t *pVoltammetryParams) {
   return NO_ERROR;
 }
 
-uint32_t _SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value){
+uint32_t openafe_SEQ_stepCommandSWV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value) {
 	// pulse up:
 	//_sequencerSetDAC((uint32_t)(pBaseDAC12Value + pVoltammetryParams->DAC.pulse), (uint32_t)pVoltammetryParams->DAC.reference);
 	AD5941_sequencerWaitCommand(((uint32_t)pVoltammetryParams->parameters.pulseWidth_ms) * 1000u);

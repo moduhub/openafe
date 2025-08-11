@@ -311,7 +311,7 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 		tCurrentSRAMAddress = _SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
 	} else
 	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_SWV) {
-		tCurrentSRAMAddress = _SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
+		tCurrentSRAMAddress = openafe_SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
 	}
 	if (pVoltammetryParams->state.SEQ_currentPoint == (pVoltammetryParams->numPoints - 1)) {
 		tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
