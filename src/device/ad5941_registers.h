@@ -50,21 +50,7 @@
 #define AD_DE0RESCON 0x20F8 // DE0 high speed TIA resistors configuration
 #define AD_HSTIACON  0x20FC // High speed TIA configuration
 
-/** ADC CIRCUIT REGISTERS */
-#define AD_ADCFILTERCON 0x2044 // ADC output filters configuration register
-#define AD_ADCDAT 		0x2074 // ADC raw result register
-#define AD_DFTREAL 		0x2078 // DFT result, real device register
-#define AD_DFTIMAG 		0x207C // DFT result, imaginary device register
-#define AD_SINC2DAT 	0x2080 // Sinc2 filter result register
-#define AD_TEMPSENSDAT 	0x2084 // Temperature sensor result register
-#define AD_DFTCON 		0x20D0 // DFT configuration register
-#define AD_TEMPSENS 	0x2174 // Temperature sensor configuration register
-#define AD_ADCCON 		0x21A8 // ADC configuration register
-#define AD_REPEATADCCNV 0x21F0 // Repeat ADC conversion control register
-#define AD_ADCBUFCON 	0x238C // ADC buffer configuration register
-
 /** ADC CALIBRATION REGISTERS */
-#define AD_CALDATLOCK        0x2230  // ADC calibration lock register
 #define AD_ADCOFFSETLPTIA    0x2288  // ADC offset calibration on the low power TIA channel register
 #define AD_ADCGNLPTIA        0x228C  // ADC gain calibration for the low power TIA channel register
 #define AD_ADCOFFSETHSTIA    0x2234  // ADC offset calibration on the high speed TIA channel register
@@ -128,7 +114,6 @@
 #define AD_FIFOCNTSTA		0x2200 // Command and data FIFO internal data count register
 #define AD_SYNCEXTDEVICE	0x2054 // Sync external devices register
 #define AD_TRIGSEQ			0x0430 // Trigger sequence register
-#define AD_CMDFIFOWADDR     0x2074 // Command FIFO address register
 
 /** WAVEFORM GENERATOR REGISTERS */
 #define AD_WGCON		0x2014 // Waveform generator configuration register
