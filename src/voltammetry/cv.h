@@ -20,7 +20,7 @@ extern "C" {
  * @param pVoltammetry Pointer to voltammetry struct
  * @return Error code
  */
-int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetry);
+int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams);
 
 /**
  * @brief Calculate the parameters for a given target CV waveform.

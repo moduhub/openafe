@@ -1,20 +1,18 @@
 #include "cv.h"
 
-int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams, voltammetry_t *pVoltammetry) {
-    memset(pVoltammetry, 0, sizeof(voltammetry_t));
-    pVoltammetry->parameters = *pVoltammetryParams;
-    int tPossibility = openafe_calculateParamsForCV(pVoltammetry);
-    if (IS_ERROR(tPossibility)) {
-        return tPossibility;
-    }
-    pVoltammetry->state.currentVoltammetryType = STATE_CURRENT_CV;
-    pVoltammetry->state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
-    pVoltammetry->numCurrentPointsPerStep = 1;
-    AD5941_zeroVoltageAcrossElectrodes();
-    AD5941_sequencerConfig();
-    AD5941_interruptConfig();
-    openafe_setVoltammetrySEQ(pVoltammetry);
-    return NO_ERROR;
+int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams) {
+  memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
+  gVoltammetryParams.parameters = *pVoltammetryParams;  
+  int tPossibility = openafe_calculateParamsForCV(&gVoltammetryParams);  
+  if (IS_ERROR(tPossibility)) return tPossibility;
+  gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_CV;
+  gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
+  gVoltammetryParams.numCurrentPointsPerStep = 1;  
+  AD5941_zeroVoltageAcrossElectrodes();
+  AD5941_sequencerConfig();
+  AD5941_interruptConfig();
+  openafe_setVoltammetrySEQ(&gVoltammetryParams);
+  return NO_ERROR;
 }
 
 int openafe_calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
