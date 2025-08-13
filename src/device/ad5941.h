@@ -6,6 +6,7 @@
 #include "../openafe_defines.h"
 #include "ad5941_registers.h"
 #include "ad5941_defines.h"
+#include "../debug/debug.hpp"
 
 #define SPI_CLK_DEFAULT_HZ 1000000UL
 

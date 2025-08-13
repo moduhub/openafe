@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "../device/ad5941.h"
+//#include "../debug/debug.hpp"
 
 #define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
 #define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.
@@ -21,7 +22,7 @@ typedef struct voltammetry_state_struct{
   uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
 } voltammetry_state_t;
 
-typedef struct voltammetry_parameters_struct {
+typedef struct voltammetry_parameters_t { 
   uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
   float startingPotential;        // Target starting voltage value of the wave, in mV.
   float endingPotential;          // Target ending voltage value of the wave, in mV.
@@ -48,6 +49,9 @@ typedef struct voltammetry_t {
   DAC_t DAC;                // DAC parameters.
   uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
 } voltammetry_t;
+
+/** Holds voltammetry parameters and state of the current voltammetry */
+extern voltammetry_t gVoltammetryParams;
 
 /**
  * @brief Minimal declaration, set a specific SPI Interface Frequency,
