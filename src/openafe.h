@@ -15,8 +15,6 @@ extern "C" {
 
 class AFE {
 	public:
-    voltammetry_t voltammetry;
-
 		/**
 		 * @brief The most minimal declaration use all default params.
 		 */

@@ -35,7 +35,8 @@ int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float p
   parametersCV.scanRate = pScanRate;
   parametersCV.stepPotential = pStepSize;
   parametersCV.numCycles = pNumCycles;
-  return openafe_setupCV(&parametersCV, &this->voltammetry);
+  //debug_log_CVW(&parametersCV);
+  return openafe_setupCV(&parametersCV);
 }
 
 int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase){
@@ -49,7 +50,7 @@ int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
   parametersDPV.samplePeriodPulse_ms = pSamplePeriodPulse;
   parametersDPV.samplePeriodBase_ms = pSamplePeriodBase;
   parametersDPV.stepPotential = pStepPotential;
-  return openafe_setupDPV(&parametersDPV, &this->voltammetry);
+  //return openafe_setupDPV(&parametersDPV);
 }
 
 int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse){
@@ -61,7 +62,7 @@ int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
   parametersSWV.pulsePotential = pPulsePotential;
   parametersSWV.pulseFrequency = pPulseFrequency;
   parametersSWV.samplePeriodPulse_ms = pSamplePeriodPulse;
-  return openafe_setupDPV(&parametersSWV, &this->voltammetry);
+  //return openafe_setupDPV(&parametersSWV);
 }
 
 
@@ -76,7 +77,8 @@ uint32_t AFE::setTIAGain(unsigned long pTIAGain){
 
 
 uint16_t AFE::getPoint(float *pVoltage_mV, float *pCurrent_uA){
-	return openafe_getPoint(pVoltage_mV, pCurrent_uA, &this->voltammetry);
+	//return openafe_getPoint(pVoltage_mV, pCurrent_uA);
+  return 0;
 }
 
 bool AFE::done(void){
