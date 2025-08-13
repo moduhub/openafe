@@ -127,10 +127,14 @@ void AD5941_softwareReset(void) {
 }
 
 void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed) {
+  uint32_t tSPIClockSpeed; // SPI interface frequency, in Hertz.
+	if (!pSPIClockSpeed) tSPIClockSpeed = SPI_CLK_DEFAULT_HZ;
+	else tSPIClockSpeed = pSPIClockSpeed;	
+
 	gTIAGain = 0;
 	gRload = 0;
 	gPGA = 1;
-	platform_setup(pShieldCSPin, pShieldResetPin, pSPIClockSpeed);
+	platform_setup(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
 	AD5941_softwareReset(); /* TODO: Remove when reset by hardware is available */
 	platform_reset();
 	// https://www.analog.com/media/en/technical-documentation/data-sheets/ad5940-5941.pdf#page=29
@@ -145,9 +149,14 @@ void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClo
 	AD5941_writeRegister(0x0A00, 0x8009, REG_SZ_16);     // PWRMOD - Power mode configuration register
 	AD5941_writeRegister(0x22F0, 0x0000, REG_SZ_32);     // PMBW - Power modes configuration register
 	AD5941_writeRegister(0x238C, 0x005F3D04, REG_SZ_32); // ADCBUFCON - ADC buffer configuration register
-	AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);           // Disable bootloader interrupt
-	AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
-	AD5941_zeroVoltageAcrossElectrodes();
+	
+  AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);           // Disable bootloader interrupt
+  AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
+	
+  AD5941_zeroVoltageAcrossElectrodes();
+
+  AD5941_switchConfiguration(); // Set the switches in the required configuration
+	AD5941_setTIAGain(3000u); 
 }
 
 uint32_t AD5941_readADC(void) {
