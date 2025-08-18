@@ -60,7 +60,7 @@ int openafe_calculateParamsForCV(voltammetry_t *pVoltammetryParams) {
   return NO_ERROR;
 }
 
-uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value) {
+uint32_t openafe_SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value) {
   AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)pVoltammetryParams->DAC.reference << 12) | (uint32_t)pDAC12Value);
   AD5941_sequencerWaitCommand(pVoltammetryParams->stepDuration_us);
   const uint32_t tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);

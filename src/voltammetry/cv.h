@@ -41,7 +41,7 @@ int openafe_calculateParamsForCV(voltammetry_t *pVoltammetryParams);
  * @param pDAC12Value IN -- DAC 12 value for the step.
  * @return Address of the last command written into the SRAM.
  */
-uint32_t _SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
+uint32_t openafe_SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
 
 #ifdef __cplusplus
 }

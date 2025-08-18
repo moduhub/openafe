@@ -57,7 +57,7 @@ int openafe_calculateParamsForDPV(voltammetry_t *pVoltammetryParams) {
   return NO_ERROR;
 }
 
-uint32_t _SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value) {
+uint32_t openafe_SEQ_stepCommandDPV(voltammetry_t *pVoltammetryParams, uint32_t pBaseDAC12Value) {
   // base:
   //_sequencerSetDAC(pBaseDAC12Value, pVoltammetryParams->DAC.reference);
   AD5941_sequencerWaitCommand((pVoltammetryParams->baseWidth_ms) * 1000u);

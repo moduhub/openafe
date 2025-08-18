@@ -305,10 +305,10 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
 		tDAC12Value = pVoltammetryParams->DAC.ending - (uint16_t)(pVoltammetryParams->DAC.step * (float)tSEQ_currentSlopePoint);
 	}
 	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_CV) {
-		tCurrentSRAMAddress = _SEQ_stepCommandCV(pVoltammetryParams, tDAC12Value);
+		tCurrentSRAMAddress = openafe_SEQ_stepCommandCV(pVoltammetryParams, tDAC12Value);
 	} else
 	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_DPV) {
-		tCurrentSRAMAddress = _SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
+		tCurrentSRAMAddress = openafe_SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
 	} else
 	if (pVoltammetryParams->state.currentVoltammetryType == STATE_CURRENT_SWV) {
 		tCurrentSRAMAddress = openafe_SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
