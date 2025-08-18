@@ -12,6 +12,7 @@ struct voltammetry_parameters_t;
 
 void debug_log(const char* msg);
 void debug_log_u(uint32_t num);
+void debug_log_u_bit(uint32_t num, uint32_t pos);
 void debug_log_i(int32_t num);
 
 void debug_log_CVW(const struct voltammetry_parameters_t* params);

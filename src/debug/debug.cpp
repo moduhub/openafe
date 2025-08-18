@@ -11,6 +11,28 @@ extern "C" void debug_log_u(uint32_t num) {
   Serial.println(num); 
 }
 
+extern "C" void debug_log_u_bit(uint32_t num, uint32_t pos) {
+  // ---- imprime os 32 bits completos ----
+  Serial.print("uint32: ");
+  for (int i = 31; i >= 0; i--) {
+    Serial.print((num >> i) & 1);
+  }
+  Serial.println();
+
+  // ---- verifica e imprime o bit específico ----
+  if (pos >= 0 && pos < 32) {
+    uint8_t bitValue = (num >> pos) & 1;
+    Serial.print("bit [");
+    Serial.print(pos);
+    Serial.print("]: ");
+    Serial.println(bitValue);
+  } else {
+    Serial.print("bit [");
+    Serial.print(pos);
+    Serial.println("]: posição inválida (0-31)");
+  }
+}
+
 extern "C" void debug_log_i(int32_t num) {
   Serial.println(num);
 }
