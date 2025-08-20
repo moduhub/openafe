@@ -7,14 +7,15 @@
 extern "C" {
 #endif
 
-#define SHIELD_PIN_SPI_CS 10
+/**
+ * @brief Pin definitions for the Arduino platform.
+ */
+#define CS_PIN   10
+#define MOSI_PIN 11
+#define MISO_PIN 12
+#define SCK_PIN  13
 
-// D10 - SS   - PB2
-// D11 - MOSI - PB3
-// D12 - MISO - PB4
-// D13 - SCK  - PB5
-
- /**
+/**
   * @brief Initialize the Arduino platform.
   *
   * @param pShieldCSPin The chip select pin for the shield.
@@ -26,10 +27,9 @@ void arduino_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIC
 /** 
   * @brief Begin SPI communication.
   *
-  * @param pShieldCSPin The chip select pin for the shield.
   * @param pSPIClockSpeed The SPI clock speed.
   */
-void arduino_spi_begin(uint8_t pShieldCSPin, uint32_t pSPIClockSpeed);
+void arduino_spi_begin(uint32_t pSPIClockSpeed);
 
 /** 
   * @brief Transfer a byte over SPI.
