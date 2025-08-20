@@ -10,6 +10,10 @@
 
 #define SPI_CLK_DEFAULT_HZ 1000000UL
 
+#define CS 10
+#define LOW  0x0
+#define HIGH 0x1
+
 #define AD_ADDR_ADIID 0x0400
 #define AD_ADDR_CHIPID 0x0404
 #define AD_VALUE_ADIID 0x4144

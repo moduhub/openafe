@@ -21,14 +21,14 @@ uint32_t AD5941_readRegister(uint16_t pAddress, uint8_t pRegisterSize) {
 		pRegisterSize = 16;
 	}
 	/** Setting the register address */
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPITransfer(SPICMD_SETADDR);
 	// Transmit the register address
 	platform_SPITransfer((pAddress >> 8) & 0xFF);
 	platform_SPITransfer(pAddress & 0xFF);
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	/** Read the register address */
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPITransfer(SPICMD_READREG);
 	platform_SPITransfer(0); // Dummy byte, to initialize read
 	if(pRegisterSize == 16){
@@ -39,22 +39,22 @@ uint32_t AD5941_readRegister(uint16_t pAddress, uint8_t pRegisterSize) {
 					   ((uint32_t)platform_SPITransfer(0) << 8) | 
 					   ((uint32_t)platform_SPITransfer(0));
 	}
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	return receivedData;
 	#else
 	if (!(pRegisterSize == 16 || pRegisterSize == 32)) {
 		pRegisterSize = 16;
 	}
 	uint8_t tCommandBuffer[] = {SPICMD_SETADDR, pAddress >> 8 & 0xFF, pAddress & 0xFF};
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPIWrite(tCommandBuffer, 3);
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	uint8_t tReceiveBuffer[1 + (pRegisterSize == 16 ? 2 : 4)];
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	tCommandBuffer[0] = SPICMD_READREG;
 	platform_SPIWrite(tCommandBuffer, 1);
 	platform_SPIRead(tReceiveBuffer, 1 + (pRegisterSize == 16 ? 2 : 4));
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	uint32_t tRegisterValue;
 	if (pRegisterSize == 16) {
 		tRegisterValue = ((uint32_t)tReceiveBuffer[1] << 8 |
@@ -74,16 +74,16 @@ void AD5941_writeRegister(uint16_t pAddress, uint32_t pValue, uint8_t pRegisterS
 	#if USE_SPI_TRANSFER_WRAPPER
 	if(!(pRegisterSize == 16 || pRegisterSize == 32)){
 		pRegisterSize = 16;
-	}
-	/** Setting the register address */
-	platform_CSLow();
+	}  
+  /** Setting the register address */
+  platform_digitalWrite(CS, LOW);
 	platform_SPITransfer(SPICMD_SETADDR);
 	// Transmit the register address
 	platform_SPITransfer((pAddress >> 8) & 0xFF);
 	platform_SPITransfer(pAddress & 0xFF);
-	platform_CSHigh();
+  platform_digitalWrite(CS, HIGH);
 	/** Write value into the register */
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPITransfer(SPICMD_WRITEREG);
 	if(pRegisterSize == 16){
 		platform_SPITransfer(pValue >> 8 & 0xFF);
@@ -94,16 +94,16 @@ void AD5941_writeRegister(uint16_t pAddress, uint32_t pValue, uint8_t pRegisterS
 		platform_SPITransfer(pValue >> 8 & 0xFF);
 		platform_SPITransfer(pValue & 0xFF);
 	}
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	#else
 	if (!(pRegisterSize == 16 || pRegisterSize == 32))
 	{
 		pRegisterSize = 16;
 	}
 	uint8_t tCommandBuffer[] = {SPICMD_SETADDR, pAddress >> 8 & 0xFF, pAddress & 0xFF, 0x00, 0x00};
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPIWrite(tCommandBuffer, 3);
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	tCommandBuffer[0] = SPICMD_WRITEREG;
 	if (pRegisterSize == 16) {
 		tCommandBuffer[1] = pValue >> 8 & 0xff;
@@ -114,16 +114,16 @@ void AD5941_writeRegister(uint16_t pAddress, uint32_t pValue, uint8_t pRegisterS
 		tCommandBuffer[3] = pValue >> 8 & 0xff;
 		tCommandBuffer[4] = pValue & 0xff;
 	}
-	platform_CSLow();
+	platform_digitalWrite(CS, LOW);
 	platform_SPIWrite(tCommandBuffer, (pRegisterSize == 16 ? 3 : 5));
-	platform_CSHigh();
+	platform_digitalWrite(CS, HIGH);
 	#endif
 }
 
 void AD5941_softwareReset(void) {
 	AD5941_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
 	AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
-	platform_delayMicroseconds(1000); /* Delay for AD initialization */
+	platform_delayMicroseconds(10000); /* Delay for AD initialization */
 }
 
 void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed) {
@@ -134,7 +134,7 @@ void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClo
 	gTIAGain = 0;
 	gRload = 0;
 	gPGA = 1;
-	platform_setup(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
+  platform_setup(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);
 	AD5941_softwareReset(); /* TODO: Remove when reset by hardware is available */
 	platform_reset();
 	// https://www.analog.com/media/en/technical-documentation/data-sheets/ad5940-5941.pdf#page=29
@@ -152,7 +152,7 @@ void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClo
 	
   AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);           // Disable bootloader interrupt
   AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
-	
+
   AD5941_zeroVoltageAcrossElectrodes();
 
   AD5941_switchConfiguration(); // Set the switches in the required configuration
