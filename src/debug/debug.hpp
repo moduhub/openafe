@@ -30,16 +30,15 @@ void debug_log_u(uint32_t num);
 void debug_log_u_bit(uint32_t num, uint32_t pos);
 
 /**
- * Log a signed integer.
- * @param num Signed integer to log.
- */
-void debug_log_i(int32_t num);
-
-/**
  * Log the parameters of a cyclic voltammetry (CV) operation.
  * @param params Pointer to the CV parameters structure.
  */
 void debug_log_CVW(const struct voltammetry_parameters_t* params);
+
+/** Delay for a specified number of milliseconds.
+ * @param ms Number of milliseconds to delay.
+ */
+void debug_delay(uint32_t ms);
 
 #ifdef __cplusplus
 }
