@@ -12,6 +12,8 @@
 // FOR ZEPHYR RTOS:
 #define USE_ZEPHYR_WRAPPERS 0
 
+#define USE_SPI_TRANSFER_WRAPPER 1
+
 #if USE_ARDUINO_WRAPPERS
 #include "arduino/platform_arduino.hpp"
 #endif
