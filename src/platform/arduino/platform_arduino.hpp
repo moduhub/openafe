@@ -16,6 +16,14 @@ extern "C" {
 #define SCK_PIN  13
 
 /**
+ * @brief Wrapper function for digitalWrite.
+ *
+ * @param pin IN -- The pin number to write to.
+ * @param val IN -- The value to write (0 or 1).
+ */
+void arduino_digitalWrite(uint8_t pin, uint8_t val);
+
+/**
   * @brief Initialize the Arduino platform.
   *
   * @param pShieldCSPin The chip select pin for the shield.
@@ -38,16 +46,6 @@ void arduino_spi_begin(uint32_t pSPIClockSpeed);
   * @return The byte received.
   */
 uint8_t arduino_spi_transfer(uint8_t pByte);
-
-/** 
-  * @brief Set the chip select pin low.
-  */
-void arduino_CSLow(void);
-
-/** 
-  * @brief Set the chip select pin high.
-  */
-void arduino_CSHigh(void);
 
 /** 
   * @brief Delay for a specified number of microseconds.

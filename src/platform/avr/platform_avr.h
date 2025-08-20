@@ -13,6 +13,23 @@ extern "C" {
 #define SPI_SCK PB5       // D13 - SCK
 
 /**
+ * @brief Write a value to the CS pin.
+ *
+ * @param pin IN -- The pin number to write to.
+ * @param val IN -- The value to write (0 or 1).
+ */
+void avr_digitalWrite(uint8_t pin, uint8_t val);
+
+/**
+ * @brief Setup function for the AVR platform.
+ *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
+ * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
+ */
+void avr_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
+
+/**
  * @brief Initialize the SPI interface.
  *
  * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
@@ -26,27 +43,6 @@ void avr_spi_begin(uint32_t pSPIClockSpeed);
  * @return The byte received.
  */
 uint8_t avr_spi_transfer(uint8_t pByte);
-
-/**
- * @brief Drive the CS pin low.
- *
- */
-void avr_CSLow(void);
-
-/**
- * @brief Drive the CS pin high.
- *
- */
-void avr_CSHigh(void);
-
-/**
- * @brief Setup function for the AVR platform.
- *
- * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
- * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
- * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
- */
-void avr_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
 
 /**
  * @brief Transfer a byte over SPI.

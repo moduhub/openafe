@@ -8,8 +8,45 @@ extern "C" {
 
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h> 
+
 #include <stdio.h>
+
 #include "platform_avr.h"
+
+void avr_digitalWrite(uint8_t pin, uint8_t val) {
+  volatile uint8_t *out = 0;
+  uint8_t bit;
+
+  if (pin <= 7) {
+    out = &PORTD;
+    bit = pin;
+  } else if (pin >= 8 && pin <= 13) {
+    out = &PORTB;
+    bit = pin - 8;
+  } else
+    return;
+
+  uint8_t oldSREG = SREG;
+  cli();
+
+  if (val == 0x0) 
+    *out &= ~_BV(bit);
+  else 
+    *out |= _BV(bit);
+
+  SREG = oldSREG;
+}
+
+void avr_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed){
+  (void)pShieldResetPin; // Intentionally left unused
+  (void)pShieldCSPin;
+
+  avr_spi_begin(pSPIClockSpeed);
+
+  DDRD |= (1 << 3);	 
+  avr_digitalWrite(3, 0);
+}
 
 void avr_spi_begin(uint32_t pSPIClockSpeed) {
 	/**
@@ -28,23 +65,6 @@ void avr_spi_begin(uint32_t pSPIClockSpeed) {
 
   // Set CS
   DDRD |= (1 << SPI_SS);
-}
-
-void avr_CSLow(void){	 
-	PORTD &= ~(1 << SPI_SS);
-}
-
-void avr_CSHigh(void){
-	PORTD |= (1 << SPI_SS);
-}
-
-void avr_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed){
-  (void)pShieldResetPin; // Intentionally left unused
-  (void)pShieldCSPin;
-  avr_spi_begin(pSPIClockSpeed);
-  DDRD |= (1 << 3);	 
-  PORTD &= ~(1 << 3);
-  avr_delayMicroseconds(100);
 }
 
 uint8_t avr_spi_transfer(uint8_t pByte){
@@ -67,9 +87,9 @@ void avr_delayMicroseconds(uint64_t pDelay_us){
 }
 
 void avr_reset(void){
-	PORTD |= (1 << 3);
+  avr_digitalWrite(3, 1);
 	avr_delayMicroseconds(1000); 
-	PORTD &= ~(1 << 3);
+	avr_digitalWrite(3, 0);
 }
 
 uint8_t avr_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize){

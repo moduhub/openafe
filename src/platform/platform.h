@@ -4,10 +4,10 @@
 #include <stdint.h>
 
 // FOR ARDUINO:
-#define USE_ARDUINO_WRAPPERS 1
+#define USE_ARDUINO_WRAPPERS 0
 
 // FOR AVR:
-#define USE_AVR_WRAPPERS 0
+#define USE_AVR_WRAPPERS 1
 
 // FOR ZEPHYR RTOS:
 #define USE_ZEPHYR_WRAPPERS 0
@@ -25,6 +25,14 @@
 #endif
 
 /**
+ * @brief Wrapper function for digitalWrite.
+ *
+ * @param pin IN -- The pin number to write to.
+ * @param val IN -- The value to write (0 or 1).
+ */
+void platform_digitalWrite(uint8_t pin, uint8_t val);
+
+/**
  * @brief Wrapper function for needed setup during initialization.
  *
  * Write any code that needs to run once during initialization inside this function, if needed.
@@ -34,18 +42,6 @@
  * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
  */
 void platform_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
-
-/**
- * @brief Wrapper function that drives the OpenAFE CS pin to low.
- *
- */
-void platform_CSLow(void);
-
-/**
- * @brief Wrapper function that drives the OpenAFE CS to high.
- *
- */
-void platform_CSHigh(void);
 
 /**
  * @brief Wrapper funtion to wait said number of microseconds.
@@ -60,7 +56,6 @@ void platform_delayMicroseconds(uint64_t pDelay_us);
  * Bring the pin in which the AFE device is connected to low, wait at least 5
  * microseconds, then bring it back to high. The platform_delayMicroseconds(5)
  * function can be used for the delay.
- *
  */
 void platform_reset(void);
 

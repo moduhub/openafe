@@ -4,13 +4,17 @@
 
 uint8_t shieldCSPin;
 
+void arduino_digitalWrite(uint8_t pin, uint8_t val){
+  digitalWrite(pin, val);
+}
+
 void arduino_spi_begin(uint32_t pSPIClockSpeed) {
   pinMode(MOSI_PIN, OUTPUT);
   pinMode(SCK_PIN, OUTPUT);
   pinMode(CS_PIN, OUTPUT);
 
   pinMode(shieldCSPin, OUTPUT);
-  digitalWrite(shieldCSPin, HIGH);
+  arduino_digitalWrite(shieldCSPin, HIGH);
 
   SPI.begin();
   SPI.beginTransaction(SPISettings(pSPIClockSpeed, MSBFIRST, SPI_MODE0));
@@ -22,20 +26,12 @@ uint8_t arduino_spi_transfer(uint8_t pByte) {
   return SPI.transfer(pByte);
 }
 
-void arduino_CSLow(void){
-	digitalWrite(shieldCSPin, LOW);
-}
-
-void arduino_CSHigh(void){
-	digitalWrite(shieldCSPin, HIGH);
-}
-
 void arduino_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed){
 	(void)pShieldResetPin; // Intentionally left unused
   (void)pShieldCSPin;
 
 	arduino_spi_begin(pSPIClockSpeed);
-  digitalWrite(3, LOW); 
+  arduino_digitalWrite(3, LOW); 
   arduino_delayMicroseconds(100);
 }
 
@@ -47,9 +43,9 @@ void arduino_delayMicroseconds(uint64_t pDelay_us){
 }
 
 void arduino_reset(void){
-  digitalWrite(3, HIGH);
+  arduino_digitalWrite(3, HIGH);
 	arduino_delayMicroseconds(1000);
-  digitalWrite(3, LOW);
+  arduino_digitalWrite(3, LOW);
 	arduino_delayMicroseconds(5); // keep this function here as is.
 }
 
