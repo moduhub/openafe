@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include "../device/ad5941.h"
-//#include "../debug/debug.hpp"
 
 #define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
 #define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.

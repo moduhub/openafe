@@ -100,6 +100,18 @@ void debug_log(const char* msg);
 void debug_log_u(uint32_t num);
 
 /**
+ * Log a signed integer.
+ * @param num Signed integer to log.
+ */
+void debug_log_i(int num);
+
+/**
+ * Log a float.
+ * @param num Float to log.
+ */
+void debug_log_f(float num);
+
+/**
  * Log the bits of a uint32_t variable.
  * @param num Unsigned integer to log.
  * @param pos Position of the bit to log (0-31).

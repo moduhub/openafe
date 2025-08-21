@@ -55,11 +55,11 @@
 
 /** Structure to store the required values for the DAC operation. */
 typedef struct DAC_t {
-    uint16_t starting;  // The 12-bit DAC value for the starting potential.
-    uint16_t ending;    // The 12-bit DAC value for the ending potential.
-    float step;         // The 12-bit DAC value for the step potential.
-    uint16_t pulse;     // The 12-bit DAC value for the pulse potential.
-    uint16_t reference; // The 6-bit DAC value for the reference potential.
+  uint16_t starting;  // The 12-bit DAC value for the starting potential.
+  uint16_t ending;    // The 12-bit DAC value for the ending potential.
+  float step;         // The 12-bit DAC value for the step potential.
+  uint16_t pulse;     // The 12-bit DAC value for the pulse potential.
+  uint16_t reference; // The 6-bit DAC value for the reference potential.
 } DAC_t;
 
 /**

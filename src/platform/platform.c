@@ -80,6 +80,14 @@ void debug_log_u(uint32_t num) {
   return arduino_debug_log_u(num);
 }
 
+void debug_log_i(int num){
+  return arduino_debug_log_i(num);
+}
+
+void debug_log_f(float num){
+  return arduino_debug_log_f(num);
+}
+
 void debug_log_u_bit(uint32_t num, uint32_t pos) {
   return arduino_debug_log_u_bit(num, pos);
 }

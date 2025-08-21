@@ -15,6 +15,18 @@ extern "C" void arduino_debug_log_u(uint32_t num) {
   Serial.flush(); 
 }
 
+extern "C" void arduino_debug_log_i(int num) {
+  Serial.print("int: ");
+  Serial.println(num);
+  Serial.flush(); 
+}
+
+extern "C" void arduino_debug_log_f(float num) {
+  Serial.print("float: ");
+  Serial.println(num);
+  Serial.flush(); 
+}
+
 extern "C" void arduino_debug_log_u_bit(uint32_t num, uint32_t pos) {
   arduino_debug_log_u(num);
 
