@@ -446,9 +446,10 @@ void AD5941_dataFIFOConfig(uint16_t pDataMemoryAmount) {
 
 void AD5941_sequencerConfig(void) {
 	uint32_t tFIFOCONValue = AD5941_readRegister(AD_FIFOCON, REG_SZ_32);
-	AD5941_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Clear fifo configuration
+	AD5941_writeRegister(AD_FIFOCON, 0, REG_SZ_32); // Clear fifo configuration  
 	AD5941_writeRegister(AD_SEQCON, 0, REG_SZ_32); // Disable sequencer
-	AD5941_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Clear count and CRC registers
+  AD5941_writeRegister(AD_SEQCNT, 0, REG_SZ_32); // Clear count and CRC registers
+
 	/**
 	 * Configure sequencer:
 	 * - bit 3 -- Command Memory mode
@@ -458,7 +459,8 @@ void AD5941_sequencerConfig(void) {
 	tCMDDATACONValue &= ~(uint32_t)0b111111 << 0; // Mask command configs
 	tCMDDATACONValue |= ((uint32_t)0b10 << 0 | (uint32_t)0b01 << 3);
 	AD5941_writeRegister(AD_CMDDATACON, tCMDDATACONValue, REG_SZ_32); // Configure sequencer
-	// - Restore FIFO after configuration.
+	
+  // - Restore FIFO after configuration.
 	// - bit 11 -- Enable data FIFO.
 	AD5941_writeRegister(AD_FIFOCON, tFIFOCONValue | (uint32_t)1 << 11, REG_SZ_32); // restore FIFO configuration
 }

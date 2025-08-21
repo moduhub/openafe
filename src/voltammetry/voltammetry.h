@@ -99,10 +99,8 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA, voltammetry_t 
 /**
  * @brief Set a general voltammetry in the sequencer.
  * 
- * @param pVoltammetryParams IN -- Voltammetry params pointer.
  */
-
-void openafe_setVoltammetrySEQ(voltammetry_t *pVoltammetryParams);
+void openafe_setVoltammetrySEQ(void);
 
 /**
  * @brief Set the TIA gain resistor based on the desired current range.
@@ -167,7 +165,7 @@ void openafe_interruptHandler(void);
  * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
  * @return Last written SRAM address.
  */
-uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams);
+uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress);
 
 /**
  * @brief Fill a given sequence index with the required commands for a voltammetry.
@@ -185,10 +183,9 @@ uint32_t _SEQ_addPoint(uint32_t pSRAMAddress, voltammetry_t *pVoltammetryParams)
  * @param pSequenceIndex IN -- The sequence index to be filled.
  * @param pStartingAddress IN -- The starting address of the SRAM buffer to write the sequence to.
  * @param pEndingAddress IN -- The ending address of the SRAM buffer to write the sequence to.
- * @param pVoltammetryParams IN/OUT -- Voltammetry params. 
  * @return Status code: 1 on all commands sent, 0 otherwise.
  * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
  */
-uint8_t _fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress, voltammetry_t *pVoltammetryParams);
+uint8_t openafe_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress);
 
 #endif //_OPENAFE_VOLTAMMETRY_H_

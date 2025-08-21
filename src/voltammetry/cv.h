@@ -28,7 +28,7 @@ int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams);
  * @param pVoltammetryParams IN/OUT -- voltammetry params.
  * @return Error code on error.
  */
-int openafe_calculateParamsForCV(voltammetry_t *pVoltammetryParams);
+int openafe_calculateParamsForCV(void);
 
 /**
  * @brief Add commands for a Cyclic Voltammetry step into the SRAM.
@@ -37,11 +37,10 @@ int openafe_calculateParamsForCV(voltammetry_t *pVoltammetryParams);
  * must be set before calling this function, this is done in order to make the SRAM
  * filling faster. 
  * 
- * @param pVoltammetryParams IN -- pointer to the voltammetry parameters struct.
  * @param pDAC12Value IN -- DAC 12 value for the step.
  * @return Address of the last command written into the SRAM.
  */
-uint32_t openafe_SEQ_stepCommandCV(voltammetry_t *pVoltammetryParams, uint16_t pDAC12Value);
+uint32_t openafe_SEQ_stepCommandCV(uint16_t pDAC12Value);
 
 #ifdef __cplusplus
 }

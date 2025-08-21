@@ -11,7 +11,7 @@ int openafe_setSWVSequence(const voltammetry_parameters_t *pVoltammetryParams, v
   AD5941_zeroVoltageAcrossElectrodes();
 	AD5941_sequencerConfig();
 	AD5941_interruptConfig();
-	openafe_setVoltammetrySEQ(pVoltammetry);
+	//openafe_setVoltammetrySEQ(pVoltammetry);
 	return NO_ERROR;
 }
 
