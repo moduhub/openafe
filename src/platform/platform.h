@@ -14,6 +14,8 @@
 
 #define USE_SPI_TRANSFER_WRAPPER 1
 
+#define USE_DEBUG_LOGGING 1
+
 #if USE_ARDUINO_WRAPPERS
 #include "arduino/platform_arduino.hpp"
 #endif
@@ -84,5 +86,29 @@ uint8_t platform_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize);
  * @return uint8_t Number of bytes written.
  */
 uint8_t platform_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize);
+
+/**
+ * Log a message.
+ * @param msg Message to log.
+ */
+void debug_log(const char* msg);
+
+/**
+ * Log an unsigned integer.
+ * @param num Unsigned integer to log.
+ */
+void debug_log_u(uint32_t num);
+
+/**
+ * Log the bits of a uint32_t variable.
+ * @param num Unsigned integer to log.
+ * @param pos Position of the bit to log (0-31).
+ */
+void debug_log_u_bit(uint32_t num, uint32_t pos);
+
+/** Delay for a specified number of milliseconds.
+ * @param ms Number of milliseconds to delay.
+ */
+void debug_delay(uint32_t ms);
 
 #endif // _OPENAFE_PLATFORM_H_

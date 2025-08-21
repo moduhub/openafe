@@ -35,7 +35,6 @@ int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float p
   parametersCV.scanRate = pScanRate;
   parametersCV.stepPotential = pStepSize;
   parametersCV.numCycles = pNumCycles;
-  //debug_log_CVW(&parametersCV);
   return openafe_setupCV(&parametersCV);
 }
 

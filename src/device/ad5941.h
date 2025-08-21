@@ -2,11 +2,9 @@
 #define _OPENAFE_AD5941_H_
 
 #include <stdint.h>
-//#include "Utility/openafe_types.h"
 #include "../openafe_defines.h"
 #include "ad5941_registers.h"
 #include "ad5941_defines.h"
-#include "../debug/debug.hpp"
 
 #define SPI_CLK_DEFAULT_HZ 1000000UL
 

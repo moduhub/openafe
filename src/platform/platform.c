@@ -69,3 +69,23 @@ uint8_t platform_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize) {
     return; //return zephyr_SPIWrite(pTXBuffer, pBufferSize);
   #endif
 }
+
+#if USE_DEBUG_LOGGING
+
+void debug_log(const char* msg) {
+  return arduino_debug_log(msg);
+}
+
+void debug_log_u(uint32_t num) {
+  return arduino_debug_log_u(num);
+}
+
+void debug_log_u_bit(uint32_t num, uint32_t pos) {
+  return arduino_debug_log_u_bit(num, pos);
+}
+
+void debug_debug_delay(uint32_t ms) {
+  return arduino_debug_delay(ms);
+}
+
+#endif
