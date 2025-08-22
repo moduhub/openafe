@@ -298,24 +298,26 @@ uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress) {
     AD5941_sequencerWaitCommand((uint32_t)gVoltammetryParams.parameters.settlingTime * 1000u);
     AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7 | (uint32_t)(1 << 8));
   }
-	uint16_t tDAC12Value = 0;
-	if (tIsCurrentSEQSlopeRising) {
+
+  uint16_t tDAC12Value = 0;
+	if (tIsCurrentSEQSlopeRising) 
 		tDAC12Value = gVoltammetryParams.DAC.starting + (uint16_t)(gVoltammetryParams.DAC.step * (float)tSEQ_currentSlopePoint);
-	} else {
+  else 
 		tDAC12Value = gVoltammetryParams.DAC.ending - (uint16_t)(gVoltammetryParams.DAC.step * (float)tSEQ_currentSlopePoint);
-	}
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_CV) {
-		tCurrentSRAMAddress = openafe_SEQ_stepCommandCV(tDAC12Value);
-	} else
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
+
+  if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_CV){
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)tDAC12Value);
+    AD5941_sequencerWaitCommand(gVoltammetryParams.stepDuration_us);  
+    tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+  }
+  else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
 		; //tCurrentSRAMAddress = openafe_SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
-	} else
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV) {
+	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV) 
 		; //tCurrentSRAMAddress = openafe_SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
-	}
-	if (gVoltammetryParams.state.SEQ_currentPoint == (gVoltammetryParams.numPoints - 1)) {
-		; //tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
-	}
+
+  if (gVoltammetryParams.state.SEQ_currentPoint == (gVoltammetryParams.numPoints - 1)) 
+		tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
+
 	gVoltammetryParams.state.SEQ_currentPoint++;
 	return tCurrentSRAMAddress;
 }
