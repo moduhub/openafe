@@ -67,10 +67,9 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
  * @brief Get the voltage at the given data point.
  *
  * @param pNumPointsRead IN -- data point to get the voltage.
- * @param pVoltammetry IN -- voltammetry parameters.
  * @return Voltage at the point, in mV.
  */
-float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetry);
+float openafe_getVoltage(uint32_t pNumPointsRead);
 
 /**
  * @brief Check wheter the value in the ADIID register is the expected 0x4144.
@@ -91,10 +90,9 @@ void openafe_killVoltammetry(void);
  * 
  * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV. 
  * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
- * @param pVoltammetry IN -- voltammetry parameters.
  * @return The point index, it starts at 0.
  */
-uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA, voltammetry_t *pVoltammetry);
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
 
 /**
  * @brief Set a general voltammetry in the sequencer.

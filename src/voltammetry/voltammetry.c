@@ -63,20 +63,20 @@ void openafe_killVoltammetry(void) {
 	AD5941_zeroVoltageAcrossElectrodes();
 }
 
-float openafe_getVoltage(uint32_t pNumPointsRead, voltammetry_t *pVoltammetry) {
-	uint8_t tCurrentSlope = pNumPointsRead / pVoltammetry->numSlopePoints;
-	uint16_t tCurrentSlopePoint = pNumPointsRead - (tCurrentSlope * pVoltammetry->numSlopePoints);
+float openafe_getVoltage(uint32_t pNumPointsRead) {
+	uint8_t tCurrentSlope = pNumPointsRead / gVoltammetryParams.numSlopePoints;
+	uint16_t tCurrentSlopePoint = pNumPointsRead - (tCurrentSlope * gVoltammetryParams.numSlopePoints);
 	float tVoltage_mV;
 	if (tCurrentSlope % 2 == 0) { // Rising slope
-		tVoltage_mV = (pVoltammetry->parameters.startingPotential) + ((float)tCurrentSlopePoint * pVoltammetry->parameters.stepPotential);
+		tVoltage_mV = (gVoltammetryParams.parameters.startingPotential) + ((float)tCurrentSlopePoint * gVoltammetryParams.parameters.stepPotential);
 	} else { // Falling slope
-		tVoltage_mV = (pVoltammetry->parameters.endingPotential) - ((float)tCurrentSlopePoint * pVoltammetry->parameters.stepPotential);
+		tVoltage_mV = (gVoltammetryParams.parameters.endingPotential) - ((float)tCurrentSlopePoint * gVoltammetryParams.parameters.stepPotential);
 	}
 	return tVoltage_mV;
 }
 
-uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA, voltammetry_t *pVoltammetry) {
-	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead, pVoltammetry);
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
+	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead);
 	float tCurrent = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
 	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
 		float tCurrentAtPulseBase = tCurrent;
@@ -97,28 +97,32 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA, voltammetry_t 
 	gDataAvailable = 0;
 	uint16_t pointIndex = gNumPointsRead;
 	gNumPointsRead++;
+
 	return pointIndex; 
 }
 
 uint8_t openafe_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress) {
 	uint8_t tSentAllCommands = 0;
 	uint16_t tCurrentAddress = pStartingAddress;
+
 	/** Set the starting address of the SRAM */
 	AD5941_writeRegister(AD_CMDFIFOWADDR, pStartingAddress, REG_SZ_32);
 	while (gVoltammetryParams.state.SEQ_currentPoint < gVoltammetryParams.numPoints) {
 		tCurrentAddress = openafe_SEQ_addPoint(tCurrentAddress);
 		if (tCurrentAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep >= pEndingAddress) {   // filled sequence memory space
-			tCurrentAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+      tCurrentAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
 			break;
 		}
 	}
+
 	if (gVoltammetryParams.state.SEQ_currentPoint == gVoltammetryParams.numPoints) {
 		tSentAllCommands = 1;
 	}	
-	AD5941_configureSequence(pSequenceIndex, pStartingAddress, tCurrentAddress);
+	AD5941_configureSequence(pSequenceIndex, pStartingAddress, tCurrentAddress); // PROBLEMA EM tCurrentAddress
 	gVoltammetryParams.state.SEQ_currentSRAMAddress = tCurrentAddress;
 	gVoltammetryParams.state.SEQ_nextSRAMAddress = tCurrentAddress + 1;
-	return tSentAllCommands;
+
+  return tSentAllCommands;
 }
 
 
@@ -126,10 +130,11 @@ void openafe_setVoltammetrySEQ(void) {
 	gVoltammetryParams.state.SEQ_currentPoint = 0;
 	gVoltammetryParams.state.SEQ_currentSRAMAddress = 0;
 	gVoltammetryParams.state.SEQ_nextSRAMAddress = 0;
+
 	uint8_t tSentAllWaveSequence = openafe_fillSequence(0, SEQ0_START_ADDR, SEQ0_END_ADDR);
-	if (!tSentAllWaveSequence) {
+	if (!tSentAllWaveSequence) 
 		tSentAllWaveSequence = openafe_fillSequence(1, SEQ1_START_ADDR, SEQ1_END_ADDR);
-	}
+	
 	gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
 	gVoltammetryParams.state.SEQ_currentSRAMAddress = SEQ0_START_ADDR;
 	gVoltammetryParams.state.SEQ_nextSRAMAddress = SEQ0_START_ADDR;
@@ -154,7 +159,7 @@ uint16_t openafe_dataAvailable(void) {
 }
 
 void openafe_startVoltammetry(void) {
-	gFinished = 0;
+  gFinished = 0;
 	gDataAvailable = 0;
 	gNumPointsRead = 0;
 	gShoulKillVoltammetry = 0;
@@ -167,19 +172,17 @@ void openafe_startVoltammetry(void) {
 }
 
 float openafe_readDataFIFO(void) {
-	uint32_t tDataFIFOValue = _readRegister(AD_DATAFIFORD, REG_SZ_32);
+	uint32_t tDataFIFOValue = AD5941_readRegister(AD_DATAFIFORD, REG_SZ_32);
 	if (tDataFIFOValue == 0) {
 		gDataAvailable = 0;
 	}
 	tDataFIFOValue &= 0xFFFF;
-	return _getCurrentFromADCValue(tDataFIFOValue);
+	return AD5941_getCurrentFromADCValue(tDataFIFOValue);
 }
 
 void openafe_interruptHandler(void) {
-	/** There are two reads from the INTCFLAG0 register because the first read returns garbage,
-	 *  the second has the true interrupt flags */
 	uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
-	tInterruptFlags0 |= AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+
 	if (tInterruptFlags0 & ((uint32_t)1 << 11)) {	// trigger ADC result read
 		if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep < 2) { // Limite do buffer
 			gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = AD5941_readADC();
@@ -226,73 +229,50 @@ void openafe_interruptHandler(void) {
 
 uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange){
 	// the range goes from 1.75 uA to 4.5 mA
-
 	uint32_t tCalculatedTIAResistor = (uint32_t)(900000.0f / (float)pDesiredCurrentRange);
 
 	if (tCalculatedTIAResistor <= 1000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_200);
-	}
-	else if (tCalculatedTIAResistor <= 2000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_1K);
-	}
+		AD5941_setTIAGain(AD_TIAGAIN_200);	
+	else if (tCalculatedTIAResistor <= 2000UL)	
+		AD5941_setTIAGain(AD_TIAGAIN_1K);	
 	else if (tCalculatedTIAResistor <= 4000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_2K);
-	}
-	else if (tCalculatedTIAResistor <= 10000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_4K);
-	}
-	else if (tCalculatedTIAResistor <= 20000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_10K);
-	}
-	else if (tCalculatedTIAResistor <= 40000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_20K);
-	}
+		AD5941_setTIAGain(AD_TIAGAIN_2K);	
+	else if (tCalculatedTIAResistor <= 10000UL)	
+		AD5941_setTIAGain(AD_TIAGAIN_4K);	
+	else if (tCalculatedTIAResistor <= 20000UL)	
+		AD5941_setTIAGain(AD_TIAGAIN_10K);	
+	else if (tCalculatedTIAResistor <= 40000UL)	
+		AD5941_setTIAGain(AD_TIAGAIN_20K);	
 	else if (tCalculatedTIAResistor <= 100000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_40K);
-	}
+		AD5941_setTIAGain(AD_TIAGAIN_40K);	
 	else if (tCalculatedTIAResistor <= 160000UL)
-	{
 		AD5941_setTIAGain(AD_TIAGAIN_100K);
-	}
-	else if (tCalculatedTIAResistor <= 196000UL)
-	{
-		AD5941_setTIAGain(AD_TIAGAIN_160K);
-	}
-	else if (tCalculatedTIAResistor <= 256000UL)
-	{
+	else if (tCalculatedTIAResistor <= 196000UL)	
+		AD5941_setTIAGain(AD_TIAGAIN_160K);	
+	else if (tCalculatedTIAResistor <= 256000UL)	
 		AD5941_setTIAGain(AD_TIAGAIN_196K);
-	}
-	else if (tCalculatedTIAResistor <= 512000UL)
-	{
+	else if (tCalculatedTIAResistor <= 512000UL)	
 		AD5941_setTIAGain(AD_TIAGAIN_256K);
-	}
 	else
-	{
 		AD5941_setTIAGain(AD_TIAGAIN_512K);
-	}
-
+	
 	return 1;
 }
 
 uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress) {
 	uint32_t tCurrentSRAMAddress = pSRAMAddress;
-	if (gVoltammetryParams.state.SEQ_currentPoint >= gVoltammetryParams.numPoints) {
+
+	if (gVoltammetryParams.state.SEQ_currentPoint >= gVoltammetryParams.numPoints) 
 		return tCurrentSRAMAddress; // all points have been registered in the sequencer, so it skips adding points
-	}
+
 	uint8_t tSEQ_numSlopesDoneAlready = gVoltammetryParams.state.SEQ_currentPoint / gVoltammetryParams.numSlopePoints;
 	uint16_t tSEQ_currentSlopePoint = gVoltammetryParams.state.SEQ_currentPoint - (tSEQ_numSlopesDoneAlready * gVoltammetryParams.numSlopePoints);
 	uint8_t tIsCurrentSEQSlopeRising = (tSEQ_numSlopesDoneAlready % 2) == 0 ? 1 : 0;
-	// Make sure the commands are written in the same SRAM address passed
+
+  // Make sure the commands are written in the same SRAM address passed
 	AD5941_writeRegister(AD_CMDFIFOWADDR, tCurrentSRAMAddress, REG_SZ_32);
 	if (gVoltammetryParams.state.SEQ_currentPoint == 0) {
-    uint32_t tAFECONValue = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+    uint32_t tAFECONValue = AD5941_readRegister(AD_AFECON, REG_SZ_32);    
     AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)gVoltammetryParams.DAC.starting);
     AD5941_sequencerWriteCommand(AD_AFECON, tAFECONValue | (uint32_t)1 << 7); 
     AD5941_sequencerWaitCommand((uint32_t)gVoltammetryParams.parameters.settlingTime * 1000u);

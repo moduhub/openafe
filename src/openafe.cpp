@@ -76,8 +76,7 @@ uint32_t AFE::setTIAGain(unsigned long pTIAGain){
 
 
 uint16_t AFE::getPoint(float *pVoltage_mV, float *pCurrent_uA){
-	//return openafe_getPoint(pVoltage_mV, pCurrent_uA);
-  return 0;
+	return openafe_getPoint(pVoltage_mV, pCurrent_uA);
 }
 
 bool AFE::done(void){

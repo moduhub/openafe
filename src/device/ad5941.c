@@ -240,7 +240,8 @@ uint16_t AD5941_sequencerTimerCommand(unsigned long pTimer_us) {
 }
 
 uint16_t AD5941_sequencerWaitCommand(uint32_t pTimeToWait_us) {
-	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.f / SEQ_DEFAULT_TIME_RESULUTION_NS;
+  // ((float)pVoltammetryParams->numCycles > 2.0) ? 500.0 : 1000.0;
+	uint32_t tWaitCounter = (float)pTimeToWait_us * 1000.0f / SEQ_DEFAULT_TIME_RESULUTION_NS;
 	uint32_t tSequencerCommand = tWaitCounter & 0x3FFFFFFF; // mask out the 2 MSB -> wait command
 	AD5941_writeRegister(AD_CMDFIFOWRITE, tSequencerCommand, REG_SZ_32);
 	return AD5941_increaseSequencerMemoryAddress(); // increase the SRAM Address
