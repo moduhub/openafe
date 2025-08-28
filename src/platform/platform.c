@@ -92,7 +92,7 @@ void debug_log_u_bit(uint32_t num, uint32_t pos) {
   return arduino_debug_log_u_bit(num, pos);
 }
 
-void debug_debug_delay(uint32_t ms) {
+void debug_delay(uint32_t ms) {
   return arduino_debug_delay(ms);
 }
 

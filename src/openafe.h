@@ -70,7 +70,7 @@ class AFE {
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		int setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
+		int setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
 		 * @brief Generate the desired DPV waveform and fill the sequencer.

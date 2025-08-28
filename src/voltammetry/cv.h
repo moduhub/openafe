@@ -17,7 +17,6 @@ extern "C" {
  * @note This function also automatically sets the interrupts and initialize global variables.
  * 
  * @param pVoltammetryParams Pointer to voltammetry parameters
- * @param pVoltammetry Pointer to voltammetry struct
  * @return Error code
  */
 int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams);
@@ -25,7 +24,6 @@ int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams);
 /**
  * @brief Calculate the parameters for a given target CV waveform.
  *
- * @param pVoltammetryParams IN/OUT -- voltammetry params.
  * @return Error code on error.
  */
 int openafe_calculateParamsForCV(void);

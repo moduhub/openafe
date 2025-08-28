@@ -27,7 +27,7 @@ void AFE::resetBySoftware(void){
 	AD5941_softwareReset();
 }
 
-int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles){
+int AFE::setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles){
   voltammetry_parameters_t parametersCV;
   parametersCV.settlingTime = pSettlingTime;
   parametersCV.startingPotential = pStartingPotential;
