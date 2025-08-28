@@ -82,13 +82,12 @@ class AFE {
 		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
 		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
 		 * @param pStepPotential IN -- Step potential of the wave, in mV, e.g. 5.
-		 * @param pPulseWidth IN -- Pulse width, in milliseconds, e.g. 1.
 		 * @param pPulsePeriod IN -- Pulse period, it is the inverse of frequency, in ms, e.g. 20.
-		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
-		 * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
+		 * @param pStepPeriod IN -- Step period, in ms, e.g. 10.
+		 * 
 		 * @return Error codes.
 		 */
-		int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential,uint32_t pPulsePeriod, uint32_t pStepPeriod);
 
 		/**
 		 * @brief Generate the desired SWV waveform and fill the sequencer.

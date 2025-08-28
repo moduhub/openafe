@@ -31,6 +31,7 @@ typedef struct voltammetry_parameters_t {
   float pulsePotential;           // Pulse potential, in mV.
   uint16_t pulseWidth_ms;         // Pulse width, in milliseconds.
   uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
+  uint32_t stepPeriod_ms;         // Step Period, in milliseconds.
   uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
   uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
   float pulseFrequency;           // Pulse Frequency, in Hertz.

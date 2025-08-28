@@ -38,7 +38,7 @@ int AFE::setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float p
   return openafe_setupCV(&parametersCV);
 }
 
-int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase){
+int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint32_t pPulsePeriod, uint32_t pStepPeriod){
   voltammetry_parameters_t parametersDPV;
   parametersDPV.settlingTime = pSettlingTime;
   parametersDPV.startingPotential = pStartingPotential;
@@ -49,7 +49,9 @@ int AFE::setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float 
   parametersDPV.samplePeriodPulse_ms = pSamplePeriodPulse;
   parametersDPV.samplePeriodBase_ms = pSamplePeriodBase;
   parametersDPV.stepPotential = pStepPotential;
-  //return openafe_setupDPV(&parametersDPV);
+  parametersDPV.pulsePeriod_ms = pPulsePeriod;
+  parametersDPV.stepPeriod_ms = pStepPeriod;
+  return openafe_setupDPV(&parametersDPV);
 }
 
 int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse){
