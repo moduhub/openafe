@@ -113,6 +113,11 @@ void arduino_debug_log_u_bit(uint32_t num, uint32_t pos);
  */
 void arduino_debug_delay(uint32_t ms);
 
+/**
+ * Trigger a breakpoint in the code.
+ */
+void arduino_debug_break_point(void);
+
 #ifdef __cplusplus
 }
 #endif

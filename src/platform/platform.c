@@ -96,4 +96,8 @@ void debug_debug_delay(uint32_t ms) {
   return arduino_debug_delay(ms);
 }
 
+void debug_break_point(void){
+  return arduino_debug_break_point();
+}
+
 #endif

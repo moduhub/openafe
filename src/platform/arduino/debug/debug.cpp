@@ -48,3 +48,8 @@ extern "C" void arduino_debug_log_u_bit(uint32_t num, uint32_t pos) {
 extern "C" void arduino_debug_delay(uint32_t ms) {
   delay(ms);
 } 
+
+void arduino_debug_break_point(void){
+  for(int i = 0; i < 20; i++) arduino_debug_log(".");
+  while(1);
+}

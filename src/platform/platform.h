@@ -123,4 +123,9 @@ void debug_log_u_bit(uint32_t num, uint32_t pos);
  */
 void debug_delay(uint32_t ms);
 
+/**
+ * Trigger a breakpoint in the code.
+ */
+void debug_break_point(void);
+
 #endif // _OPENAFE_PLATFORM_H_
