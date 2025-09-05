@@ -186,28 +186,31 @@ void openafe_interruptHandler(void) {
 	uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 11)) {	// trigger ADC result read
-		if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep < 2) { // Limite do buffer
-			gRawSINC2Data[gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep] = AD5941_readADC();
-			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
-		}
-		if (gVoltammetryParams.numCurrentPointsPerStep == gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep) {
-			gDataAvailable++;
-			gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
-		}
+		uint8_t idx = gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep;
+    if (idx < gVoltammetryParams.numCurrentPointsPerStep && idx < 2) {
+      gRawSINC2Data[idx] = AD5941_readADC();
+      gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep++;
+    }
+    
+    if (gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep >= gVoltammetryParams.numCurrentPointsPerStep) {
+      gDataAvailable++;
+      gVoltammetryParams.state.SEQ_numCurrentPointsReadOnStep = 0;
+    }
+
 		// send next sequence command to the runing sequence, but skips the first point of the sequence
 		// this is done to prevent a sequence command being written on top of a another, considering that
 		// the command to be overwritten is the very command that generated the read result interrupt 
 		if (gShouldAddPoints && gDataAvailable) {
-			gVoltammetryParams.state.SEQ_nextSRAMAddress = openafe_SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress);
-			if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ0_END_ADDR) {
-				gVoltammetryParams.state.SEQ_nextSRAMAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
-				AD5941_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
-			} else
-			if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR) {
-				gVoltammetryParams.state.SEQ_nextSRAMAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
-				AD5941_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
-			}
-		}
+      gVoltammetryParams.state.SEQ_nextSRAMAddress = openafe_SEQ_addPoint(gVoltammetryParams.state.SEQ_nextSRAMAddress);
+      if (gCurrentSequence == 1 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ0_END_ADDR) {
+        gVoltammetryParams.state.SEQ_nextSRAMAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+        AD5941_configureSequence(0, SEQ0_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+      } else
+      if (gCurrentSequence == 0 && (gVoltammetryParams.state.SEQ_nextSRAMAddress + gVoltammetryParams.state.SEQ_numCommandsPerStep) >= SEQ1_END_ADDR) {
+        gVoltammetryParams.state.SEQ_nextSRAMAddress = AD5941_sequencerWriteCommand(AD_SEQCON, (uint32_t)2); // Generate sequence end interrupt
+        AD5941_configureSequence(1, SEQ1_START_ADDR, gVoltammetryParams.state.SEQ_nextSRAMAddress);
+      }
+    }
 	}
 	if (tInterruptFlags0 & ((uint32_t)1 << 12)) { // end of voltammetry
 		AD5941_zeroVoltageAcrossElectrodes();
