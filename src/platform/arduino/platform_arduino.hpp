@@ -2,6 +2,7 @@
 #define _OPENAFE_PLATFORM_ARDUINO_HPP_
 
 #include <stdint.h>
+#include "../../voltammetry/voltammetry.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,6 +108,13 @@ void arduino_debug_log_f(float num);
  * @param pos Position of the bit to log (0-31).
  */
 void arduino_debug_log_u_bit(uint32_t num, uint32_t pos);
+
+/**
+ * @brief Function to display data from the voltammetry structure
+ *
+ * @param pVoltammetry IN -- Pointer to the voltammetry parameters structure.
+ */
+void arduino_debug_voltammetry(const voltammetry_t *pVoltammetry);
 
 /** Delay for a specified number of milliseconds.
  * @param ms Number of milliseconds to delay.
