@@ -295,8 +295,14 @@ uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress) {
     AD5941_sequencerWaitCommand(gVoltammetryParams.stepDuration_us);  
     tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
   }
-  else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) 
-		; //tCurrentSRAMAddress = openafe_SEQ_stepCommandDPV(pVoltammetryParams, tDAC12Value);
+  else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV){
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)(tDAC12Value + gVoltammetryParams.DAC.pulse));
+    AD5941_sequencerWaitCommand(((uint32_t)gVoltammetryParams.parameters.pulsePeriod_ms) * 1000u);
+    AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)tDAC12Value);
+    AD5941_sequencerWaitCommand(((uint32_t)gVoltammetryParams.parameters.stepPeriod_ms) * 1000u);  
+    tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+  }
 	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV) 
 		; //tCurrentSRAMAddress = openafe_SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
 
