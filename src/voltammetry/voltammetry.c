@@ -76,29 +76,31 @@ float openafe_getVoltage(uint32_t pNumPointsRead) {
 }
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
-	*pVoltage_mV = openafe_getVoltage(gNumDataPointsRead);
-	float tCurrent = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
-		float tCurrentAtPulseBase = tCurrent;
-		float tCurrentAtPulseTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
-		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBase; 
-	} else
-	if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV) {
-		float tCurrentAtPulseTop = tCurrent;
-		float tCurrentAtPulseBottom = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
-		tCurrent = tCurrentAtPulseTop - tCurrentAtPulseBottom; 
-	}
-	*pCurrent_uA = tCurrent;
-	gNumDataPointsRead++;
-	if (gNumDataPointsRead == gVoltammetryParams.numPoints) {
-		gFinished = 1;
-		gShoulKillVoltammetry = 1;
-	}
-	gDataAvailable = 0;
-	uint16_t pointIndex = gNumPointsRead;
-	gNumPointsRead++;
+  float tCurrentBase = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
+  pVoltage_mV[0] = openafe_getVoltage(gNumDataPointsRead);
 
-	return pointIndex; 
+  if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
+    float pulseIncrement = gVoltammetryParams.parameters.pulsePotential;
+    pVoltage_mV[1] = pVoltage_mV[0];
+    pVoltage_mV[0] = pVoltage_mV[0] + pulseIncrement;
+
+    float tCurrentTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
+    pCurrent_uA[0] = tCurrentBase;
+    pCurrent_uA[1] = tCurrentTop;
+  } else {
+    pCurrent_uA[0] = tCurrentBase;
+  }
+
+  uint16_t pointIndex = gNumDataPointsRead;
+  gNumDataPointsRead++;
+
+  if (gNumDataPointsRead == gVoltammetryParams.numPoints) {
+    gFinished = 1;
+    gShoulKillVoltammetry = 1;
+  }
+  gDataAvailable = 0;
+
+  return pointIndex;
 }
 
 uint8_t openafe_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress) {
