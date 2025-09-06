@@ -87,7 +87,17 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
     float tCurrentTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
     pCurrent_uA[0] = tCurrentBase;
     pCurrent_uA[1] = tCurrentTop;
-  } else {
+  } 
+  else if(gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV){
+    float pulseIncrement = gVoltammetryParams.parameters.pulsePotential;
+    pVoltage_mV[1] = pVoltage_mV[0] - pulseIncrement;
+    pVoltage_mV[0] = pVoltage_mV[0] + pulseIncrement;
+
+    float tCurrentTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
+    pCurrent_uA[0] = tCurrentBase;
+    pCurrent_uA[1] = tCurrentTop;
+  }
+  else {
     pCurrent_uA[0] = tCurrentBase;
   }
 
@@ -303,8 +313,15 @@ uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress) {
     AD5941_sequencerWaitCommand((gVoltammetryParams.stepDuration_us - gVoltammetryParams.pulseDuration_us));  
     tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
   }
-	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV) 
-		; //tCurrentSRAMAddress = openafe_SEQ_stepCommandSWV(pVoltammetryParams, tDAC12Value);
+	else if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV){
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)(tDAC12Value + gVoltammetryParams.DAC.pulse));
+    AD5941_sequencerWaitCommand(gVoltammetryParams.pulseDuration_us);
+    AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+    AD5941_sequencerWriteCommand(AD_LPDACDAT0, ((uint32_t)gVoltammetryParams.DAC.reference << 12) | (uint32_t)(tDAC12Value - gVoltammetryParams.DAC.pulse));
+    AD5941_sequencerWaitCommand((gVoltammetryParams.stepDuration_us - gVoltammetryParams.pulseDuration_us));  
+    tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
+  } 
+		
 
   if (gVoltammetryParams.state.SEQ_currentPoint == (gVoltammetryParams.numPoints - 1)) 
 		tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!

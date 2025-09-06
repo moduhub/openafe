@@ -26,7 +26,7 @@ int openafe_setupCV(const voltammetry_parameters_t *pVoltammetryParams) {
 int openafe_calculateParamsForCV(void) {
   const voltammetry_parameters_t params = gVoltammetryParams.parameters;
 
-  if (params.numCycles <= 0 || params.scanRate < 150 || params.scanRate >= 300 || params.endingPotential < params.startingPotential) 
+  if (params.numCycles <= 0 || params.scanRate >= 300 || params.endingPotential < params.startingPotential) 
     return ERROR_PARAM_OUT_BOUNDS;
 
   float tRequiredPotentialRange = (params.endingPotential - params.startingPotential) / 1000.0f;
@@ -41,6 +41,7 @@ int openafe_calculateParamsForCV(void) {
   gVoltammetryParams.DAC.reference = (uint32_t)((DAC_6_HALF_RNG - waveOffset_V) / DAC_6_STEP_V);
 
   float refValue_V = ((float)gVoltammetryParams.DAC.reference) * DAC_6_STEP_V;
+  
   float waveTop_V = refValue_V + (params.endingPotential / 1000.0f);
   if (waveTop_V > DAC_6_RNG_V) 
     return ERROR_PARAM_OUT_BOUNDS;

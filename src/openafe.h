@@ -95,15 +95,16 @@ class AFE {
 		 * @note This function also automatically sets the interrupts and initialize global variables.
 		 *
 		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
-		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
-		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
-		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
-		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
-		 * @param pPulseFrequency IN -- Pulse frequency, in Hertz, e.g. 50.
-		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
+		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -800.
+		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 0.
+		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 100.
+		 * @param pStepPotential IN -- Step size of the wave in mV, e.g. 5.
+     * @param pPulsePotential IN -- Step potential of the wave, in mV, e.g. 5.
+     * @param pDutyCycle IN -- Size of the duty cycle between waves, in percentage, e.g. 50
+     *
 		 * @return Error codes.
 		 */
-		int setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse);
+		int setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle);
 
 		/**
 		 * @brief Set the TIA gain resistor based on the desired current range.

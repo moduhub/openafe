@@ -12,13 +12,22 @@ void loop(){
 	attachInterrupt(digitalPinToInterrupt(2), openAFE.interruptHandler, LOW);
 	delay(500);
 
-	int processo = 1 ; // 0 CV, 1 DPV
-
-	int success = 0;
-	if(processo == 0)
-		success = openAFE.setCVSequence(1000,-800,0,200,100,1);
-	else if(processo ==1 )
-		success = openAFE.setDPVSequence( 1000,-800,0, 500, 100, 500, 500); // 800+500 < 1600 (DAC12bits) and 100mV/seg
+	int process = 0 ; // 0 CV, 1 DPV, 2 SWV  
+  int success;
+  switch (process) {
+    case 0:
+      success = openAFE.setCVSequence(1000, -800, 0, 200, 100, 1);
+      break;
+    case 1:
+      success = openAFE.setDPVSequence(1000, -800, 0, 100, 100, 300, 50);
+      break;
+    case 2:
+      success = openAFE.setSWVSequence(1000, -800, 0, 100, 100, 300, 50);
+      break;
+    default:
+      success = -1;
+      break;
+  }
 
 	if (success){
 		interrupts();
@@ -34,14 +43,14 @@ void loop(){
 
         interrupts();
 
-        if (processo == 0) {
+        if (process == 0) {
           // CV -> 1 point
           Serial.print(voltages[0]);
           Serial.print(",");
           Serial.println(currents[0]);
         } 
-        else if (processo == 1) {
-          // DPV -> 2 point
+        else if (process == 1 || process == 2) {
+          // (DPV, SWV) -> 2 point
           Serial.print(voltages[0]);
           Serial.print(",");
           Serial.println(currents[0]);

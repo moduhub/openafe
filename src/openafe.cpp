@@ -2,7 +2,6 @@
 
 AFE::AFE(void){
 	AD5941_init(0, 0, 0);
-  debug_log("CSS");
 }
 
 
@@ -51,16 +50,16 @@ int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float 
   return openafe_setupDPV(&parametersDPV);
 }
 
-int AFE::setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse){
-	//voltammetry_parameters_t parametersSWV;
-  //parametersSWV.settlingTime = pSettlingTime;
-  //parametersSWV.startingPotential = pStartingPotential;
-  //parametersSWV.endingPotential = pEndingPotential;
-  //parametersSWV.scanRate = pScanRate;
-  //parametersSWV.pulsePotential = pPulsePotential;
-  //parametersSWV.pulseFrequency = pPulseFrequency;
-  //parametersSWV.samplePeriodPulse_ms = pSamplePeriodPulse;
-  //return openafe_setupDPV(&parametersSWV);
+int AFE::setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle){
+	voltammetry_parameters_t parametersSWV;
+  parametersSWV.settlingTime = pSettlingTime;
+  parametersSWV.startingPotential = pStartingPotential;
+  parametersSWV.endingPotential = pEndingPotential;
+  parametersSWV.scanRate = pScanRate;
+  parametersSWV.stepPotential = pStepPotential;
+  parametersSWV.pulsePotential = pPulsePotential;
+  parametersSWV.dutyCycle = pDutyCycle;
+  return openafe_setSWVSequence(&parametersSWV);
 }
 
 
