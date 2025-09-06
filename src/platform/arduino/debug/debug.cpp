@@ -71,13 +71,11 @@ extern "C" void arduino_debug_voltammetry(const voltammetry_t *pVoltammetry){
   Serial.print(F("  stepPotential (mV): ")); Serial.println(pVoltammetry->parameters.stepPotential);
   Serial.print(F("  numCycles: ")); Serial.println(pVoltammetry->parameters.numCycles);
   Serial.print(F("  pulsePotential (mV): ")); Serial.println(pVoltammetry->parameters.pulsePotential);
-  Serial.print(F("  pulsePeriod_ms: ")); Serial.println(pVoltammetry->parameters.pulsePeriod_ms);
-  Serial.print(F("  stepPeriod_ms: ")); Serial.println(pVoltammetry->parameters.stepPeriod_ms);
-  Serial.print(F("  pulseFrequency (Hz): ")); Serial.println(pVoltammetry->parameters.pulseFrequency);
+  Serial.print(F("  dutyCycle (%): ")); Serial.println(pVoltammetry->parameters.dutyCycle);
 
   Serial.println(F(" calculated parameters:"));
   Serial.print(F("  stepDuration_us: ")); Serial.println(pVoltammetry->stepDuration_us);
-  Serial.print(F("  baseWidth_ms: ")); Serial.println(pVoltammetry->baseWidth_ms);
+  Serial.print(F("  pulseDuration_us: ")); Serial.println(pVoltammetry->pulseDuration_us);
   Serial.print(F("  numPoints: ")); Serial.println(pVoltammetry->numPoints);
   Serial.print(F("  numSlopePoints: ")); Serial.println(pVoltammetry->numSlopePoints);
   Serial.print(F("  numCurrentPointsPerStep: ")); Serial.println(pVoltammetry->numCurrentPointsPerStep);

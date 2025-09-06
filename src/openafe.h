@@ -80,14 +80,14 @@ class AFE {
 		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
 		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
 		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
-		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+     * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 100.
 		 * @param pStepPotential IN -- Step potential of the wave, in mV, e.g. 5.
-		 * @param pPulsePeriod IN -- Pulse period, it is the inverse of frequency, in ms, e.g. 20.
-		 * @param pStepPeriod IN -- Step period, in ms, e.g. 10.
+     * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+		 * @param pDutyCycle IN -- Size of the duty cycle between waves, in percentage, e.g. 50
 		 * 
 		 * @return Error codes.
 		 */
-		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential,uint32_t pPulsePeriod, uint32_t pStepPeriod);
+		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle);
 
 		/**
 		 * @brief Generate the desired SWV waveform and fill the sequencer.

@@ -39,15 +39,15 @@ int AFE::setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float p
   return openafe_setupCV(&parametersCV);
 }
 
-int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint32_t pPulsePeriod, uint32_t pStepPeriod){
+int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle){
   voltammetry_parameters_t parametersDPV;
   parametersDPV.settlingTime = pSettlingTime;
   parametersDPV.startingPotential = pStartingPotential;
   parametersDPV.endingPotential = pEndingPotential;
-  parametersDPV.pulsePotential = pPulsePotential;
+  parametersDPV.scanRate = pScanRate;
   parametersDPV.stepPotential = pStepPotential;
-  parametersDPV.pulsePeriod_ms = pPulsePeriod;
-  parametersDPV.stepPeriod_ms = pStepPeriod;
+  parametersDPV.pulsePotential = pPulsePotential;  
+  parametersDPV.dutyCycle = pDutyCycle;
   return openafe_setupDPV(&parametersDPV);
 }
 

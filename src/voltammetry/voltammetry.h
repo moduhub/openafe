@@ -29,12 +29,9 @@ typedef struct voltammetry_parameters_t {
   float stepPotential;            // Target step potential, in mV.
   uint8_t numCycles;              // Target number of cycles of the CV wave.
   float pulsePotential;           // Pulse potential, in mV.
-  //uint16_t pulseWidth_ms;         // Pulse width, in milliseconds.
-  uint32_t pulsePeriod_ms;        // Pulse Period, in milliseconds.
-  uint32_t stepPeriod_ms;         // Step Period, in milliseconds.
-  //uint16_t samplePeriodPulse_ms;  // Sample time before the pulse end, in milliseconds.
-  //uint16_t samplePeriodBase_ms;   // Sample time before the base end, in milliseconds.
-  float pulseFrequency;           // Pulse Frequency, in Hertz.
+  //uint32_t pulsePeriod_ms;        // REMOVE THIS
+  //uint32_t stepPeriod_ms;         // REMOVE THIS
+  float dutyCycle;                // Duty Cycle, in percentage
 } voltammetry_parameters_t;
 
 /** Type that store all the necessary data for the voltammetry process. */
@@ -43,7 +40,7 @@ typedef struct voltammetry_t {
   voltammetry_parameters_t parameters;
   // Calculated Parameters
   uint32_t stepDuration_us; // Duration of each step, in microseconds (us).
-  uint32_t baseWidth_ms;    // Base width, in milliseconds.
+  uint32_t pulseDuration_us;// Duration of each pulse, in microseconds (us).
   uint16_t numPoints;       // Number of points in the wave.
   uint16_t numSlopePoints;  // Number of points in the slopes.
   DAC_t DAC;                // DAC parameters.
