@@ -26,7 +26,7 @@ int openafe_setSWVSequence(const voltammetry_parameters_t *pVoltammetryParams){
 int openafe_calculateParamsForSWV(void){
   const voltammetry_parameters_t params = gVoltammetryParams.parameters;
 
-  if (params.scanRate >= 300 || params.endingPotential < params.startingPotential) 
+  if (params.endingPotential < params.startingPotential) 
     return ERROR_PARAM_OUT_BOUNDS;
 
   float peak_positive = params.endingPotential+params.pulsePotential;
