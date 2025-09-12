@@ -14,15 +14,21 @@ void loop(){
 
 	int process = 0 ; // 0 CV, 1 DPV, 2 SWV  
   int success;
+  int settlingTime = 1000;
+  int startingPotential = -500;
+  int endingPotential = 500;
+  int scanRate = 1000;
+  int stepPotential = 100;
+  int pulse = 50;
   switch (process) {
     case 0:
-      success = openAFE.setCVSequence(1000, -800, 0, 1000, 100, 1);
+      success = openAFE.setCVSequence(settlingTime, -800, 0, scanRate, stepPotential, 1);
       break;
     case 1:
-      success = openAFE.setDPVSequence(1000, -500, 500, 1000, 100, 50, 10);
+      success = openAFE.setDPVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 10);
       break;
     case 2:
-      success = openAFE.setSWVSequence(1000, -500, 500, 1000, 100, 50, 50);
+      success = openAFE.setSWVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 50);
       break;
     default:
       success = -1;
@@ -37,26 +43,35 @@ void loop(){
 			if (openAFE.dataAvailable() > 0){
 				noInterrupts();
               
-        float voltages[2];
-        float currents[2];
-        openAFE.getPoint(voltages, currents);
+        float voltage_mV;
+        float currents_uA[2];
+        openAFE.getPoint(&voltage_mV, currents_uA);
 
         interrupts();
 
         if (process == 0) {
           // CV -> 1 point
-          Serial.print(voltages[0]);
+          Serial.print(voltage_mV);
           Serial.print(",");
-          Serial.println(currents[0]);
+          Serial.println(currents_uA[0]);
         } 
-        else if (process == 1 || process == 2) {
-          // (DPV, SWV) -> 2 point
-          Serial.print(voltages[0]);
+        else if (process == 1){
+          // DPV -> 2 point
+          Serial.print(voltage_mV + pulse);
           Serial.print(",");
-          Serial.println(currents[0]);
-          Serial.print(voltages[1]);
+          Serial.println(currents_uA[0]);
+          Serial.print(voltage_mV);
           Serial.print(",");
-          Serial.println(currents[1]);
+          Serial.println(currents_uA[1]);
+        }
+        else if (process == 2) {
+          // SW -> 2 point
+          Serial.print(voltage_mV + pulse);
+          Serial.print(",");
+          Serial.println(currents_uA[0]);
+          Serial.print(voltage_mV - pulse);
+          Serial.print(",");
+          Serial.println(currents_uA[1]);
         }
 			}
 			delay(1);
