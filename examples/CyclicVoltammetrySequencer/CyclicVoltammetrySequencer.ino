@@ -16,13 +16,13 @@ void loop(){
   int success;
   switch (process) {
     case 0:
-      success = openAFE.setCVSequence(1000, -800, 0, 200, 100, 1);
+      success = openAFE.setCVSequence(1000, -800, 0, 1000, 100, 1);
       break;
     case 1:
-      success = openAFE.setDPVSequence(1000, -800, 0, 100, 100, 300, 50);
+      success = openAFE.setDPVSequence(1000, -500, 500, 1000, 100, 50, 10);
       break;
     case 2:
-      success = openAFE.setSWVSequence(1000, -800, 0, 100, 100, 300, 50);
+      success = openAFE.setSWVSequence(1000, -500, 500, 1000, 100, 50, 50);
       break;
     default:
       success = -1;
