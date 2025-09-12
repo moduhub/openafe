@@ -77,22 +77,15 @@ float openafe_getVoltage(uint32_t pNumPointsRead) {
 
 uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
   float tCurrentBase = AD5941_getCurrentFromADCValue(gRawSINC2Data[0]);
-  pVoltage_mV[0] = openafe_getVoltage(gNumDataPointsRead);
+  *pVoltage_mV = openafe_getVoltage(gNumDataPointsRead);
 
   if (gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_DPV) {
     float pulseIncrement = gVoltammetryParams.parameters.pulsePotential;
-    pVoltage_mV[1] = pVoltage_mV[0];
-    pVoltage_mV[0] = pVoltage_mV[0] + pulseIncrement;
-
     float tCurrentTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
     pCurrent_uA[0] = tCurrentBase;
     pCurrent_uA[1] = tCurrentTop;
   } 
   else if(gVoltammetryParams.state.currentVoltammetryType == STATE_CURRENT_SWV){
-    float pulseIncrement = gVoltammetryParams.parameters.pulsePotential;
-    pVoltage_mV[1] = pVoltage_mV[0] - pulseIncrement;
-    pVoltage_mV[0] = pVoltage_mV[0] + pulseIncrement;
-
     float tCurrentTop = AD5941_getCurrentFromADCValue(gRawSINC2Data[1]);
     pCurrent_uA[0] = tCurrentBase;
     pCurrent_uA[1] = tCurrentTop;
