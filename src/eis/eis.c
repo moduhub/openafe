@@ -9,6 +9,23 @@ extern "C" {
 #include "../device/ad5941_registers.h"
 #include "../device/ad5941_defines.h"
 
+/* --- LPDAC -> CE/RE --- */
+void AD5941_EIS_Switches(void){
+  AD5941_setRegisterBit(AD_LPDACSW0, 5);
+  AD5941_setRegisterBit(AD_LPDACSW0, 4);
+  AD5941_clearRegisterBit(AD_LPDACSW0, 3);
+  AD5941_setRegisterBit(AD_LPDACSW0, 2);
+  AD5941_setRegisterBit(AD_LPDACSW0, 1);
+  AD5941_clearRegisterBit(AD_LPDACSW0, 0);
+
+  AD5941_setRegisterBit(AD_LPTIASW0, 13);
+  AD5941_setRegisterBit(AD_LPTIASW0, 4);
+  AD5941_setRegisterBit(AD_LPTIASW0, 2);
+
+  AD5941_clearRegisterBit(AD_LPTIASW0, 6);
+  AD5941_clearRegisterBit(AD_LPTIASW0, 5);
+}
+
 void AD5941_EnableWaveGen_SimpleSquare(uint32_t period_ms, uint32_t code_low, uint32_t code_high) {
   //for test
   uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
