@@ -11,6 +11,7 @@ extern "C" {
   #include "voltammetry/dpv.h"
   #include "voltammetry/swv.h"
   #include "platform/platform.h"
+  #include "eis/eis.h"
 }
 
 class AFE {
@@ -183,7 +184,8 @@ class AFE {
 		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
 		 * @return >0 if successful, otherwise error.
 		 */
-		static int setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration);
+		//static int setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration);
+    static int AFE::setEISSinSequence(void);
 
 		/**
 		 * @brief Generate a trapezoidal EIS waveform using the waveform generator and fill the sequencer.

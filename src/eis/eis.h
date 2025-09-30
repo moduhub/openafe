@@ -29,6 +29,10 @@ typedef struct EIS_t{
     uint32_t DAC_amplitude;    // Calculated DAC amplitude.
     uint32_t DAC_offset;       // Calculated DAC offset.
 } EIS_t;
+/**
+ *
+ */
+void AD5941_EnableWaveGen_SimpleSquare(uint32_t period_ms, uint32_t code_low, uint32_t code_high);
 
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);

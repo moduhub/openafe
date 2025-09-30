@@ -4,6 +4,160 @@ extern "C" {
 
 #include "eis.h"
 #include "../device/ad5941.h"
+#include <stdint.h>
+#include <math.h>
+#include "../device/ad5941_registers.h"
+#include "../device/ad5941_defines.h"
+
+void AD5941_EnableWaveGen_SimpleSquare(uint32_t period_ms, uint32_t code_low, uint32_t code_high) {
+  //for test
+  uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
+  char dbgmsg[64]; 
+  snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID 1.0: 0x%08lX", chipID); 
+  debug_log(dbgmsg);
+
+  // Bitbang to 2Khz
+  platform_setup(0, 0, 2000UL); 
+  
+  // SYSCLK in 32 kHz
+  AD5941_writeRegister(AD_CLKSEL, 2u, REG_SZ_16);
+  uint32_t val = AD5941_readRegister(AD_CLKCON0, REG_SZ_16);
+  val &= ~0x3F;
+  val |= 1u;
+  AD5941_writeRegister(AD_CLKCON0, val, REG_SZ_16);
+
+  debug_delay(50); //time for wakeup
+
+  while(1){
+    chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); // Problem Here
+    snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID 1.5: 0x%08lX", chipID); 
+    debug_log(dbgmsg);
+  }
+
+  AD5941_writeRegister(AD_CLKSEL, 1u, REG_SZ_16);
+  debug_delay(50); //time for wakeup
+
+  platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
+  debug_delay(10);
+
+  return;
+}
+
+
+// -- Teste WAVEGEN -- //
+
+int AD5941_TestWavegenSafe(void){
+  // 1) Ler CHIPID
+  uint32_t chipid = AD5941_readRegister(AD_CHIPID, REG_SZ_16);
+  debug_log("CHIPID inicial: "); debug_log_u(chipid);
+
+  // 2) Configurar trapezoid (delays curtos, níveis distintos)
+  AD5941_writeRegister(AD_WGDCLEVEL1, 0x400, REG_SZ_32); // nível baixo
+  AD5941_writeRegister(AD_WGDCLEVEL2, 0xC00, REG_SZ_32); // nível alto
+  AD5941_writeRegister(AD_WGDELAY1, 1000, REG_SZ_32);    // ~3ms @ 320kHz
+  AD5941_writeRegister(AD_WGDELAY2, 1000, REG_SZ_32);
+  AD5941_writeRegister(AD_WGSLOPE1, 0, REG_SZ_32);
+  AD5941_writeRegister(AD_WGSLOPE2, 0, REG_SZ_32);
+
+  debug_log("CHIPID depois de WG params: "); debug_log_u(AD5941_readRegister(AD_CHIPID, REG_SZ_16));
+
+  // 3) Selecionar trapezoid (TYPESEL=11)
+  uint32_t wgcon = AD5941_readRegister(AD_WGCON, REG_SZ_32);
+  wgcon &= ~(0x6u);
+  wgcon |= (0x3u << 1);
+  AD5941_writeRegister(AD_WGCON, wgcon, REG_SZ_32);
+
+  debug_log("CHIPID depois de WGCON: "); debug_log_u(AD5941_readRegister(AD_CHIPID, REG_SZ_16));
+
+  // 4) Habilitar bloco WaveGen no AFECON
+  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  afecon |= (1u << 14); // WAVEGENEN
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+
+  debug_log("CHIPID depois de AFECON: "); debug_log_u(AD5941_readRegister(AD_CHIPID, REG_SZ_16));
+
+  // 5) Configurar LPDAC para usar WG
+  uint32_t lpdaccon = AD5941_readRegister(AD_LPDACCON0, REG_SZ_32);
+  lpdaccon |= (1u << 6); // WAVETYPE=1 (usar WG)
+  lpdaccon &= ~(1u << 1); // PWDEN=0 (liga LPDAC)
+  AD5941_writeRegister(AD_LPDACCON0, lpdaccon, REG_SZ_32);
+
+  debug_log("CHIPID final: "); debug_log_u(AD5941_readRegister(AD_CHIPID, REG_SZ_16));
+
+  return 0;
+}
+
+// --               -- //
+
+
+
+// -- Testes onda quadrada -- //
+
+// Delay simples (bloqueante). Ajuste para seu MCU / HAL conforme necessário.
+static void busy_delay_ms(uint32_t ms){
+  volatile uint32_t i, j;
+  for(i = 0; i < ms; ++i){
+    for(j = 0; j < 12000; ++j) { asm volatile("nop"); } // calibrar conforme clock da CPU
+  }
+}
+/*
+  Gera uma onda quadrada simples no LPDAC conectada a CE0/SE0.
+  - period_ms: período total do pulso (ms). Ex.: 100 ms -> 10 Hz.
+  - code_low, code_high: códigos LPDAC (formato: (6-bit<<12) | 12-bit). 
+      Exemplo meia-escala: (0x20<<12)|0x800
+  - cycles: número de ciclos a emitir (0 = infinito)
+*/
+void AD5941_GenerateSimpleSquareOnCE0(uint32_t period_ms, uint32_t code_low, uint32_t code_high, uint32_t cycles){
+  // 1) Garantir AFECON com blocos DAC ativos (limpo de WG para evitar conflitos)
+  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  afecon &= ~(1u << 14);   // WAVEGENEN = 0 (desabilita WaveGen para evitar confusão)
+  afecon |=  (1u << 21);   // DACBUFEN = 1 (habilita buffer do DAC)
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+
+  // 2) Configurar LPDAC para modo DIRECT (WAVETYPE=0), permitir escrita (RSTEN=1) e ligar (PWDEN=0)
+  uint32_t lpdaccon = AD5941_readRegister(AD_LPDACCON0, REG_SZ_32);
+  lpdaccon &= ~(1u << 6);  // WAVETYPE = 0 -> usar LPDACDATx como fonte
+  lpdaccon |=  (1u << 0);  // RSTEN = 1 -> permite writes em LPDACDAT0
+  lpdaccon &= ~(1u << 1);  // PWDEN = 0 -> power on LPDAC
+  AD5941_writeRegister(AD_LPDACCON0, lpdaccon, REG_SZ_32);
+
+  // 3) Roteamento LPDAC -> CE0/SE0 (simplificado): habilita bits de controle e conecta SWs
+  uint32_t lpdacsw = 0;
+  lpdacsw |= (1u << 5); // habilita controle individual
+  lpdacsw |= (1u << 4); // SW4 = 1 -> conecta VBIAS0 -> CE0 (ou rota conforme seu hardware)
+  lpdacsw |= (1u << 2); // SW2 = 1 -> conecta VZERO0 -> SE0 (ou rota conforme hardware)
+  AD5941_writeRegister(AD_LPDACSW0, lpdacsw, REG_SZ_32);
+
+  // 4) For debugging: coloque LPTIA em unity-gain/test para não cancelar o sinal
+  // Valor exemplo sugerido pelo datasheet para unity/test (ajuste conforme seu hardware)
+  AD5941_writeRegister(AD_LPTIASW0, 0x04A4u, REG_SZ_32);
+
+  // 5) Agora escrevemos os códigos alternados em LPDACDAT0 para formar a onda quadrada.
+  // Primeiro escreva um valor inicial (baixo)
+  AD5941_writeRegister(AD_LPDACDAT0, code_low, REG_SZ_32);
+  // Aguarde breve (assegura atualização hardware)
+  busy_delay_ms(2);
+
+  uint32_t half_ms = period_ms / 2;
+  uint32_t count = 0;
+
+  while(cycles == 0 || count < cycles){
+    // nível alto
+    AD5941_writeRegister(AD_LPDACDAT0, code_high, REG_SZ_32);
+    busy_delay_ms(half_ms);
+
+    // nível baixo
+    AD5941_writeRegister(AD_LPDACDAT0, code_low, REG_SZ_32);
+    busy_delay_ms(half_ms);
+
+    if(cycles) ++count;
+  }
+
+  // 6) Ao terminar, coloque um valor neutro (meia-escala) se desejar
+  AD5941_writeRegister(AD_LPDACDAT0, ((uint32_t)0x20 << 12) | (uint32_t)0x800, REG_SZ_32);
+}
+
+// --                      -- //
 
 /*
 void openafe_interruptHandler(void) {
@@ -376,6 +530,7 @@ uint16_t _SEQ_addEISPoint(uint16_t currentAddress, eis_t *pEISParams) {
     return currentAddress;
 }
 */
+
 
 #ifdef __cplusplus
 }
