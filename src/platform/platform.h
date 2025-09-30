@@ -1,0 +1,139 @@
+#ifndef _OPENAFE_PLATFORM_H_
+#define _OPENAFE_PLATFORM_H_
+
+#include <stdint.h>
+#include "../voltammetry/voltammetry.h"
+
+// FOR ARDUINO:
+#define USE_ARDUINO_WRAPPERS 0
+
+// FOR AVR:
+#define USE_AVR_WRAPPERS 1
+
+// FOR ZEPHYR RTOS:
+#define USE_ZEPHYR_WRAPPERS 0
+
+#define USE_SPI_TRANSFER_WRAPPER 1
+
+#define USE_DEBUG_LOGGING 1
+
+#if USE_ARDUINO_WRAPPERS
+#include "arduino/platform_arduino.hpp"
+#endif
+#if USE_AVR_WRAPPERS  
+#include "avr/platform_avr.h"
+#endif
+#if USE_ZEPHYR_WRAPPERS
+#include "zephyr/platform_zephyr.h"
+#endif
+
+/**
+ * @brief Wrapper function for digitalWrite.
+ *
+ * @param pin IN -- The pin number to write to.
+ * @param val IN -- The value to write (0 or 1).
+ */
+void platform_digitalWrite(uint8_t pin, uint8_t val);
+
+/**
+ * @brief Wrapper function for needed setup during initialization.
+ *
+ * Write any code that needs to run once during initialization inside this function, if needed.
+ *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
+ * @param pSPIClockSpeed IN -- The clock speed of the SPI interface, in Hz.
+ */
+void platform_setup(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClockSpeed);
+
+/**
+ * @brief Wrapper funtion to wait said number of microseconds.
+ *
+ * @param pDelay_us IN -- delay in microseconds.
+ */
+void platform_delayMicroseconds(uint64_t pDelay_us);
+
+/**
+ * @brief Wrapper function for the AFE device reset.
+ *
+ * Bring the pin in which the AFE device is connected to low, wait at least 5
+ * microseconds, then bring it back to high. The platform_delayMicroseconds(5)
+ * function can be used for the delay.
+ */
+void platform_reset(void);
+
+/**
+ * @brief Wrapper function that sends byte and reads a byte.
+ *
+ * @param pByte IN -- byte to be sent over SPI.
+ * @return Byte read.
+ */
+uint8_t platform_SPITransfer(uint8_t pByte);
+
+/**
+ * @brief Wrapper to read data from the SPI.
+ *
+ * @param pRXBuffer OUT -- Receive buffer.
+ * @param pBufferSize IN -- Size of the buffer in bytes.
+ * @return uint8_t Number of bytes received.
+ */
+uint8_t platform_SPIRead(uint8_t *pRXBuffer, uint8_t pBufferSize);
+
+/**
+ * @brief Wrapper to write data throught the SPI.
+ *
+ * @param pTXBuffer IN -- Transceive buffer.
+ * @param pBufferSize IN -- Size of the buffer in bytes.
+ * @return uint8_t Number of bytes written.
+ */
+uint8_t platform_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize);
+
+/**
+ * Log a message.
+ * @param msg Message to log.
+ */
+void debug_log(const char* msg);
+
+/**
+ * Log an unsigned integer.
+ * @param num Unsigned integer to log.
+ */
+void debug_log_u(uint32_t num);
+
+/**
+ * Log a signed integer.
+ * @param num Signed integer to log.
+ */
+void debug_log_i(int num);
+
+/**
+ * Log a float.
+ * @param num Float to log.
+ */
+void debug_log_f(float num);
+
+/**
+ * Log the bits of a uint32_t variable.
+ * @param num Unsigned integer to log.
+ * @param pos Position of the bit to log (0-31).
+ */
+void debug_log_u_bit(uint32_t num, uint32_t pos);
+
+/**
+ * @brief Function to display data from the voltammetry structure
+ *
+ * @param pVoltammetry IN -- Pointer to the voltammetry parameters structure.
+ */
+void debug_voltammetry(const voltammetry_t *pVoltammetry);
+
+/** Delay for a specified number of milliseconds.
+ * @param ms Number of milliseconds to delay.
+ */
+void debug_delay(uint32_t ms);
+
+/**
+ * Trigger a breakpoint in the code.
+ */
+void debug_break_point(void);
+
+#endif // _OPENAFE_PLATFORM_H_

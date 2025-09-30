@@ -1,90 +1,99 @@
 #include <openafe.h>
 
-AFE openAFE;
+void setup(){}
 
-void setup()
-{
+void loop(){
 	Serial.begin(115200);
+	
+	AFE openAFE;
 
 	pinMode(2, INPUT);
 	noInterrupts();
-	attachInterrupt(digitalPinToInterrupt(2), openAFE.interruptHandler, LOW); // Config the Arduino Interrupt
-
-	openAFE.setupCV();
-
+	attachInterrupt(digitalPinToInterrupt(2), openAFE.interruptHandler, LOW);
 	delay(500);
-}
 
-void loop()
-{
-	// CVGraph();
+	int process = 0 ; // 0 CV, 1 DPV, 2 SWV  
+  int success;
+  int settlingTime = 1000;
+  int startingPotential = -500;
+  int endingPotential = 500;
+  int scanRate = 1000;
+  int stepPotential = 100;
+  int pulse = 50;
+  switch (process) {
+    case 0:
+      success = openAFE.setCVSequence(settlingTime, -800, 0, scanRate, stepPotential, 1);
+      break;
+    case 1:
+      success = openAFE.setDPVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 10);
+      break;
+    case 2:
+      success = openAFE.setSWVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 50);
+      break;
+    default:
+      success = -1;
+      break;
+  }
 
-	// float peakVoltage = getUserValue("Voltage A (V): ", 0, 2.2, "V");
-
-	// float valleyVoltage = getUserValue("Voltage B (V): ", -2.2, 0, "V");
-
-	// float scanRate = getUserValue("Scan Rate (mV/s): ", 1, 500, "mV/s");
-
-	// float stepSize = getUserValue("Step Size (mV): ", 1, 50, "mV");
-
-	// int numCycles = getUserValue("Number of cycles (#): ", 1, 10, "");
-
-	// int success = openAFE.setCVSequence(peakVoltage, valleyVoltage, scanRate, stepSize, numCycles);
-	int success = openAFE.setCVSequence(0.5, -1, 100, 1, 1); // DEBUG ONLY
-
-	if (success)
-	{
-		Serial.println(F("Voltammetry in process..."));
-
+	if (success){
 		interrupts();
 		openAFE.startVoltammetry();
+		
+		do {
+			if (openAFE.dataAvailable() > 0){
+				noInterrupts();
+              
+        float voltage_mV;
+        float currents_uA[2];
+        openAFE.getPoint(&voltage_mV, currents_uA);
 
-		do
-		{
-			if (openAFE.dataAvailable() > 0)
-			{
-				noInterrupts(); // Disable interrupts while reading data FIFO
+        interrupts();
 
-				float voltage_mV;
-				float current_uA;
-				openAFE.getPoint(&voltage_mV, &current_uA);
-
-				interrupts(); // Enable back interrupts after reading data from FIFO
-
-				Serial.print(voltage_mV);
-				Serial.print(",");
-				Serial.println(current_uA);
+        if (process == 0) {
+          // CV -> 1 point
+          Serial.print(voltage_mV);
+          Serial.print(",");
+          Serial.println(currents_uA[0]);
+        } 
+        else if (process == 1){
+          // DPV -> 2 point
+          Serial.print(voltage_mV + pulse);
+          Serial.print(",");
+          Serial.println(currents_uA[0]);
+          Serial.print(voltage_mV);
+          Serial.print(",");
+          Serial.println(currents_uA[1]);
+        }
+        else if (process == 2) {
+          // SW -> 2 point
+          Serial.print(voltage_mV + pulse);
+          Serial.print(",");
+          Serial.println(currents_uA[0]);
+          Serial.print(voltage_mV - pulse);
+          Serial.print(",");
+          Serial.println(currents_uA[1]);
+        }
 			}
 			delay(1);
-
 		} while (!openAFE.done());
 
 		Serial.println(F("<<< FINISHED CYCLIC VOLTAMMETRY >>>"));
 	}
-	else
-	{
-		Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));
-	}
+	else Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));
 
-	while (1)
-		;
+	while (true);
 }
 
-float getUserValue(String pMessageInsert, float pMinimumValue, float pMaximumValue, String pUnity)
-{
+float getUserValue(String pMessageInsert, float pMinimumValue, float pMaximumValue, String pUnity){
 	Serial.print(pMessageInsert);
 
 	float tUserFloatValue;
 
-	while (1)
-	{
+	while (1) {
 		String userInputString;
 
 		// Wait for user input
-		while (Serial.available() == 0)
-		{
-			// do nothing
-		}
+		while (Serial.available() == 0){}
 
 		// Read user input string
 		userInputString = Serial.readStringUntil('\n');
@@ -97,23 +106,19 @@ float getUserValue(String pMessageInsert, float pMinimumValue, float pMaximumVal
 
 		// Check if input string ends with "V"
 		if (userInputString.endsWith("V"))
-		{
 			// Remove "V" character from input string
 			userInputString = userInputString.substring(0, userInputString.length() - 1);
-		}
 
 		// Convert input string to float value
 		tUserFloatValue = userInputString.toFloat();
 
 		// Check if input value is within range
-		if (tUserFloatValue >= pMinimumValue && tUserFloatValue <= pMaximumValue)
-		{
+		if (tUserFloatValue >= pMinimumValue && tUserFloatValue <= pMaximumValue){
 			Serial.print(tUserFloatValue, 1);
 			Serial.println(pUnity);
 			return tUserFloatValue;
 		}
-		else
-		{
+		else {
 			Serial.println("");
 			Serial.print("Error: Invalid input value. Please enter a value between ");
 			Serial.print(pMinimumValue);
@@ -125,8 +130,7 @@ float getUserValue(String pMessageInsert, float pMinimumValue, float pMaximumVal
 	}
 }
 
-void CVGraph(void)
-{
+void CVGraph(void){
 	Serial.println("");
 	Serial.println(" A ->         /\\            /\\");
 	Serial.println("             /  \\          /  \\");

@@ -4,11 +4,17 @@
 #include "Arduino.h"
 #include <stdint.h>
 
+extern "C" {
+  #include "device/ad5941.h"
+  #include "voltammetry/voltammetry.h"
+  #include "voltammetry/cv.h"
+  #include "voltammetry/dpv.h"
+  #include "voltammetry/swv.h"
+  #include "platform/platform.h"
+}
 
-class AFE
-{
+class AFE {
 	public:
-	
 		/**
 		 * @brief The most minimal declaration use all default params.
 		 */
@@ -64,7 +70,7 @@ class AFE
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		static int setCVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
+		int setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
 
 		/**
 		 * @brief Generate the desired DPV waveform and fill the sequencer.
@@ -74,15 +80,14 @@ class AFE
 		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
 		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
 		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
-		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+     * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 100.
 		 * @param pStepPotential IN -- Step potential of the wave, in mV, e.g. 5.
-		 * @param pPulseWidth IN -- Pulse width, in milliseconds, e.g. 1.
-		 * @param pPulsePeriod IN -- Pulse period, it is the inverse of frequency, in ms, e.g. 20.
-		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
-		 * @param pSamplePeriodBase IN -- When to sample the base of the pulse, amount of ms before the pulse start, in ms, e.g. 2.
+     * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
+		 * @param pDutyCycle IN -- Size of the duty cycle between waves, in percentage, e.g. 50
+		 * 
 		 * @return Error codes.
 		 */
-		static int setDPVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pPulsePotential, float pStepPotential, uint16_t pPulseWidth, uint16_t pPulsePeriod, uint16_t pSamplePeriodPulse, uint16_t pSamplePeriodBase);
+		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle);
 
 		/**
 		 * @brief Generate the desired SWV waveform and fill the sequencer.
@@ -90,15 +95,16 @@ class AFE
 		 * @note This function also automatically sets the interrupts and initialize global variables.
 		 *
 		 * @param pSettlingTime IN -- Settling time before the waveform, in milliseconds, e.g. 1000.
-		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -500.
-		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 500.
-		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 250.
-		 * @param pPulsePotential IN -- Pulse potential, in mV, e.g. 100.
-		 * @param pPulseFrequency IN -- Pulse frequency, in Hertz, e.g. 50.
-		 * @param pSamplePeriodPulse IN -- When to sample the pulse, amount of ms before the pulse end, in ms, e.g. 1.
+		 * @param pStartingPotential IN -- Starting voltage of the waveform in mV, e.g. -800.
+		 * @param pEndingPotential IN -- Ending voltage of the waveform in mV, e.g. 0.
+		 * @param pScanRate IN -- Scan rate of the wave in mV/s, e.g. 100.
+		 * @param pStepPotential IN -- Step size of the wave in mV, e.g. 5.
+     * @param pPulsePotential IN -- Step potential of the wave, in mV, e.g. 5.
+     * @param pDutyCycle IN -- Size of the duty cycle between waves, in percentage, e.g. 50
+     *
 		 * @return Error codes.
 		 */
-		static int setSWVSequence(uint16_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pPulsePotential, float pPulseFrequency, uint16_t pSamplePeriodPulse);
+		int setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle);
 
 		/**
 		 * @brief Set the TIA gain resistor based on the desired current range.
@@ -126,7 +132,7 @@ class AFE
 		 * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
 		 * @return The point index, it starts at 0.
 		 */
-		static uint16_t getPoint(float *pVoltage_mV, float *pCurrent_uA);
+		uint16_t getPoint(float *pVoltage_mV, float *pCurrent_uA);
 
 		/**
 		 * @brief Check if the AFE device has finished operations.
@@ -161,6 +167,42 @@ class AFE
 		 * @brief Handle interrupts triggered by the AD5941 device.
 		 */
 		static void interruptHandler(void);
+
+		/*================EIS======================*/
+			/**
+		 * @brief Generate a sinusoidal EIS waveform using the waveform generator and fill the sequencer.
+		 * 
+		 * @note This function also automatically sets the interrupts and initializes global variables.
+		 * 
+		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
+		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
+		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
+		 * @param numPoints IN -- Number of frequency points, e.g. 50.
+		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
+		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
+		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
+		 * @return >0 if successful, otherwise error.
+		 */
+		static int setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration);
+
+		/**
+		 * @brief Generate a trapezoidal EIS waveform using the waveform generator and fill the sequencer.
+		 * 
+		 * @note This function also automatically sets the interrupts and initializes global variables.
+		 * 
+		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
+		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
+		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
+		 * @param numPoints IN -- Number of frequency points, e.g. 50.
+		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
+		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
+		 * @param riseTime IN -- Rise time of the trapezoidal waveform in milliseconds, e.g. 10.
+		 * @param fallTime IN -- Fall time of the trapezoidal waveform in milliseconds, e.g. 10.
+		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
+		 * @return >0 if successful, otherwise error.
+		 */
+		static int setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
+
 
 	private:
 
