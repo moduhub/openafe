@@ -1,7 +1,8 @@
 #include "openafe.h"
 
 AFE::AFE(void){
-	AD5941_init(0, 0, 0);
+  debug_log("\nInciado");
+	//AD5941_init(0, 0, 0); //FOR TEST'S [WORK IN PROGRESS]
 }
 
 
@@ -145,27 +146,96 @@ float Fout_SineWave(uint32_t fACLK, uint16_t SINEFCW) {
 }
 
 int AFE::setEISSinSequence(void){
-  debug_log("\nInit");
 
+  // --- SPI init --- //
+  platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
+  // ---          --- //
+
+  //--- Softaware Reset ---//
+  AD5941_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
+  AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
+  //AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0xA158, REG_SZ_16);                 ??
+  //AD5941_writeRegister(AD_RSTSTA, (uint16_t)(1<<3), REG_SZ_16); // MMRSWRST = 1   ??
+  debug_delay(10); /* Delay for AD initialization */
+  //---                 ---//
+
+  // --- System init --- //
+  AD5941_writeRegister(0x0908, 0x02C9, REG_SZ_16);     // register not found (?)
+	AD5941_writeRegister(0x0C08, 0x206C, REG_SZ_16);     // register not found (?)
+	AD5941_writeRegister(0x21F0, 0x0010, REG_SZ_32);     // REPEATADCCNV - Repeat ADC conversion control register
+	AD5941_writeRegister(0x0410, 0x02C9, REG_SZ_16);     // CLKEN1 - Clock gate enable
+	AD5941_writeRegister(0x0A28, 0x0009, REG_SZ_16);     // EI2CON - External Interrupt Configuration 2 register
+	AD5941_writeRegister(0x238C, 0x0104, REG_SZ_32);     // ADCBUFCON - ADC buffer configuration register
+	AD5941_writeRegister(0x0A04, 0x4859, REG_SZ_16);     // PWRKEY - Key protection for PWRMOD register
+	AD5941_writeRegister(0x0A04, 0xF27B, REG_SZ_16);     // PWRKEY - Key protection for PWRMOD register
+	AD5941_writeRegister(0x0A00, 0x8009, REG_SZ_16);     // PWRMOD - Power mode configuration register
+	AD5941_writeRegister(0x22F0, 0x0000, REG_SZ_32);     // PMBW - Power modes configuration register
+   
+  AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);           // Disable bootloader interrupt
+  AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
+  // ---                       --- //
+
+  // --- Check the Communication --- //
   uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
   char dbgmsg[64]; 
   snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
   debug_log(dbgmsg);
+  // ---                         --- //
+  
+  // --- afecon --- //  Disable: WAVEGEN | Enable:  HSDAC, HSTIA
+  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  debug_log_u(afecon);
+  afecon |= (1u<<21);  // DACBUFEN = 1 - DAC buffer
+  afecon |= (1u<<20);  // DACREFEN = 1 - HSDAC reference
+  afecon |= (1u<<19);  // Always set this to 1
+  afecon &= ~(1u<<14); // WAVEGENEN = 0  
+  afecon |= (1u<<11);  // TIAEN = 1 - HSTIA
+  afecon |= (1u<<6);   // DACEN = 1 - HSDAC
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  debug_delay(1000);
 
+  afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  debug_log_u(afecon);
+  //---     ---//
+
+
+
+  //--- init_switch_matrix_default ---//
+
+  //--- configure_low_power_VDAC(Vbias_value) ---//
+
+  //--- configure_high_speed_DAC(reference=VREF_1V82) ---//
+
+  //--- configure_HSTIA(Rfb, input_path=WE, ground_or_CE_return) ---//
+
+  //--- configure_PGA(gain)  ---// // ganho após HSTIA
+
+  //--- configure_AAF(cutoff_freq) ---// // ganho após HSTIA
+
+  //--- configure_ADC(sample_rate=Fs, resolution=16) ---//
+
+  //--- enable_ADC_FIFO_or_onchip_DFT() ---//
+
+  //--- Configura Waveform Generator (seno) ---//
   const float ACLK = 16000000.0f; // ACLK 
   const uint32_t AMP_CODE = 1265u; // ~1Vpp 
   const uint32_t WG_PHASE = 0u;
   const uint32_t WG_OFFSET = 0u;
   const uint32_t WG_TYPE_SINE = (1u<<5)|(1u<<4)|(2u<<1); // DACGAINCAL | DACOFFSETCAL | TYPESEL=sine
 
-  // Disable: LPDAC, TIA, WAVEGEN
-  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
-  afecon &= ~(1u<<14); // WAVEGENEN = 0
-  afecon |=  (1u<<21); // DACBUFEN = 1
-  afecon |=  (1u<<20); // DACREFEN = 1  
-  afecon &= ~(1u<<11); // TIAEN = 0  (disable TIA)
-  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  //--- set_waveform_generator(type=SINE, freq=f, amplitude=Vpk, offset=Vbias) ---//
 
+  //--- set_waveform_to_drive(high_speed_DAC)  ---//
+}
+
+/* 01/10/2025 - WORK IN PROGRESS
+static inline uint32_t WG_FCW_from_freq(float f_out, float aclk_hz){
+  double fcw = (double)f_out * (double)(1ULL<<30) / aclk_hz;
+  if(fcw < 0) fcw = 0;
+  if(fcw > 0xFFFFFF) fcw = 0xFFFFFF;
+  return (uint32_t)(fcw + 0.5);
+}
+int AFE::setEISSinSequence(void){
   // Path to HSDAC
   uint32_t adcc = AD5941_readRegister(AD_ADCCON, REG_SZ_32);
   adcc |= (1u<<6); // DACEN
@@ -219,7 +289,7 @@ int AFE::setEISSinSequence(void){
 
   debug_log("*** setEISSinSequence (end)\n");
   return 0;
-}
+}*/
 
 
 int AFE::setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration){
