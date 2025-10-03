@@ -1,0 +1,118 @@
+///////////////
+
+// AFECON -> Configurações gerais //
+  .DACREFEN:  High speed DAC reference enable. 
+  .SINC2EN :  ADC output 50 Hz/60 Hz notch filter enable. This bit enables the 50 Hz/60 Hz supply rejection filter.
+  .DFTEN:     DFT hardware accelerator enable. This bit enables the DFT hardware acceleration block. 
+  .WAVEGENEN: Waveform generator enable. This bit enables the waveform generator
+  .TIAEN:     High speed TIA enable. This bit enables the high speed TIA. 
+  .INAMPEN:   Excitation instrumentation amplifier enable. This bit enables the instrumentation amplifier. 
+  .EXBUFEN:   Excitation buffer enable. This bit enables the excitation buffer to drive the resistance being measured.
+  .ADCCONVEN: ADC conversion start enable
+  .ADCEN:     ADC power enable. This bit enables the ADC. 
+  .DACEN:     High speed DAC enable. This bit enables the high speed DAC, the corresponding reconstruction 
+                filter, and the attenuator. This bit only enables the analog block and does not include the DAC waveform generator.
+  .HSREFDIS:  High speed reference disable. This bit is the power-down signal of the high power reference. Set this bit to 1 to power down the reference.
+
+// PMBW -> Power Mode Configuration Register //
+  .SYSBW: System bandwidth configure. The reconstruction filter of the high speed DAC and the antialias filter bandwidth configuration of the ADC are configured by a single register.
+  .SYSHS: Sets the high speed DAC and ADC in high power mode
+
+///////////////
+
+// HSDAC //
+
+* Low Power Mode:  Low power mode is used when the high speed DAC output signal frequency is <80 kHz.
+* High Power Mode: Use high power mode when the high speed DAC frequency is greater than 80 kHz. 
+* Hibernate Mode:  The clocks to the high speed DAC circuits are clock gated to save power
+!! Certifique-se de que a frequência de corte em PMBW seja maior do que a frequência de saída requerida do DAC.
+    PMBW Bits[3:2] = 01 for optimal performance if the DAC update frequency is ≤50 kHz.
+    PMBW Bits[3:2] = 10 for optimal performance if the DAC update rate is ≤100 kHz.
+    PMBW Bits[3:2] = 11 for optimal performance if the DAC update rate is up to 250 kHz.
+!! Observe que a cadeia de sinal de DAC de alta velocidade nunca deve ser usada em conjunto com o TIA de baixa potência. O DAC de alta velocidade pode se tornar instável.
+The Hanning window is always on (DFTCON Bit 0 = 1).
+
+HSDACCON -> High Speed DAC Configuration Register
+  .INAMPGNMDE: Excitation amplifier gain control. This bit selects the gain of the excitation amplifier. 
+  .Rate:       ACLK can be a high speed oscillator at 16 MHz or 32 MHz, or a low power oscillator at 32 kHz
+  .ATTENEN:    PGA stage gain attenuation. Enable the PGA attenuator at the output of the DAC. 
+
+HSDACDAT -> High Speed DAC Code Register
+  .DACDAT: DAC code, written directly to the DAC. The minimum code is 0x200 and the maximum code is 0xE00. Midscale (0x800) corresponds to an output voltage of 0 V.
+
+///////////////
+
+// HSTIA //
+
+!! The high speed TIA is disabled by default and is turned on by setting AFECON [11] = 1
+* Inputs: The SE0, AIN0, AIN1, AIN2, and AIN3/BUF_VREF1V8 input pins.► The DE0 input pin, which has its own RLOAD/RTIA
+* The gain resistor (RTIA) options are 50 Ω to 160 kΩ for the DE0 input, and 200 Ω to 160 kΩ for all other input pins
+
+HSRTIACON -> High Speed RTIA Configuration Register
+  .CTIACON:   Configure capacitor in parallel with RTIA. This capacitor stabilizes the amplifier loop. When this bit is set, the capacitor is added in parallel with the RTIA resistor.
+  .TIASW6CON: SW6 switch control. Use the SW6 switch to select whether or not to use the diode in parallel with RTIA
+  .RTIACON:   Configure general RTIA value. To use this RTIA resistor, close the T9 switch (SWCON, Bit 17) and open the T10 switch (SWCON, Bit 17).
+
+DE0RESCON -> DE0 High Speed TIA Resistors Configuration Register
+  .DE0RCON: RLOAD_DE0 and RTIA_DE0 setting. To use this RLOAD_DE0 and RTIA_DE0 setting, open the T9 switch, close the T10 switch, and set the RTIA resistor values (see Table 36).
+
+HSTIACON -> High Speed TIA Configuration Register
+  .VBIASSEL: Select high speed TIA positive input.
+
+///////////////
+
+// PROGRAMMABLE SWITCH MATRIX //
+
+!! Two options are available for controlling the switches on the switch matrix
+  ► Control the Tx/TR1, Nx/Nxx, Px/Pxx, and Dx/DR0 switches as a group in the SWCON register
+  ► Individual control of each switch within the switch matrix using the xSWFULLCON registers
+
+SWCON -> This register allows configuration of the switch matrix
+  .T10CON:      Control of the T10 switch
+  .T9CON:       Control of the T9 switch
+  .SWSOURCESEL: Switch control select. This bit selects the registers to control the programmable switches
+  .TMUXCON:     Control of the Tx/TR1 switch mux. Does not include control of the T9 or T10 switch
+  .NMUXCON:     Control of N switch mux
+  .PMUXCON:     Control of Px/Pxx switch mux
+  .DMUXCON:     Control of Dx/DR0 switch mux
+
+Control reg. switches
+  DSWFULLCON -> The DSWFULLCON register allows individual control of the Dx/DR0 switches
+  NSWFULLCON -> The NSWFULLCON register allows individual control of the Nx/Nxx switches
+  PSWFULLCON -> The PSWFULLCON register allows individual control of the Px/Pxx switches
+  TSWFULLCON -> The TSWFULLCON register allows individual control of the Tx/TR1 switches
+
+Read reg. switches
+  DSWSTA -> The DSWSTA register indicates the status of the Dx/DR0 switches
+  PSWSTA -> The PSWSTA register indicates the status of the Px/Pxx switches
+  NSWSTA -> The NSWSTA register indicates the status of the Nx/Nxx switches
+  TSWSTA -> The TSWSTA register indicates the status of the Tx/TR1 switches
+
+///////////////
+
+// WAVEFORM GENERATOR //
+
+!! To enable the waveform generator block, set the WAVEGENEN bit in the AFECON register to 1, until either the block is disabled (WAVEGENEN = 0) or another source is selected
+
+WGCON -> Waveform generator configuration register
+  .DACGAINCAL:   Bypass DAC gain. Use the DAC gain calculated during the Analog Devices factory trim and stored in the DACGAIN register
+  .DACOFFSETCAL: Bypass DAC Offset. Use the DAC offset calculated during the calibration routine
+  .TYPESEL:      These bits select the type of waveform
+
+SEQCNT -> The SEQCNT register forms the command count, which is incremented by 1 each time the sequencer executes a command. This register is not key protected
+  .Count: Sequencer command count. This count is incremented by 1 each time the sequencer executes a command. Reset to 0 by writing 1 to this register. 
+        Write 1 to this register also to clear the SEQCRC register.
+
+WGFCW -> Waveform generator register, sinusoid frequency control word.
+
+ WGPHASE -> Waveform generator register, sinusoid phase offset
+  !! This register must be set before setting the TYPESEL bit in the WGCON register and the WAVEGENEN bit in the AFECON register
+
+WGOFFSET -> Waveform generator register, sinusoid offset
+  !! This register must be set before setting the TYPESEL bit in the WGCON register and the WAVEGENEN bit in the AFECON register.
+
+SINEOFFSET -> Waveform generator register, sinusoid amplitude
+  !! This register must be set before setting the TYPESEL bit in the WGCON register and the WAVEGENEN bit in the AFECONvregister.
+  ! The DAC output voltage is determined by this value, as well as the ATTENEN bit and the INAMPGNMDE bit in the HSDACCON register.
+
+///////////////
