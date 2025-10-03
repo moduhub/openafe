@@ -103,13 +103,47 @@ void AFE::interruptHandler(void){
 
 /*================EIS======================*/
 
-//int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){
-static inline uint32_t WG_FCW_from_freq(float f_out, float aclk_hz){
-  double fcw = (double)f_out * (double)(1ULL<<30) / aclk_hz;
-  if(fcw < 0) fcw = 0;
-  if(fcw > 0xFFFFFF) fcw = 0xFFFFFF;
-  return (uint32_t)(fcw + 0.5);
+//int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){}
+float Vout_HSDAC_SinalGeneration(uint16_t HSDACDAT, float INAMPGNMDE, float ATTENEN) {
+  if (HSDACDAT > 0xFFF) {
+    printf("Error: HSDACDAT.\n");
+    return 0.0;
+  }
+
+  const int OFFSET = 1 << 11; // 2^11 = 2048
+  const float ESCALE = 404.4e-3; // 404.4 mV 
+
+  float Vout = ((int)HSDACDAT - OFFSET) / (float)OFFSET * ESCALE * INAMPGNMDE * ATTENEN;
+
+  return Vout;
 }
+float Vout_SineWaveAmplitude_WaveGen_HSDAC(uint16_t WGAMPLITUDE, float INAMPGNMDE, float ATTENEN) {
+  if (WGAMPLITUDE > 0xFFF) {
+    printf("Error: WGAMPLITUDE.\n");
+    return 0.0;
+  }
+
+  const int MAX_AMPLITUDE = (1 << 11) - 1; // 2^11 - 1 = 2047
+  const float ESCALE = 808.8e-3; // 808.8 mV
+
+  float Vout_p_p = (float)WGAMPLITUDE / MAX_AMPLITUDE * ESCALE * INAMPGNMDE * ATTENEN;
+
+  return Vout_p_p;
+}
+//where: fACLK is the frequency of ACLK, 16 MHz. SINEFCW is Bits[23:0] in the WGFCW register.
+float Fout_SineWave(uint32_t fACLK, uint16_t SINEFCW) {
+  if (SINEFCW > 0xFFF) {
+    printf("Error: SINEFCW.\n");
+    return 0.0;
+  }
+
+  const int DIVISOR = 230;
+
+  float fOUT = (float)fACLK * SINEFCW / DIVISOR;
+
+  return fOUT;
+}
+
 int AFE::setEISSinSequence(void){
   debug_log("\nInit");
 
