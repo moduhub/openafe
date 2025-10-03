@@ -9,7 +9,8 @@ extern "C" void arduino_debug_log(const char* msg) {
 extern "C" void arduino_debug_log_u(uint32_t num) {
   Serial.print("uint32: ");
   for (int i = 31; i >= 0; i--) {
-    Serial.print((num >> i) & 1);
+    if((i+1)%4==0) Serial.print(" ");
+    Serial.print((num >> i) & 1);    
   }
   Serial.println();
   Serial.flush(); 
