@@ -105,46 +105,157 @@ void AFE::interruptHandler(void){
 /*================EIS======================*/
 
 //int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){}
-float Vout_HSDAC_SinalGeneration(uint16_t HSDACDAT, float INAMPGNMDE, float ATTENEN) {
-  if (HSDACDAT > 0xFFF) {
-    printf("Error: HSDACDAT.\n");
-    return 0.0;
-  }
-
-  const int OFFSET = 1 << 11; // 2^11 = 2048
-  const float ESCALE = 404.4e-3; // 404.4 mV 
-
-  float Vout = ((int)HSDACDAT - OFFSET) / (float)OFFSET * ESCALE * INAMPGNMDE * ATTENEN;
-
-  return Vout;
+// f (Hz) to WGFCW 
+static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
+  if (SINEFCW <= 0.0f) return 0;
+  const double TWO_POW_30 = 1073741824.0; // 2^30
+  double FCW = (double)SINEFCW * TWO_POW_30 / (double)fACLK;
+  if (FCW < 0.0) FCW = 0.0;
+  if (FCW > 0xFFFFFF) FCW = 0xFFFFFF; // WGFCW is 24-bit in many devices; clamp guard
+  return (uint32_t)lround(FCW);
 }
-float Vout_SineWaveAmplitude_WaveGen_HSDAC(uint16_t WGAMPLITUDE, float INAMPGNMDE, float ATTENEN) {
-  if (WGAMPLITUDE > 0xFFF) {
-    printf("Error: WGAMPLITUDE.\n");
-    return 0.0;
-  }
-
-  const int MAX_AMPLITUDE = (1 << 11) - 1; // 2^11 - 1 = 2047
-  const float ESCALE = 808.8e-3; // 808.8 mV
-
-  float Vout_p_p = (float)WGAMPLITUDE / MAX_AMPLITUDE * ESCALE * INAMPGNMDE * ATTENEN;
-
-  return Vout_p_p;
+// Vpp (mV) to WGAMPLITUDE (11-bit -> 0..2047)
+static uint16_t EIS_calc_WGAmplitude(float Vpp_mV, float INAMPGNMDE, float ATTENEN) {
+  if (Vpp_mV <= 0.0f) return 0;
+  const float ESCALE_mV = 808.8f;
+  const int MAX_AMP = (1 << 11) - 1;         // 2047
+  float DENOM = ESCALE_mV * INAMPGNMDE * ATTENEN * 2;
+  if (DENOM <= 0.0f) return 0;
+  double ratio = (double)Vpp_mV / (double)DENOM;
+  if (ratio < 0.0) ratio = 0.0;
+  double amp = ratio * (double)MAX_AMP;
+  if (amp > MAX_AMP) amp = MAX_AMP;
+  return (uint16_t)lround(amp);
 }
-//where: fACLK is the frequency of ACLK, 16 MHz. SINEFCW is Bits[23:0] in the WGFCW register.
-float Fout_SineWave(uint32_t fACLK, uint16_t SINEFCW) {
-  if (SINEFCW > 0xFFF) {
-    printf("Error: SINEFCW.\n");
-    return 0.0;
-  }
+int AFE::setEISSinSequence(void) {
+  // --- SPI init --- //
+  platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
 
-  const int DIVISOR = 230;
+  // --- Software Reset --- //
+  AD5941_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
+  AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0xA158, REG_SZ_16);
+  debug_delay(10);
 
-  float fOUT = (float)fACLK * SINEFCW / DIVISOR;
+  // --- System Power Init --- //
+  AD5941_writeRegister(AD_PWRKEY, 0x4859, REG_SZ_16);
+  AD5941_writeRegister(AD_PWRKEY, 0xF27B, REG_SZ_16);
+  AD5941_writeRegister(AD_PWRMOD, 0x8009, REG_SZ_16); // awake
+  AD5941_writeRegister(AD_PMBW,   0x0000, REG_SZ_32); // <80kHz band
 
-  return fOUT;
+  uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
+  char dbgmsg[64]; 
+  snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
+  debug_log(dbgmsg);
+
+  // --- Clocks --- //
+  uint32_t clksel = AD5941_readRegister(AD_CLKSEL, REG_SZ_32);
+  clksel &= ~(3UL << 0); // SYSCLKSEL = HFOSC (16 MHz)
+  clksel &= ~(1UL << 2); // ADCCLKSEL = HFOSC
+  AD5941_writeRegister(AD_CLKSEL, clksel, REG_SZ_32);
+  uint32_t hsoscon = AD5941_readRegister(AD_HSOSCCON, REG_SZ_32);
+  hsoscon |= (1UL << 2); // CLK32MHZEN = 1
+  AD5941_writeRegister(AD_HSOSCCON, hsoscon, REG_SZ_32);
+
+  // --- Enable AFE modules --- //
+  uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  afe |= (1UL << 21); // DACBUFEN - Enable DC buffers (CRÍTICO)
+  afe |= (1UL << 20); // DACREFEN
+  afe |= (1UL << 19); // always 1
+  afe |= (1UL << 11); // HSTIA enable 
+  afe |= (1UL << 10);  // INAMPEN - Enable instrumentation amplifier
+  afe |= (1UL << 9);   // EXBUFEN - Enable excitation buffer
+  afe |= (1UL << 6);   // HSDAC enable
+  //afe &= ~(1UL << 14); // WAVEGENEN = 0 - Disable waveform generator
+  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
+
+  // --- HSDAC --- //
+  uint32_t hsdaccon = AD5941_readRegister(AD_HSDACCON, REG_SZ_32);
+  hsdaccon &= ~(1UL << 12); // INAMPGNMDE = 0 (gain=2)
+  //hsdaccon |= (1UL << 12); // INAMPGNMDE = 1 (gain=0.25)
+  hsdaccon &= ~(1UL << 0);  // ATTENEN = 0 (no attenuation)
+  hsdaccon &= ~(0xFF << 1); // Clear rate bits
+  hsdaccon |= (0x7F << 1);  // Rate = 16MHz/127 ≈ 126kHz
+  AD5941_writeRegister(AD_HSDACCON, hsdaccon, REG_SZ_32);
+
+  // --- HSTIA --- //
+  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);  // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+  AD5941_writeRegister(AD_HSRTIACON, 3UL, REG_SZ_32); // R_tia = 10k
+
+  // --- Key Matrix Configuration --- //
+  uint32_t ad_swcon = 0UL 
+    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
+    | (0b0101 << 12) // T5 - Connect to SE0 pin in negative input HSTIA
+    | (0b0101 << 8)  // N5 - Connect VBIAS0 to excitation amplifier N input
+    | (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
+    | (0b0101);      // D5 - Connect HSDAC output to excitation amplifier
+  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  
+  // --- --- //
+
+  // --- WaveGen --- //
+  uint32_t sinefcw = EIS_calc_SineFCW(1000, 16000000UL);      // 1kHz
+  uint32_t amplitude = EIS_calc_WGAmplitude(1000, 2.0, 1.0);  // 1V
+  AD5941_writeRegister(AD_WGAMPLITUDE, amplitude, REG_SZ_32); // set amplitude BEFORE TYPESEL/WAVEGENEN
+  AD5941_writeRegister(AD_WGFCW, sinefcw, REG_SZ_32);         // set frequency control word
+  AD5941_writeRegister(AD_WGPHASE, 0u, REG_SZ_32);
+
+  // --- WGCON --- //
+  uint32_t wgcon = AD5941_readRegister(AD_WGCON, REG_SZ_32);
+  wgcon &= ~(0x3 << 1);      // clear TYPESEL
+  wgcon |=  (0x2 << 1);      // TYPESEL = 10 -> Sinusoid
+  AD5941_writeRegister(AD_WGCON, wgcon, REG_SZ_32);
+
+  // --- WAVEGEN --- //
+  afe = AD5941_readRegister(AD_AFECON, REG_SZ_32) | (1UL << 14); // WAVEGENEN = 1
+  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
+  //debug_delay(100);
+  //afe = (AD5941_readRegister(AD_AFECON, REG_SZ_32))&~(1UL << 14); 
+  //AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
+
+  uint32_t reg = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
+  reg |= (1UL << 18);  // DFT clock Disable
+  //reg |= (1UL << 17);  // DFT clock Disable
+  reg |= (1UL << 16);  // Sinc2 filter clock Disable
+  reg |= (1UL << 6);   // SINC3BYP = 1 (bypass sinc3)
+  reg |= (1UL << 4);   // LPFBYPEN = 1 (bypass notch/LPF)
+  reg |= (1UL << 0);   // ADCSAMPLERATE = 1 (use 800kHz ADC sample rate)
+  AD5941_writeRegister(AD_ADCFILTERCON, reg, REG_SZ_32);
+  
+  reg = AD5941_readRegister(AD_ADCCON, REG_SZ_32);
+  reg &= ~(1UL << 16);     // GNPGA = 0 -> PGA gain = 1
+  //reg |= (1UL << 15);      // ?? Enables dc offset cancellation
+  //reg |= (0b01000 << 8);   // ?? (MUXSELN negative input) VBIAS_CAP
+  reg |= (0b00001 << 8);   // ?? (MUXSELN negative input) SE0 + R_load_SE0
+  reg |= (0b00001);        // ?? (MUXSELN positive input) Voltage on CE0 pin, VCE0
+  AD5941_writeRegister(AD_ADCCON, reg, REG_SZ_32);
+
+  reg = AD5941_readRegister(AD_FIFOCON, REG_SZ_32);
+  reg &= ~(0b111 << 13);     // clear DATAFIFOSRCSEL
+  reg |= (0x0UL << 13);      // 000 = ADC data (Sinc3 / or raw ADC path if bypassed)
+  AD5941_writeRegister(AD_FIFOCON, reg, REG_SZ_32);
+
+  // 2) Configure data FIFO streaming / threshold -> set threshold to 256 words
+  // Data FIFO threshold register expects threshold in upper 16 bits in this codebase (see AD5941_dataFIFOConfig)
+  uint32_t threshold = 256u;
+  AD5941_writeRegister(AD_DATAFIFOTHRES, (uint32_t)(threshold << 16), REG_SZ_32);
+  AD5941_writeRegister(AD_REPEATADCCNV, 256UL, REG_SZ_32);
+
+  /* continuous reading without sequencer
+  reg = AD5941_readRegister(AD_REPEATADCCNV, REG_SZ_32);
+  reg |= (0xFF << 4);     // 256 conversions
+  reg |= (0b1);           // Enable repeat ADC conversions
+  AD5941_writeRegister(AD_REPEATADCCNV, reg, REG_SZ_32); 
+  */
+
+  debug_delay(100);
+  debug_log("ADC minimal path configured: SINC3 bypassed, PGA=1, ADC->FIFO");
+
+
+
+  return 0;
 }
 
+/*
 int AFE::setEISSinSequence(void) {
   // --- SPI init --- //
   platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
@@ -221,6 +332,8 @@ int AFE::setEISSinSequence(void) {
   
   return 0;
 }
+*/
+
 /*
 int AFE::setEISSinSequence(void){
 
