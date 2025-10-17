@@ -145,6 +145,83 @@ float Fout_SineWave(uint32_t fACLK, uint16_t SINEFCW) {
   return fOUT;
 }
 
+int AFE::setEISSinSequence(void) {
+  // --- SPI init --- //
+  platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
+
+  // --- Software Reset --- //
+  AD5941_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
+  AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0xA158, REG_SZ_16);
+  debug_delay(10);
+
+  // --- System Power Init --- //
+  AD5941_writeRegister(AD_PWRKEY, 0x4859, REG_SZ_16);
+  AD5941_writeRegister(AD_PWRKEY, 0xF27B, REG_SZ_16);
+  AD5941_writeRegister(AD_PWRMOD, 0x8009, REG_SZ_16); // awake
+  AD5941_writeRegister(AD_PMBW,   0x0000, REG_SZ_32); // <80kHz band
+
+  uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
+  char dbgmsg[64]; 
+  snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
+  debug_log(dbgmsg);
+
+  // --- Clocks --- //
+  uint32_t clksel = AD5941_readRegister(AD_CLKSEL, REG_SZ_32);
+  clksel &= ~(3UL << 0); // SYSCLKSEL = HFOSC (16 MHz)
+  clksel &= ~(1UL << 2); // ADCCLKSEL = HFOSC
+  AD5941_writeRegister(AD_CLKSEL, clksel, REG_SZ_32);
+  uint32_t hsoscon = AD5941_readRegister(AD_HSOSCCON, REG_SZ_32);
+  hsoscon |= (1UL << 2); // CLK32MHZEN = 1
+  AD5941_writeRegister(AD_HSOSCCON, hsoscon, REG_SZ_32);
+
+  // --- Enable AFE modules --- //
+  uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  afe |= (1UL << 21); // DACBUFEN - Enable DC buffers (CRÍTICO)
+  afe |= (1UL << 20); // DACREFEN
+  afe |= (1UL << 19); // always 1
+  afe |= (1UL << 11); // HSTIA enable 
+  //afe &= ~(1UL << 11); // HSTIA disable 
+  afe |= (1UL << 10);  // INAMPEN - Enable instrumentation amplifier
+  afe |= (1UL << 9);   // EXBUFEN - Enable excitation buffer
+  afe |= (1UL << 6);   // HSDAC enable
+  //afe &= ~(1UL << 14); // WAVEGENEN = 0 - Disable waveform generator
+  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
+
+  // --- HSDAC --- //
+  uint32_t hsdaccon = AD5941_readRegister(AD_HSDACCON, REG_SZ_32);
+  hsdaccon &= ~(1UL << 12); // INAMPGNMDE = 0 (gain=2)
+  //hsdaccon |= (1UL << 12); // INAMPGNMDE = 1 (gain=0.25)
+  hsdaccon &= ~(1UL << 0);  // ATTENEN = 0 (no attenuation)
+  hsdaccon &= ~(0xFF << 1); // Clear rate bits
+  hsdaccon |= (0x7F << 1);  // Rate = 16MHz/127 ≈ 126kHz
+  AD5941_writeRegister(AD_HSDACCON, hsdaccon, REG_SZ_32);
+
+  // --- HSTIA --- //
+  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);  // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+  AD5941_writeRegister(AD_HSRTIACON, 3UL, REG_SZ_32); // R_tia = 10k
+
+  // --- Key Matrix Configuration --- //
+  uint32_t ad_swcon = 0UL 
+    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
+    | (0b0101 << 12) // T5 - Connect to CE0 pin
+    | (0b0101 << 8)  // N5 - Connect VBIAS0 to excitation amplifier N input
+    | (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
+    | (0b0101);      // D5 - Connect HSDAC output to excitation amplifier
+  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  
+  uint16_t high_value = 0xE00;  // +607mV (full scale positivo)
+  uint16_t low_value = 0x200;   // -607mV (full scale negativo)
+  uint32_t delay_ms = 10; // 10ms delay = 50Hz square wave
+  while(1) {
+    AD5941_writeRegister(AD_HSDACDAT, 0x900u, REG_SZ_32);
+    debug_delay(delay_ms); 
+    AD5941_writeRegister(AD_HSDACDAT, 0x500u, REG_SZ_32);
+    debug_delay(delay_ms);
+  }
+  
+  return 0;
+}
+/*
 int AFE::setEISSinSequence(void){
 
   // --- SPI init --- //
@@ -156,7 +233,7 @@ int AFE::setEISSinSequence(void){
   AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0x0, REG_SZ_16);
   //AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0xA158, REG_SZ_16);                 ??
   //AD5941_writeRegister(AD_RSTSTA, (uint16_t)(1<<3), REG_SZ_16); // MMRSWRST = 1   ??
-  debug_delay(10); /* Delay for AD initialization */
+  debug_delay(10); 
   //---                 ---//
 
   // --- System init --- //
@@ -181,24 +258,53 @@ int AFE::setEISSinSequence(void){
   snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
   debug_log(dbgmsg);
   // ---                         --- //
-  
-  // --- afecon --- //  Disable: WAVEGEN | Enable:  HSDAC, HSTIA
-  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
-  debug_log_u(afecon);
-  afecon |= (1u<<21);  // DACBUFEN = 1 - DAC buffer
-  afecon |= (1u<<20);  // DACREFEN = 1 - HSDAC reference
-  afecon |= (1u<<19);  // Always set this to 1
-  afecon &= ~(1u<<14); // WAVEGENEN = 0  
-  afecon |= (1u<<11);  // TIAEN = 1 - HSTIA
-  afecon |= (1u<<6);   // DACEN = 1 - HSDAC
-  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
-  debug_delay(1000);
+ 
+  // --- AFECON --- // 
+  // (Disable: WAVEGEN | Enable:  HSDAC, HSTIA) //
+  uint32_t AFECON = AD5941_readRegister(AD_AFECON, REG_SZ_32);
+  AFECON = (AFECON
+    |  (1UL<<21)  // DACBUFEN - DAC buffer
+    |  (1UL<<20)  // DACREFEN - HSDAC reference
+    |  (1UL<<11)  // TIAEN    - HSTIA
+    |  (1UL<<6))  // DACEN    - HSDAC
+    & ~(1UL<<14); // WAVEGENEN = 0
+  AD5941_writeRegister(AD_AFECON, AFECON, REG_SZ_32);
+  // ---     --- //
 
-  afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
-  debug_log_u(afecon);
-  //---     ---//
+  // --- HSDAC --- //
+  // SET 80Khz
+  // 1)PMBW 2)16Mhz 3)CLKSEL 4)HSOSCCON
+  uint32_t PMBW = (AD5941_readRegister(AD_PMBW, REG_SZ_32)
+    & ~(3UL << 2))  // The reconstruction filter and antialias filter are automatically configured according to the waveform generator frequency
+    & ~(1UL << 0);  // 0 = impedance measurements of <80 kHz. || 1 =  impedance measurements of >80 kHz
+  AD5941_writeRegister(AD_PMBW, AFECON, REG_SZ_32);
+  uint32_t CLKSEL = (AD5941_readRegister(AD_CLKSEL, REG_SZ_32) 
+    & ~(1UL << 0))  // SYSCLKSEL (16Mhz) ->  Internal high frequency oscillator clock.
+    & ~(1UL << 2);  // ADCCLKSEL         -> Internal high frequency oscillator clock
+  AD5941_writeRegister(AD_CLKSEL, CLKSEL, REG_SZ_32);
+  uint32_t HSOSCCON = AD5941_readRegister(AD_HSOSCCON, REG_SZ_32) 
+    | (1UL << 2);  //CLK32MHZEN = 1 -> Select 16 MHz output
+  AD5941_writeRegister(AD_HSOSCCON, HSOSCCON, REG_SZ_32);
 
+  // GAIN
+  uint32_t HSDACCON = (AD5941_readRegister(AD_HSDACCON, REG_SZ_32)
+    & ~(1UL << 12)) // INAMPGNMDE -> Gain = 2
+    & ~(1UL << 0); // ATTENEN     -> DAC attenuator disabled. Gain of 1 mode.
+  AD5941_writeRegister(AD_HSDACCON, HSDACCON, REG_SZ_32);
 
+  // MANUAL CONTROL
+  //AD5941_writeRegister(HSDACDAT, 0x800, REG_SZ_32); // 0x200->0xE00  (0x800=0V)
+
+  // DAC OFFSET 
+  // with Attenuator Disabled ( Low Power Mode Register ) -> typically 197.7 μV
+  AD5941_writeRegister(AD_DACOFFSET, 0x000, REG_SZ_32); // No offset adjustment.
+  // ---       --- //
+
+  // --- HSTIA --- //
+  // ---       --- //
+
+  debug_log("HSDACCON:");
+  debug_log_u(AD5941_readRegister(AD_HSDACCON, REG_SZ_32));
 
   //--- init_switch_matrix_default ---//
 
