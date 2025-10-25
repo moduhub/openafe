@@ -119,7 +119,7 @@ static uint16_t EIS_calc_WGAmplitude(float Vpp_mV, float INAMPGNMDE, float ATTEN
   if (Vpp_mV <= 0.0f) return 0;
   const float ESCALE_mV = 808.8f;
   const int MAX_AMP = (1 << 11) - 1;         // 2047
-  float DENOM = ESCALE_mV * INAMPGNMDE * ATTENEN * 2;
+  float DENOM = ESCALE_mV * INAMPGNMDE * ATTENEN;
   if (DENOM <= 0.0f) return 0;
   double ratio = (double)Vpp_mV / (double)DENOM;
   if (ratio < 0.0) ratio = 0.0;
