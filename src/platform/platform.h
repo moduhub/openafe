@@ -104,7 +104,7 @@ void debug_log_u(uint32_t num);
  * Log a signed integer.
  * @param num Signed integer to log.
  */
-void debug_log_i(int num);
+void debug_log_i(int32_t num);
 
 /**
  * Log a float.

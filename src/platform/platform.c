@@ -80,7 +80,7 @@ void debug_log_u(uint32_t num) {
   return arduino_debug_log_u(num);
 }
 
-void debug_log_i(int num){
+void debug_log_i(int32_t num){
   return arduino_debug_log_i(num);
 }
 

@@ -16,8 +16,8 @@ extern "C" void arduino_debug_log_u(uint32_t num) {
   Serial.flush(); 
 }
 
-extern "C" void arduino_debug_log_i(int num) {
-  Serial.print("int: ");
+extern "C" void arduino_debug_log_i(int32_t num) {
+  //Serial.print("int: ");
   Serial.println(num);
   Serial.flush(); 
 }
