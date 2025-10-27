@@ -56,6 +56,22 @@ class AFE {
 		 */
 		static void resetBySoftware(void);
 
+    /**
+		 * @brief Generate the desired EIS waveform and fill the sequencer.
+		 * 
+		 * @note This function also automatically sets the interrupts and initialize global variables.
+		 * 
+		 * @param pSettlingTime IN -- Settling time before the wave, in milliseconds, e.g. 1000.
+		 * @param pStartingOmega IN -- Starting omega of the waveform in Hz, e.g. 100.
+		 * @param pEndingOmega IN -- Ending omega of the waveform in Hz, e.g. 10000.
+		 * @param pStepForADecade IN -- Steps for a decade the wave, e.g. 10.
+		 * @param pSamplesPerFrequency IN -- Samples per frequency, e.g. 100.
+		 * @return >0 if successful, otherwise error.
+		 * 
+		 */
+		int AFE::setEISSenquence(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
+
+    
 		/**
 		 * @brief Generate the desired CV waveform and fill the sequencer.
 		 * 
@@ -167,44 +183,7 @@ class AFE {
 		 * @brief Handle interrupts triggered by the AD5941 device.
 		 */
 		static void interruptHandler(void);
-
-		/*================EIS======================*/
-			/**
-		 * @brief Generate a sinusoidal EIS waveform using the waveform generator and fill the sequencer.
-		 * 
-		 * @note This function also automatically sets the interrupts and initializes global variables.
-		 * 
-		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
-		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
-		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
-		 * @param numPoints IN -- Number of frequency points, e.g. 50.
-		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
-		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
-		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
-		 * @return >0 if successful, otherwise error.
-		 */
-		//static int setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration);
-    static int setEISSinSequence(void);
-
-		/**
-		 * @brief Generate a trapezoidal EIS waveform using the waveform generator and fill the sequencer.
-		 * 
-		 * @note This function also automatically sets the interrupts and initializes global variables.
-		 * 
-		 * @param settlingTime IN -- Settling time before starting the waveform in milliseconds, e.g. 1000.
-		 * @param startFrequency IN -- Starting frequency of the EIS experiment in Hz, e.g. 1.
-		 * @param endFrequency IN -- Ending frequency of the EIS experiment in Hz, e.g. 1000.
-		 * @param numPoints IN -- Number of frequency points, e.g. 50.
-		 * @param amplitude IN -- Amplitude of the waveform in mV, e.g. 500.
-		 * @param offset IN -- Offset of the waveform in mV, e.g. 100.
-		 * @param riseTime IN -- Rise time of the trapezoidal waveform in milliseconds, e.g. 10.
-		 * @param fallTime IN -- Fall time of the trapezoidal waveform in milliseconds, e.g. 10.
-		 * @param sampleDuration IN -- Duration of sampling at each frequency in milliseconds, e.g. 100.
-		 * @return >0 if successful, otherwise error.
-		 */
-		static int setEISTrapSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
-
-
+    
 	private:
 
 };
