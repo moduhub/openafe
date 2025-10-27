@@ -3,33 +3,31 @@
 
 #include <stdint.h>
 
-/** Type that store all the necessary data for the EIS process. */ // Substituir variaveis
+/** Type that store all the necessary data for the EIS process. */
+typedef struct EIS_state_struct{
+  uint8_t currentSlope;           // Current slope.
+  uint16_t currentSlopeFrequency; // Current frequency point of the slope.
+  uint16_t SEQ_currentFrequency;  // Current frequency point of the sequencer command in the voltammetry itself.
+  //uint16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
+  //uint16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
+  //uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
+  //uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
+} EIS_state_t;
+
+typedef struct EIS_parameters_t { 
+  uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
+  uint16_t startOmega;            // Target starting omega value of the wave, in Hz.
+  uint16_t endOmega;              // Target ending omega value of the wave, in Hz.
+  uint16_t stepForADecade;
+  uint16_t samplesPerFrequency;
+} EIS_parameters_t;
+
 typedef struct EIS_t{
-    // State Parameters
-    uint8_t currentEISType;           // Type of EIS waveform: sine or trapezoidal.
-    uint8_t SEQ_numCommandsPerStep;  // Number of commands per step in the sequencer.
-
-    // Passed Parameters
-    uint16_t settlingTime;    // Settling time before starting the waveform, in milliseconds.
-    float startFrequency;     // Starting frequency of the EIS experiment, in Hz.
-    float endFrequency;       // Ending frequency of the EIS experiment, in Hz.
-    int numPoints;            // Number of frequency points for the experiment.
-    float amplitude;          // Amplitude of the waveform, in mV.
-    float offset;             // Offset of the waveform, in mV.
-    uint16_t sampleDuration;  // Duration of sampling at each frequency, in milliseconds.
-
-    // Parameters for Trapezoidal Waveform
-    float riseTime;  // Rise time of the trapezoidal waveform, in milliseconds.
-    float fallTime;  // Fall time of the trapezoidal waveform, in milliseconds.
-
+    EIS_state_t state;
+    EIS_parameters_t parameters;
     // Calculated Parameters
-    float stepFrequency;       // Step size between frequencies (linear or logarithmic).
-    uint32_t timerValue;       // Timer value for the sequencer at each frequency step.
-    uint16_t numCycles;        // Number of cycles at each frequency point.
-    uint32_t DAC_amplitude;    // Calculated DAC amplitude.
-    uint32_t DAC_offset;       // Calculated DAC offset.
+    // empty
 } EIS_t;
-
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 
