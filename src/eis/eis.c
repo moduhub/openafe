@@ -79,13 +79,13 @@ void AD5941_setupClock_for_EIS(void){
 }
 void AD5941_setupAFECON_for_EIS(void){
   uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32)
-    |= (1UL << 21)     // DACBUFEN - Enable DC buffers (CRÍTICO)
-    |= (1UL << 20)     // DACREFEN
-    |= (1UL << 19)     // always 1
-    |= (1UL << 11)     // HSTIA enable 
-    |= (1UL << 10)     // INAMPEN - Enable instrumentation amplifier
-    |= (1UL << 9)      // EXBUFEN - Enable excitation buffer
-    |= (1UL << 6);     // HSDAC enable
+    | (1UL << 21)     // DACBUFEN - Enable DC buffers (CRÍTICO)
+    | (1UL << 20)     // DACREFEN
+    | (1UL << 19)     // always 1
+    | (1UL << 11)     // HSTIA enable 
+    | (1UL << 10)     // INAMPEN - Enable instrumentation amplifier
+    | (1UL << 9)      // EXBUFEN - Enable excitation buffer
+    | (1UL << 6);     // HSDAC enable
   afe &= ~(1UL << 14); // WAVEGENEN = 0 - Disable waveform generator
   AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
   return;
@@ -102,8 +102,8 @@ void AD5941_setupHSDAC_for_EIS(void){
 }
 void AD5941_setupHSTIA_for_EIS(void){
   uint32_t hsrtia = 0UL
-    |= (0b100000UL << 5)                                 // not used cap
-    |= (0b0011UL << 0);                                  // R_tia = 10k
+    | (0b100000UL << 5)                                 // not used cap
+    | (0b0011UL << 0);                                  // R_tia = 10k
   AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);    
   AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
 }
@@ -177,7 +177,7 @@ void AD5941_ADC_ON(void){
 }
 void AD5941_ADC_OFF(void){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32); 
-  afecon &= ~(1UL << 8)   // ADC conversions enabled
+  afecon &= ~(1UL << 8);  // ADC conversions enabled
   afecon &= ~(1UL << 7);  // ADC power enable
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
 }
