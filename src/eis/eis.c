@@ -5,7 +5,7 @@ extern "C" {
 #include "eis.h"
 #include "../device/ad5941.h"
 
-
+EIS_t gEISparams;
 
 //int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){}
 // f (Hz) to WGFCW 
@@ -134,7 +134,7 @@ void AD5941_setupWAVEGEN(void){
 }
 void AD5941_waveWrite(uint32_t pFCW, uint32_t pAmplitude){
   int WAVE_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 14)) != 0;
-  if(flag) AD5941_waveOFF();
+  if(WAVE_FLAG) AD5941_waveOFF();
   
   uint32_t sinefcw = EIS_calc_SineFCW(pFCW, 16000000UL);
   uint32_t amplitude = EIS_calc_WGAmplitude(pAmplitude, 2.0, 1.0);
@@ -142,7 +142,7 @@ void AD5941_waveWrite(uint32_t pFCW, uint32_t pAmplitude){
   AD5941_writeRegister(AD_WGFCW, sinefcw, REG_SZ_32);
   AD5941_writeRegister(AD_WGPHASE, 0u, REG_SZ_32);
 
-  if(flag) AD5941_waveON();
+  if(WAVE_FLAG) AD5941_waveON();
   return;
 }
 void AD5941_waveON(void){
@@ -156,14 +156,14 @@ void AD5941_waveOFF(void){
 
 
 void AD5941_setupADC_for_EIS(void){
-  uint32_t reg = 0UL;
-  //reg &= ~(1UL << 16);     // GNPGA = 0 -> PGA gain = 1
-  reg |= (0b10UL << 16);   // PGA gain = 2 
-  //reg |= (1UL << 15);      // ?? Enables dc offset cancellation
-  //reg |= (0b01000 << 8);   // ?? (MUXSELN negative input) VBIAS_CAP
-  reg |= (0b00001 << 8);   // ?? (MUXSELN negative input) High speed TIA negative input
-  reg |= (0b00001);        // ?? (MUXSELN positive input) High speed TIA positive signal.
-  AD5941_writeRegister(AD_ADCCON, reg, REG_SZ_32);
+  uint32_t adccon = 0UL;
+  //adccon &= ~(1UL << 16);     // GNPGA = 0 -> PGA gain = 1
+  adccon |= (0b10UL << 16);   // PGA gain = 2 
+  //adccon |= (1UL << 15);      // ?? Enables dc offset cancellation
+  //adccon |= (0b01000 << 8);   // ?? (MUXSELN negative input) VBIAS_CAP
+  adccon |= (0b00001 << 8);   // ?? (MUXSELN negative input) High speed TIA negative input
+  adccon |= (0b00001);        // ?? (MUXSELN positive input) High speed TIA positive signal.
+  AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
 
   // recommeded for low power
   AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32);
@@ -220,16 +220,17 @@ void EIS_init(void){
 }
 
 
-int AFE::setEISSinSequence0(void) {
+int setEISSinSequence0(void) {
   AD5941_init_for_EIS();
   EIS_init();
 
   // DFT config.
-  uint32_t afecon = AD5941_readRegister(AD_AFECON,REG_SZ_32);
-  afecon |= (1UL<<15); // DFT hardware accelerator enabled
-  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  uint32_t reg = 0UL;
+  reg = AD5941_readRegister(AD_AFECON,REG_SZ_32);
+  reg |= (1UL<<15); // DFT hardware accelerator enabled
+  AD5941_writeRegister(AD_AFECON, reg, REG_SZ_32);
 
-  uint32_t reg = AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32);
+  reg = AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32);
   reg &= ~(1UL<<18);    // DFT clock enable | 0 Enable
   reg |= (1UL);
   AD5941_writeRegister(AD_ADCFILTERCON, reg, REG_SZ_32);

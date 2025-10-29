@@ -6,6 +6,7 @@
 
 extern "C" {
   #include "device/ad5941.h"
+  #include "eis/eis.h"
   #include "voltammetry/voltammetry.h"
   #include "voltammetry/cv.h"
   #include "voltammetry/dpv.h"
@@ -69,7 +70,7 @@ class AFE {
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		int setEISSenquence(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
+		int setEISSequence(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
 
     
 		/**

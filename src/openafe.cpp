@@ -28,11 +28,11 @@ void AFE::resetBySoftware(void){
 	AD5941_softwareReset();
 }
 
-int AFE::setEISSenquence( uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency){
+int AFE::setEISSequence( uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency){
   EIS_parameters_t parametersEIS;
   parametersEIS.settlingTime = pSettlingTime;
   parametersEIS.startingOmega = pStartingOmega;
-  parametersEIS.endingOmeg = pEndingOmeg;
+  parametersEIS.endingOmega = pEndingOmega;
   parametersEIS.stepForADecade = pStepForADecade;
   parametersEIS.samplesPerFrequency = pSamplesPerFrequency;
   return openafe_setupEIS(&parametersEIS);

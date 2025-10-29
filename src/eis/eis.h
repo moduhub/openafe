@@ -2,6 +2,8 @@
 #define SRC_CORE_EIS_H
 
 #include <stdint.h>
+#include "../device/ad5941.h"
+#include "../openafe_status_codes.h"
 
 /** Type that store all the necessary data for the EIS process. */
 typedef struct EIS_state_struct{
@@ -16,8 +18,8 @@ typedef struct EIS_state_struct{
 
 typedef struct EIS_parameters_t { 
   uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
-  uint16_t startOmega;            // Target starting omega value of the wave, in Hz.
-  uint16_t endOmega;              // Target ending omega value of the wave, in Hz.
+  uint16_t startingOmega;            // Target starting omega value of the wave, in Hz.
+  uint16_t endingOmega;              // Target ending omega value of the wave, in Hz.
   uint16_t stepForADecade;
   uint16_t samplesPerFrequency;
 } EIS_parameters_t;
@@ -28,6 +30,14 @@ typedef struct EIS_t{
     // Calculated Parameters
     // empty
 } EIS_t;
+
+/**
+ * @brief
+ *
+ * @param
+ * @return
+ */
+int openafe_setupEIS(const EIS_parameters_t *pVoltammetryParams);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 
