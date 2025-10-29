@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include "../device/ad5941.h"
 #include "../openafe_status_codes.h"
+#include "math-utils/utils.h"
 
 /** Type that store all the necessary data for the EIS process. */
 typedef struct EIS_state_struct{

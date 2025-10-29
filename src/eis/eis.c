@@ -36,6 +36,91 @@ static float Vout_SineWaveAmplitude_From_WG(uint16_t WGAMPLITUDE, float INAMPGNM
   const float ESCALE_mV = 808.8f;
   return (float)WGAMPLITUDE / (float)MAX_AMP * ESCALE_mV * INAMPGNMDE * ATTENEN; // mVpp
 }
+// Checks consistency: returns true if there exist integers k such that f * N / fDFT_in is an integer (within tolerance)
+static bool is_coherent(double f, uint32_t N, double fDFT_in) {
+  double x = f * (double)N / fDFT_in;
+  double xr = round(x);
+  return fabs(x - xr) < COHERENCE_TOL;
+}
+/* Converts frequency (Hz) to SINEFCW (integer). */
+static uint32_t freq_to_FCW(double f) {
+  double fcw = (f / FACLK) * (double)(1ULL<<30); /* 2^30 */
+  if(fcw < 0) fcw = 0;
+  if(fcw > (double)((1ULL<<24)-1)) { /* SINEFCW is 24 bits (bits[23:0]) */
+    fcw = (double)((1ULL<<24)-1);
+  }
+  return (uint32_t) round(fcw);
+}
+
+void EIS_fill_FCW_Buffer(uint32_t startF, uint32_t endF, uint32_t stepsForDecade){
+  double SINC3_OSR = 1.0;
+  double SINC2_OSR = 1.0;
+  bool use_hanning = false;
+
+  double f_start = (double)startF;
+  double f_end   = (double)endF;
+  if(f_end <= f_start){
+    double t = f_end; f_end = f_start; f_start = t;
+  }
+
+  uint32_t nFreqs = 0;
+  double *freqs = generate_log_grid(f_start, f_end, stepsForDecade, &nFreqs);
+  if(nFreqs == 0 || freqs == NULL) {
+    debug_log("Error: invalid parameters for EIS_fill_FCW_Buffer\n");
+    return;
+  }
+
+  uint32_t *buffer_FCW = (uint32_t*) malloc(sizeof(uint32_t) * nFreqs);
+  uint32_t *buffer_DFTNum = (uint32_t*) malloc(sizeof(uint32_t) * nFreqs);
+  uint32_t total_points = 0;
+
+  double fDFT_in = ADC_FS / SINC3_OSR / SINC2_OSR;
+
+  for (uint32_t i = 0; i < nFreqs; i++) {
+    double f = freqs[i];
+
+    uint32_t chosenN = 0;
+    for (int j = 0; j < allowedCount; j++) {
+      uint32_t N = allowedDFTNums[j];
+      if (is_coherent(f, N, fDFT_in)) { chosenN = N; break; }
+    }
+
+    uint32_t fcw = 0;
+    uint32_t DFT_N = 0;
+    if (chosenN == 0) {
+      double bestFCW = 0;
+      double bestErr = 1e9;
+      for (int j = 0; j < allowedCount; j++) {
+        uint32_t N = allowedDFTNums[j];
+        double ideal_k = round((f * (double)N) / fDFT_in);
+        if (ideal_k < 1.0) ideal_k = 1.0;
+        double candidate_FCW_d = (ideal_k * (double)(1ULL<<30) * fDFT_in) / (FACLK * (double)N);
+        uint32_t candidate_FCW = (uint32_t) round(candidate_FCW_d);
+        double candidate_f = ((double)candidate_FCW / (double)(1ULL<<30)) * FACLK;
+        double err = fabs(candidate_f - f);
+        if (err < bestErr) { bestErr = err; bestFCW = (double)candidate_FCW; DFT_N = N; }
+      }
+      if (DFT_N != 0) fcw = (uint32_t)round(bestFCW);
+    } else {
+      fcw = freq_to_FCW(f);
+    }
+
+    if (fcw != 0) {
+      buffer_FCW[total_points] = (uint32_t) fcw;
+      buffer_DFTNum[total_points] = DFT_N;
+      total_points++;
+    } else {
+      // debug_log warning
+    }
+  }
+
+  gEISparams.fcws = buffer_FCW;
+  gEISparams.DFTNums = buffer_DFTNum;
+  gEISparams.totalPoints = total_points;
+
+  free(freqs);
+}
+
 
 void AD5941_init_for_EIS(void){
   // --- SPI init --- //
@@ -359,6 +444,22 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   //int tPossibility = openafe_calculateParamsForCV();
   //if (IS_ERROR(tPossibility)) return tPossibility;
   //openafe_setVoltammetrySEQ();
+
+  EIS_fill_FCW_Buffer(
+    gEISparams.parameters.startingOmega,
+    gEISparams.parameters.endingOmega,
+    gEISparams.parameters.stepForADecade
+  );
+
+  // [WP] //
+  debug_log("freq:");
+  for (uint32_t i = 0; i < gEISparams.totalPoints; i++) {
+    double fout = ((double)gEISparams.fcws[i] / (double)(1ULL<<30)) * FACLK;
+    double dftnum  = gEISparams.DFTNums[i];
+    debug_log_f(fout);
+    debug_log_f(dftnum);
+    debug_log(" ");
+  }
   
 
   return NO_ERROR;
