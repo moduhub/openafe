@@ -54,7 +54,7 @@ static const int allowedCount = sizeof(allowedDFTNums)/sizeof(allowedDFTNums[0])
  * @param
  * @return
  */
-int openafe_setupEIS(const EIS_parameters_t *pVoltammetryParams);
+int openafe_setupEIS(const EIS_parameters_t *pEISParams);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 

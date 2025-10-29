@@ -30,7 +30,7 @@ static uint16_t EIS_calc_WGAmplitude(float Vpp_mV, float INAMPGNMDE, float ATTEN
   if (amp > MAX_AMP) amp = MAX_AMP;
   return (uint16_t)lround(amp);
 }
-
+//
 static float Vout_SineWaveAmplitude_From_WG(uint16_t WGAMPLITUDE, float INAMPGNMDE, float ATTENEN) {
   const int MAX_AMP = (1 << 11) - 1; // 2047
   const float ESCALE_mV = 808.8f;
@@ -121,7 +121,7 @@ void AD5941_setupKeyMatrix_for_EIS(void){
 
 void AD5941_setupWAVEGEN(void){
   uint32_t sinefcw = EIS_calc_SineFCW(3125, 16000000UL);      // 721 hz -> Tem que ser inteiro com o dft sample ( freq_step = DFT-input-rate​ / N = 800000​ / 1024 =781.25 Hz.)
-  uint32_t amplitude = EIS_calc_WGAmplitude(200, 2.0, 1.0);  // 200mV
+  uint32_t amplitude = EIS_calc_WGAmplitude(200, 2.0, 1.0);   // 200mV
   AD5941_writeRegister(AD_WGAMPLITUDE, amplitude, REG_SZ_32); // set amplitude BEFORE TYPESEL/WAVEGENEN
   AD5941_writeRegister(AD_WGFCW, sinefcw, REG_SZ_32);         // set frequency control word
   AD5941_writeRegister(AD_WGPHASE, 0u, REG_SZ_32);
@@ -337,7 +337,7 @@ int setEISSinSequence0(void) {
   return 0;
 }
 
-int openafe_setupEIS(const EIS_parameters_t *pVoltammetryParams) {
+int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   AD5941_init_for_EIS();
 
   AD5941_setupClock_for_EIS();
@@ -353,11 +353,9 @@ int openafe_setupEIS(const EIS_parameters_t *pVoltammetryParams) {
   //AD5941_sequencerConfig();
   //AD5941_interruptConfig();
 
-  //memset(&gVoltammetryParams, 0, sizeof(voltammetry_t));
-  //gVoltammetryParams.state.currentVoltammetryType = STATE_CURRENT_CV;
-  //gVoltammetryParams.state.SEQ_numCommandsPerStep = SEQ_NUM_COMMAND_PER_CV_POINT;
-  //gVoltammetryParams.numCurrentPointsPerStep = 1; 
-  //gVoltammetryParams.parameters = *pVoltammetryParams;
+  memset(&gEISparams, 0, sizeof(EIS_t));
+ 
+  gEISparams.parameters = *pEISParams;
   //int tPossibility = openafe_calculateParamsForCV();
   //if (IS_ERROR(tPossibility)) return tPossibility;
   //openafe_setVoltammetrySEQ();
