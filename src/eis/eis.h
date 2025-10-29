@@ -2,6 +2,8 @@
 #define SRC_CORE_EIS_H
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stddef.h>
 #include "../device/ad5941.h"
 #include "../openafe_status_codes.h"
 
@@ -25,11 +27,26 @@ typedef struct EIS_parameters_t {
 } EIS_parameters_t;
 
 typedef struct EIS_t{
-    EIS_state_t state;
-    EIS_parameters_t parameters;
-    // Calculated Parameters
-    // empty
+  EIS_state_t state;
+  EIS_parameters_t parameters;
+  // Calculated Parameters
+  uint32_t  *fcws;
+  uint32_t  *DFTNums;
+  uint32_t  totalPoints;
 } EIS_t;
+
+#define FACLK        16000000.0    
+#define ADC_FS       800000.0      
+
+/**
+ * @brief
+ */
+static const uint32_t allowedDFTNums[] = {4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384};
+
+/**
+ * @brief
+ */
+static const int allowedCount = sizeof(allowedDFTNums)/sizeof(allowedDFTNums[0]);
 
 /**
  * @brief
