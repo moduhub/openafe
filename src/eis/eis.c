@@ -212,6 +212,8 @@ void AD5941_init_for_EIS(void){
   AD5941_writeRegister(AD_PWRMOD, 0x8009, REG_SZ_16); // awake
   AD5941_writeRegister(AD_PMBW,   0x0000, REG_SZ_32); // <80kHz band
 
+  debug_delay(10);
+
   uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
   char dbgmsg[64]; 
   snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
@@ -224,11 +226,11 @@ void AD5941_setupClock_for_EIS(void){
   // 1. Clear the PMBW register (Bit 0 = 0)
   AD5941_writeRegister(AD_PMBW, AD5941_readRegister(AD_PMBW, REG_SZ_32) & ~(1UL) , REG_SZ_32);
   // 2. In this mode, the system clock to the high speed DAC and the ADC is 16 MHz OK!
-  // 3. Ensure that CLKSEL, Bits[1:0] = 0 to select a 16 MHz, internal, high frequency oscillator clock source. Ensure the system clock divide ratio is 1 (CLKCON0, Bits[5:0] = 0 or 1
-  AD5941_writeRegister(AD_CLKSEL, AD5941_readRegister(AD_CLKSEL, REG_SZ_32) & ~(0b11UL<<0), REG_SZ_32);     // high frequency
-  AD5941_writeRegister(AD_CLKSEL, AD5941_readRegister(AD_CLKCON0, REG_SZ_32) & ~(0b11111UL<<0), REG_SZ_32); // divide frequency by 1
+  // 3. Ensure that CLKSEL, Bits[1:0] = 0 to select a 16 MHz, internal, high frequency oscillator clock source. Ensure the system clock divide ratio is 1 (CLKCON0, Bits[5:0] = 0 or 1)
+  AD5941_writeRegister(AD_CLKSEL, AD5941_readRegister(AD_CLKSEL, REG_SZ_32) & ~(0b11UL<<0), REG_SZ_32);             // high frequency
+  AD5941_writeRegister(AD_CLKSEL, (AD5941_readRegister(AD_CLKCON0, REG_SZ_32) & (0b11111UL)) | (0b1UL), REG_SZ_32); // divide frequency by 1
   // 4. If the internal high speed oscillator is selected as the system clock source, ensure that the 16 MHz option is selected. Set HSOSCCON, Bit 2 = 1
-  AD5941_writeRegister(AD_HSOSCCON, AD5941_readRegister(AD_HSOSCCON, REG_SZ_32) | (1UL<<2) , REG_SZ_32);    // Select 16 MHz output 
+  AD5941_writeRegister(AD_HSOSCCON, AD5941_readRegister(AD_HSOSCCON, REG_SZ_32) | (1UL<<2) , REG_SZ_32);            // Select 16 MHz output 
   
   // HIGH POWER (frequency is greater than 80 kHz)
   // 1. Set the PMBW register, Bit 0 = 1. Power consumption is increased, but the output signal bandwidth increases to a maximum of 200 kHz. In high power mode, the system clock to the DAC and the ADC is 32 MHz.
