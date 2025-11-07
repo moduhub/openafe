@@ -43,11 +43,22 @@ typedef struct EIS_t{
  * @brief
  */
 static const uint32_t allowedDFTNums[] = {4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384};
-
-/**
- * @brief
- */
-static const int allowedCount = sizeof(allowedDFTNums)/sizeof(allowedDFTNums[0]);
+static const int allowedCount = 13;
+static const uint32_t allowedSINC3OSR[] = {2, 4, 5};
+static const int allowedSINC3Count = 3;
+static const uint32_t allowedSINC2OSR[] = {22,44,89,178,267,533,640,667,800,889,1067,1333};
+static const int allowedSINC2Count = 12;
+/* Estrutura de retorno por valor: contém fcw, DFTNum e flags/OSR usados */
+typedef struct {
+  uint32_t fcw;         /* SINE FCW escolhido (WGFCW integer) */
+  uint32_t DFTNum;      /* N escolhido para DFT (4..16384) */
+  double   freq;        /* frequência efetiva (Hz) gerada pelo fcw */
+  /* flags e OSR usados */
+  bool     use_sinc3;
+  uint32_t sinc3_osr;   /* 0 se não usado, senão o valor OSR testado (2/4/5) */
+  bool     use_sinc2;
+  uint32_t sinc2_osr;   /* 0 se não usado, senão o valor OSR (22,44,..) */
+} EIS_Point_t;
 
 /**
  * @brief
