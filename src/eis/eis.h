@@ -30,10 +30,10 @@ typedef struct EIS_parameters_t {
 typedef struct EIS_t{
   EIS_state_t state;
   EIS_parameters_t parameters;
-  // Calculated Parameters
-  uint32_t  *fcws;
-  uint32_t  *DFTNums;
-  uint32_t  totalPoints;
+  // Calculated Parameters (static arrays, sem alocação dinâmica)
+  // current freq
+  // current N
+  uint32_t totalPoints;
 } EIS_t;
 
 #define FACLK        16000000.0    
@@ -59,6 +59,11 @@ typedef struct {
   bool     use_sinc2;
   uint32_t sinc2_osr;   /* 0 se não usado, senão o valor OSR (22,44,..) */
 } EIS_Point_t;
+typedef struct {
+  bool coherent;
+  double candidate_f;/* candidate frequency = k * fDFT_in / N */
+  double Err;     /* relative error (errHz / f) */
+} CoherenceCheck_t;
 
 /**
  * @brief

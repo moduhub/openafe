@@ -7,6 +7,14 @@ extern "C" {
 
 EIS_t gEISparams;
 
+#include <avr/io.h>
+#include <stdio.h>
+#include <avr/interrupt.h>
+#include <math.h>
+#include <stdbool.h>
+
+float COHERENCE_TOL_REL = 0.01;   /* default: ~1% relative */
+
 //int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){}
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -37,10 +45,27 @@ static float Vout_SineWaveAmplitude_From_WG(uint16_t WGAMPLITUDE, float INAMPGNM
   return (float)WGAMPLITUDE / (float)MAX_AMP * ESCALE_mV * INAMPGNMDE * ATTENEN; // mVpp
 }
 // Checks consistency: returns true if there exist integers k such that f * N / fDFT_in is an integer (within tolerance)
-static bool is_coherent(double f, uint32_t N, double fDFT_in) {
-  double x = f * (double)N / fDFT_in;
-  double xr = round(x);
-  return fabs(x - xr) < COHERENCE_TOL;
+static CoherenceCheck_t check_coherence(double f, uint32_t N, double fDFT_in) {
+  CoherenceCheck_t o;
+  o.coherent = false; o.candidate_f = 0.0; o.Err = 0;
+  if (f <= 0.0 || fDFT_in <= 0.0 || N == 0) return o;
+
+  double passo = fDFT_in / N;
+
+  double multiplo_real = f / passo;
+
+  double multiplo_inteiro = round(multiplo_real);
+  if(multiplo_inteiro < 1) multiplo_inteiro = 1;
+
+  double candidato = multiplo_inteiro * passo;
+
+  double erro = (fabs(f - candidato))/f;
+
+  o.candidate_f = candidato;
+  o.Err = erro;
+  if(o.Err < COHERENCE_TOL_REL) o.coherent = true;
+  else o.coherent = false;
+  return o;
 }
 /* Converts frequency (Hz) to SINEFCW (integer). */
 static uint32_t freq_to_FCW(double f) {
