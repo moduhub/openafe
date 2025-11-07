@@ -77,74 +77,124 @@ static uint32_t freq_to_FCW(double f) {
   return (uint32_t) round(fcw);
 }
 
-void EIS_fill_FCW_Buffer(uint32_t startF, uint32_t endF, uint32_t stepsForDecade){
-  double SINC3_OSR = 1.0;
-  double SINC2_OSR = 1.0;
-  bool use_hanning = false;
-
-  double f_start = (double)startF;
-  double f_end   = (double)endF;
-  if(f_end <= f_start){
-    double t = f_end; f_end = f_start; f_start = t;
+uint32_t EIS_calculate_num_points(uint32_t startF, uint32_t endF, uint32_t stepsForDecade) {
+  if (startF == 0 || endF == 0 || endF <= startF || stepsForDecade == 0) return 0;
+  double decades = log10((double)endF) - log10((double)startF);
+  double total_points_d = ceil(decades * (double)stepsForDecade) + 1.0;
+  uint32_t total_points = (uint32_t) total_points_d;
+  if (total_points < 1) total_points = 1;
+  //if (total_points > MAX_EIS_POINTS) total_points = MAX_EIS_POINTS; // clamp to static array size
+  return total_points;
+} 
+uint32_t EIS_get_frequency_u32(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t idx) {
+  if (numPoints == 0) return 0;
+  if (idx >= numPoints) return 0;
+  double fstart = (double)startF;
+  double fend = (double)endF;
+  double log_start = log10(fstart);
+  double log_end = log10(fend);
+  if (numPoints == 1) {
+    double f = pow(10.0, log_start);
+    return (uint32_t) round(f);
   }
-
-  uint32_t nFreqs = 0;
-  double *freqs = generate_log_grid(f_start, f_end, stepsForDecade, &nFreqs);
-  if(nFreqs == 0 || freqs == NULL) {
-    debug_log("Error: invalid parameters for EIS_fill_FCW_Buffer\n");
-    return;
-  }
-
-  uint32_t *buffer_FCW = (uint32_t*) malloc(sizeof(uint32_t) * nFreqs);
-  uint32_t *buffer_DFTNum = (uint32_t*) malloc(sizeof(uint32_t) * nFreqs);
-  uint32_t total_points = 0;
-
-  double fDFT_in = ADC_FS / SINC3_OSR / SINC2_OSR;
-
-  for (uint32_t i = 0; i < nFreqs; i++) {
-    double f = freqs[i];
-
-    uint32_t chosenN = 0;
-    for (int j = 0; j < allowedCount; j++) {
-      uint32_t N = allowedDFTNums[j];
-      if (is_coherent(f, N, fDFT_in)) { chosenN = N; break; }
-    }
-
-    uint32_t fcw = 0;
-    uint32_t DFT_N = 0;
-    if (chosenN == 0) {
-      double bestFCW = 0;
-      double bestErr = 1e9;
-      for (int j = 0; j < allowedCount; j++) {
-        uint32_t N = allowedDFTNums[j];
-        double ideal_k = round((f * (double)N) / fDFT_in);
-        if (ideal_k < 1.0) ideal_k = 1.0;
-        double candidate_FCW_d = (ideal_k * (double)(1ULL<<30) * fDFT_in) / (FACLK * (double)N);
-        uint32_t candidate_FCW = (uint32_t) round(candidate_FCW_d);
-        double candidate_f = ((double)candidate_FCW / (double)(1ULL<<30)) * FACLK;
-        double err = fabs(candidate_f - f);
-        if (err < bestErr) { bestErr = err; bestFCW = (double)candidate_FCW; DFT_N = N; }
-      }
-      if (DFT_N != 0) fcw = (uint32_t)round(bestFCW);
-    } else {
-      fcw = freq_to_FCW(f);
-    }
-
-    if (fcw != 0) {
-      buffer_FCW[total_points] = (uint32_t) fcw;
-      buffer_DFTNum[total_points] = DFT_N;
-      total_points++;
-    } else {
-      // debug_log warning
-    }
-  }
-
-  gEISparams.fcws = buffer_FCW;
-  gEISparams.DFTNums = buffer_DFTNum;
-  gEISparams.totalPoints = total_points;
-
-  free(freqs);
+  double delta = (log_end - log_start) / (double)(numPoints - 1);
+  double fi = pow(10.0, log_start + delta * (double)idx);
+  return (uint32_t) round(fi);
 }
+
+EIS_Point_t EIS_get_point(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
+  EIS_Point_t out;
+  out.fcw = 0; out.DFTNum = 0; out.freq = 0.0;
+  out.use_sinc3 = false; out.sinc3_osr = 0;
+  out.use_sinc2 = false; out.sinc2_osr = 0;
+
+  if (numPoints == 0 || idx >= numPoints) return out;
+  if (startF == 0 || endF == 0) return out;
+
+  double fstart = (double)startF;
+  double fend = (double)endF;
+  double log_start = log10(fstart);
+  double log_end = log10(fend);
+  double fi;
+  if (numPoints == 1) fi = pow(10.0, log_start);
+  else {
+    double delta = (log_end - log_start) / (double)(numPoints - 1);
+    fi = pow(10.0, log_start + delta * (double)idx);
+  }
+  if (fi <= 0.0) return out;
+
+  /* -------------------- BLOCK 1: Only N (sem SINC) -------------------- */
+  {
+    double fDFT_in = (double)ADC_FS; /* sem decimação */
+    for (int ni = 0; ni < allowedCount; ni++) {
+      uint32_t N = allowedDFTNums[ni];
+      CoherenceCheck_t chk = check_coherence(fi, N, fDFT_in);
+      if (chk.coherent) {
+        out.DFTNum = N;
+        out.freq = chk.candidate_f;
+        out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+        out.use_sinc3 = false; out.sinc3_osr = 0;
+        out.use_sinc2 = false; out.sinc2_osr = 0;
+        return out;
+      }
+    }
+  }
+
+  /* -------------------- BLOCK 2: N = Nmax with SINC3 (2,4,5), SINC2 bypass -------------------- */
+  {
+    uint32_t Nmax = allowedDFTNums[allowedCount - 1];
+    for (int s3i = 0; s3i < allowedSINC3Count; s3i++) {
+      uint32_t s3 = allowedSINC3OSR[s3i]; /* 2,4,5 */
+      double fDFT_in = (double)ADC_FS / (double)s3; /* SINC2 bypass */
+      CoherenceCheck_t chk = check_coherence(fi, Nmax, fDFT_in);
+      if (chk.coherent) {
+        out.DFTNum = Nmax;
+        out.freq = chk.candidate_f;
+        out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+        out.use_sinc3 = true; out.sinc3_osr = s3;
+        out.use_sinc2 = false; out.sinc2_osr = 0;
+        return out;
+      }
+      else{
+        out.DFTNum = Nmax;
+        out.freq = chk.candidate_f;
+        out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+        out.use_sinc3 = true; out.sinc3_osr = s3;
+        out.use_sinc2 = false; out.sinc2_osr = 0;
+      }
+    }
+  }    
+
+  /* -------------------- BLOCK 3: N= Nmax, OSR3=5, OSR2  -------------------- */
+  {
+    uint32_t Nmax = allowedDFTNums[allowedCount - 1];
+    uint32_t s3 = 5;
+    for (int s2i = 0; s2i < allowedSINC2Count; s2i++) {  
+      uint32_t s2 = allowedSINC2OSR[s2i];
+      double fDFT_in = (double)ADC_FS / (double)s3 / (double)s2;
+      CoherenceCheck_t chk = check_coherence(fi, Nmax, fDFT_in);
+      if (chk.coherent) {
+        out.DFTNum = Nmax;
+        out.freq = chk.candidate_f;
+        out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+        out.use_sinc3 = true; out.sinc3_osr = s3;
+        out.use_sinc2 = true; out.sinc2_osr = s2;
+        
+        return out;
+      }
+    }
+  }
+
+  CoherenceCheck_t chk = check_coherence(fi, 16384, (double)ADC_FS / (double)5.0 / (double)1333.0);
+  out.DFTNum = 16384;
+  out.freq = chk.candidate_f;
+  out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+  out.use_sinc3 = true; out.sinc3_osr = 5;
+  out.use_sinc2 = true; out.sinc2_osr = 1333;
+  return out;
+}
+
+
 
 
 void AD5941_init_for_EIS(void){
