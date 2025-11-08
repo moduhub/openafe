@@ -390,18 +390,65 @@ void AD5941_setupDFT(void){
   AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
 
 }
+void AD5941_DFT_WRITE(uint32_t N, uint32_t SINC3, uint32_t SINC2){
+  return;
 }
-void AD5941_DFTON(void){
-  uint32_t reg = AD5941_readRegister(AD_DFTCON, REG_SZ_32);
-  reg |= (1UL << 0); // Enable DFT
-  AD5941_writeRegister(AD_DFTCON, reg, REG_SZ_32);
+void AD5941_DFT_READ(void){
+  return;
 }
-void AD5941_DFTOFF(void){
-  uint32_t reg = AD5941_readRegister(AD_DFTCON, REG_SZ_32);
-  reg &= ~(1UL << 0); // Disable DFT
-  AD5941_writeRegister(AD_DFTCON, reg, REG_SZ_32);
-}
+void AD5941_DFT_TEST(uint32_t pNumberSamples){
+  float real_average = 0;
+  float imag_average = 0;
 
+  // DFT value capture
+  for(int i=0; i<pNumberSamples; i++){
+    // --- Wait for DFT result ready (INTCFLAG0 bit 1) -- //
+    while((AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32) & (1UL << 1)) == 0);
+    // --- Read raw DFT registers (32-bit read returns lower 18 bits valid) --- //
+    uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+    uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
+    // --- Sign-extend 18-bit two's complement to 32-bit signed int --- //
+    int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+    int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+    // --- accumulate --- //
+    real_average += (float)dft_r;
+    imag_average += (float)dft_i;
+    // debug/log //
+    debug_log_i(dft_r);
+    //debug_log_i(dft_i);
+    // --- clear interrupt flag (write 1 to INTCCLR bit 1) --- //
+    AD5941_writeRegister(AD_INTCCLR, (1UL << 1), REG_SZ_32);
+  }
+
+  real_average /= (float)pNumberSamples;
+  imag_average /= (float)pNumberSamples;
+  if(real_average < 0) real_average = 0;
+  if(imag_average < 0) imag_average = 0;
+
+  debug_log("Average (DFT 18-bit samples):");
+  debug_log_f((float)real_average);
+  debug_log_f((float)imag_average);
+
+  return;
+}
+void AD5941_DFT_ON(void){
+  uint32_t afecon = AD5941_readRegister(AD_AFECON,REG_SZ_32)
+    | (1UL<<15); // DFT hardware accelerator enabled
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  uint32_t dftcon = AD5941_readRegister(AD_DFTCON, REG_SZ_32)
+    | (1UL << 0); // Enable DFT
+  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+  return;
+}
+void AD5941_DFT_OFF(void){
+  uint32_t afecon = AD5941_readRegister(AD_AFECON,REG_SZ_32)
+    & ~(1UL<<15); // DFT hardware accelerator disable
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  uint32_t dftcon = AD5941_readRegister(AD_DFTCON, REG_SZ_32)
+    & ~(1UL << 0); // Disable DFT
+  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+  return;
+}
 
 void EIS_init(void){
   AD5941_setupClock_for_EIS();
