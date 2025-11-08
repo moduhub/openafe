@@ -268,6 +268,7 @@ void AD5941_setupHSTIA_for_EIS(void){
     | (0b0011UL << 0);                                  // R_tia = 10k
   AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);    
   AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+  return;
 }
 void AD5941_setupKeyMatrix_for_EIS(void){
   // --- Key Matrix Configuration --- //
@@ -278,12 +279,13 @@ void AD5941_setupKeyMatrix_for_EIS(void){
     | (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
     | (0b0101);      // D5 - Connect HSDAC output to excitation amplifier
   AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  return;
 }
 
 
 void AD5941_setupWAVEGEN(void){
   uint32_t sinefcw = EIS_calc_SineFCW(3125, 16000000UL);      // 721 hz -> Tem que ser inteiro com o dft sample ( freq_step = DFT-input-rate​ / N = 800000​ / 1024 =781.25 Hz.)
-  uint32_t amplitude = EIS_calc_WGAmplitude(200, 2.0, 1.0);   // 200mV
+  uint32_t amplitude = EIS_calc_WGAmplitude(1000, 2.0, 1.0);   // 1000mV
   AD5941_writeRegister(AD_WGAMPLITUDE, amplitude, REG_SZ_32); // set amplitude BEFORE TYPESEL/WAVEGENEN
   AD5941_writeRegister(AD_WGFCW, sinefcw, REG_SZ_32);         // set frequency control word
   AD5941_writeRegister(AD_WGPHASE, 0u, REG_SZ_32);
@@ -293,26 +295,30 @@ void AD5941_setupWAVEGEN(void){
   wgcon &= ~(0x3 << 1);      // clear TYPESEL
   wgcon |=  (0x2 << 1);      // TYPESEL = 10 -> Sinusoid
   AD5941_writeRegister(AD_WGCON, wgcon, REG_SZ_32);
+  return;
 }
-void AD5941_waveWrite(uint32_t pFCW, uint32_t pAmplitude){
+void AD5941_waveWrite(uint32_t pF, uint32_t pAmplitude, uint32_t pSinefcw){
+  if(!pSinefcw) pSinefcw = EIS_calc_SineFCW(pF, 16000000UL);
+  uint32_t amplitude = EIS_calc_WGAmplitude(pAmplitude, 2.0, 1.0);
+
   int WAVE_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 14)) != 0;
   if(WAVE_FLAG) AD5941_waveOFF();
   
-  uint32_t sinefcw = EIS_calc_SineFCW(pFCW, 16000000UL);
-  uint32_t amplitude = EIS_calc_WGAmplitude(pAmplitude, 2.0, 1.0);
   AD5941_writeRegister(AD_WGAMPLITUDE, amplitude, REG_SZ_32);
-  AD5941_writeRegister(AD_WGFCW, sinefcw, REG_SZ_32);
+  AD5941_writeRegister(AD_WGFCW, pSinefcw, REG_SZ_32);
   AD5941_writeRegister(AD_WGPHASE, 0u, REG_SZ_32);
 
   if(WAVE_FLAG) AD5941_waveON();
   return;
 }
 void AD5941_waveON(void){
-  AD5941_writeRegister(AD_AFECON, AD5941_readRegister(AD_AFECON, REG_SZ_32) | (1UL<<14), REG_SZ_32);
+  uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32) | (1UL << 14);
+  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
   return;
 }
 void AD5941_waveOFF(void){
-  AD5941_writeRegister(AD_AFECON, AD5941_readRegister(AD_AFECON, REG_SZ_32) & ~(1UL<<14), REG_SZ_32);
+  uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32) & ~(1UL << 14);
+  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
   return;
 }
 
