@@ -462,33 +462,35 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   AD5941_setupADC_for_EIS();
   AD5941_setupDFT();
 
-  //AD5941_zeroVoltageAcrossElectrodes();
-  //AD5941_sequencerConfig();
-  //AD5941_interruptConfig();
-
-  memset(&gEISparams, 0, sizeof(EIS_t));
- 
-  gEISparams.parameters = *pEISParams;
-  //int tPossibility = openafe_calculateParamsForCV();
-  //if (IS_ERROR(tPossibility)) return tPossibility;
-  //openafe_setVoltammetrySEQ();
-
-  EIS_fill_FCW_Buffer(
-    gEISparams.parameters.startingOmega,
-    gEISparams.parameters.endingOmega,
-    gEISparams.parameters.stepForADecade
-  );
-
-  // [WP] //
-  debug_log("freq:");
-  for (uint32_t i = 0; i < gEISparams.totalPoints; i++) {
-    double fout = ((double)gEISparams.fcws[i] / (double)(1ULL<<30)) * FACLK;
-    double dftnum  = gEISparams.DFTNums[i];
-    debug_log_f(fout);
-    debug_log_f(dftnum);
-    debug_log(" ");
+  {
+    //AD5941_zeroVoltageAcrossElectrodes();
+    //AD5941_sequencerConfig();
+    //AD5941_interruptConfig();
+    //memset(&gEISparams, 0, sizeof(EIS_t));
+    //gEISparams.parameters = *pEISParams;
+    //int tPossibility = openafe_calculateParamsForCV();
+    //if (IS_ERROR(tPossibility)) return tPossibility;
+    //openafe_setVoltammetrySEQ();
+    //uint32_t startF = gEISparams.parameters.startingOmega;
+    //uint32_t endF   = gEISparams.parameters.endingOmega;
+    //uint32_t steps  = gEISparams.parameters.stepForADecade;
+    //uint32_t startF = 1000;
+    //uint32_t endF   = 10000;
+    //uint32_t steps  = 10;
+    //uint32_t numPoints = EIS_calculate_num_points(startF, endF, steps);
+    //gEISparams.totalPoints = numPoints;
   }
-  
+
+  AD5941_ADC_ON();
+  AD5941_waveON();
+  AD5941_DFT_ON();
+
+  AD5941_DFT_TEST(20); //20 samples
+  for(uint32_t i=0; i<1000; i++) debug_delay(10);
+
+  AD5941_waveOFF();
+  AD5941_ADC_OFF();
+  AD5941_DFT_OFF();
 
   return NO_ERROR;
 }
