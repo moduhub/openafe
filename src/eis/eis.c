@@ -390,7 +390,50 @@ void AD5941_setupDFT(void){
   AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
 
 }
-void AD5941_DFT_WRITE(uint32_t N, uint32_t SINC3, uint32_t SINC2){
+void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSIN2, uint32_t pSINC2){
+
+  // N
+  uint32_t dftcon = AD5941_readRegister(AD_DFTCON, REG_SZ_32);
+  dftcon &= ~(15UL<<4);
+  bool flag = false;
+  for(uint32_t i = 0; i < allowedCount && !flag; i++) {
+    if(allowedDFTNums[i] == pN) {
+      dftcon |= ((uint32_t)i << 4);
+      AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+      flag = true;
+    }
+  }
+
+  // SINC3
+  if(pBSINC3){
+    uint32_t filtercon = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
+    filtercon &= ~(3UL<<12);
+    bool flag = false;
+    for(uint32_t i = 0; i < allowedSINC3Count && !flag; i++) {
+      if(allowedSINC3OSR[i] == pSINC3) {
+        filtercon |= ((uint32_t)i << 12);
+        flag = true;
+      }
+    }
+    filtercon &= ~(1UL << 6); // Sinc3 filter enable
+    AD5941_writeRegister(AD_ADCFILTERCON, filtercon, REG_SZ_32);
+  }
+
+  // SINC2
+  if(pBSIN2){
+    uint32_t filtercon = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
+    filtercon &= ~(15UL<<8);
+    bool flag = false;
+    for(uint32_t i = 0; i < allowedSINC2Count && !flag; i++) {
+      if(allowedSINC2OSR[i] == pSINC2) {
+        filtercon |= ((uint32_t)i << 8);
+        flag = true;
+      }
+    }
+    filtercon &= ~(1UL << 16); // Sinc2 filter clock enable
+    AD5941_writeRegister(AD_ADCFILTERCON, filtercon, REG_SZ_32);
+  }
+
   return;
 }
 void AD5941_DFT_READ(void){
