@@ -450,171 +450,17 @@ void AD5941_DFT_OFF(void){
   return;
 }
 
-void EIS_init(void){
-  AD5941_setupClock_for_EIS();
-  AD5941_setupAFECON_for_EIS();
-  AD5941_setupHSDAC_for_EIS();
-  AD5941_setupHSTIA_for_EIS();
-  AD5941_setupKeyMatrix_for_EIS();
-  AD5941_setupWAVEGEN();
-  AD5941_setupADC_for_EIS();
-
-  uint32_t afe = AD5941_readRegister(AD_AFECON, REG_SZ_32) | (1UL << 14); // WAVEGENEN = 1
-  AD5941_writeRegister(AD_AFECON, afe, REG_SZ_32);
-
-  
-  AD5941_ADC_ON();
-  
-  debug_delay(500);
-  // ADC
-  /*
-  uint32_t adc_min = UINT32_MAX;
-  uint32_t adc_max = 0;
-  for(int i=0; i<1000; i++){
-    uint32_t value = AD5941_readRegister(AD_ADCDAT, REG_SZ_32);
-    if(value < adc_min) adc_min = value;
-    if(value > adc_max) adc_max = value;
-  }
-  uint32_t media = adc_max - adc_min;
-
-  debug_log("ADC:");
-  debug_log_i(adc_min);
-  debug_log_i(adc_max);
-  debug_log_i(media);
-  */
-
-  return;
-}
-
-
-int setEISSinSequence0(void) {
-  AD5941_init_for_EIS();
-  EIS_init();
-
-  // DFT config.
-  uint32_t reg = 0UL;
-  reg = AD5941_readRegister(AD_AFECON,REG_SZ_32);
-  reg |= (1UL<<15); // DFT hardware accelerator enabled
-  AD5941_writeRegister(AD_AFECON, reg, REG_SZ_32);
-
-  reg = AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32);
-  reg &= ~(1UL<<18);    // DFT clock enable | 0 Enable
-  reg |= (1UL);
-  AD5941_writeRegister(AD_ADCFILTERCON, reg, REG_SZ_32);
-
-  //debug_log_u(AD5941_readRegister(AD_DFTCON,REG_SZ_32));
-  reg = 0;
-  reg |= (1UL   << 21);   // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
-  reg |= (0b1000 <<  4);  // DFT point number is 1024
-  //reg |= (1UL);           // Enable Hanning window
-  AD5941_writeRegister(AD_DFTCON, reg, REG_SZ_32);
-
-  debug_delay(100);
-
-  while(1){
-    uint32_t real[100];
-    uint32_t imag[100];
-    uint32_t real_media = 0;
-    uint32_t imag_media = 0;
-    for(int i=0; i<100; i++){
-      real[i] = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
-      imag[i] = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
-      debug_delay(1);
-    }
-    for(int i=0; i<100; i++){
-      real_media += real[i];
-      imag_media += imag[i];
-    }
-    real_media /= 100;
-    imag_media /= 100;
-    debug_log("Media:");
-    debug_log_f((float)real_media);
-    debug_log_f((float)imag_media);
-
-    while(1);
-
-    /*
-    // sign-extend 18-bit two's complement
-    int32_t dft_r = raw_r & 0x3FFFF; // mask 18 bits
-    if(dft_r & (1 << 17)) dft_r |= ~0x3FFFF; // sign extend if negative
-
-    int32_t dft_i = raw_i & 0x3FFFF;
-    if(dft_i & (1 << 17)) dft_i |= ~0x3FFFF;
-
-    // --- parameters --- //
-    const double N = 1024.0;          // DFTNUM = 1024
-    const double VREF = 1.82;         // ADC reference typical (V) - veja sua configuração
-    const double PGA = 1.0;           // PGA gain (1, 1.5, 2, 4, 9) -> ajuste conforme ADCCON
-    const double RTIA = 10000.0;      // RTIA = 10k (conforme AD_HSRTIACON earlier)
-    const double Vexc_peak = 0.100;   // amplitude de excitação (Vp) - ajuste para seu WG amplitude real
-
-    // escala: a DFT do hardware retorna somas; para um tom coerente:
-    // componente de tensão (peak) = (2/N) * Re/Im * LSB
-    // LSB convert: (VREF / PGA) / 32768  (ADCDAT midscale = 0x8000)
-    double lsb = VREF / (PGA * 32768.0);
-
-    // escala complexa (em mV_peak)
-    double Vre = 1000 * (2.0 / N) * (double)dft_r * lsb;
-    double Vim = 1000 * (2.0 / N) * (double)dft_i * lsb;
-
-    debug_log_f(lsb*1000);
-    debug_log_f(Vre);
-    debug_log_f(Vim);
-
-    // corrente complexa (V of TIA output / RTIA)
-    double Ire = 1000 * Vre / RTIA;
-    double Iim = 1000 * Vim / RTIA;
-
-
-    // Z = V_exc / I  ; here V_exc is real (phase 0). Complex division:
-    // Z = Vexc / (Ire + j Iim) = Vexc * (Ire - j Iim) / (Ire^2 + Iim^2)
-    double Imag2 = Ire*Ire + Iim*Iim;
-    double Zre = 0.0, Zim = 0.0;
-    if(Imag2 > 1e-30) {
-      Zre = Vexc_peak * Ire / Imag2;
-      Zim = -Vexc_peak * Iim / Imag2;
-    } else {
-      // evita divisão por zero
-      Zre = 1e12; Zim = 0.0;
-    }
-
-    // módulo e ângulo
-    double Zmag = sqrt(Zre*Zre + Zim*Zim);
-    double Zang_rad = atan2(Zim, Zre);
-    double Zang_deg = Zang_rad * 180.0 / M_PI;
-
-    // print — real+imag complex, and magnitude+angle
-    char buf[128];
-    // Versão 1: real e imaginária (Ohms)
-    snprintf(buf, sizeof(buf),
-      "Z (Re + jIm) = %.6f + j %.6f [Ohm]", Zre, Zim);
-    debug_log(buf);
-
-    // Versão 2: magnitude e ângulo
-    snprintf(buf, sizeof(buf),
-      "|Z| = %.6f Ohm, angle = %.3f deg", Zmag, Zang_deg);
-    debug_log(buf);
-
-    // adicione um pequeno delay se quiser reduzir taxa de prints
-    debug_delay(100);
-    while(1);
-    */
-  }
-
-  return 0;
-}
-
 int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
+
   AD5941_init_for_EIS();
-
   AD5941_setupClock_for_EIS();
-
   AD5941_setupAFECON_for_EIS();
   AD5941_setupHSDAC_for_EIS();
   AD5941_setupHSTIA_for_EIS();
   AD5941_setupKeyMatrix_for_EIS();
   AD5941_setupWAVEGEN();
   AD5941_setupADC_for_EIS();
+  AD5941_setupDFT();
 
   //AD5941_zeroVoltageAcrossElectrodes();
   //AD5941_sequencerConfig();
