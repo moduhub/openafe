@@ -365,28 +365,31 @@ void AD5941_ADC_OFF(void){
 
 
 void AD5941_setupDFT(void){
-  // DFT config.
-  uint32_t reg = 0UL;
-  reg = AD5941_readRegister(AD_AFECON,REG_SZ_32);
-  reg |= (1UL<<15); // DFT hardware accelerator enabled
-  AD5941_writeRegister(AD_AFECON, reg, REG_SZ_32);
+  uint32_t adcfiltercon = (AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32)
+    & ~(1UL<<18))    // DFT clock enable | 0 Enable
+    | (1UL);
+  AD5941_writeRegister(AD_ADCFILTERCON, adcfiltercon, REG_SZ_32);
 
-  reg = AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32);
-  reg &= ~(1UL<<18);    // DFT clock enable | 0 Enable
-  reg |= (1UL);
-  AD5941_writeRegister(AD_ADCFILTERCON, reg, REG_SZ_32);
+  debug_log("DFT:");
+  debug_log_u(AD5941_readRegister(AD_DFTCON,REG_SZ_32));
 
-  //debug_log_u(AD5941_readRegister(AD_DFTCON,REG_SZ_32));
-  reg = 0;
-  reg |= (1UL   << 21);   // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
-  reg |= (0b1000 <<  4);  // DFT point number is 1024
-  //reg |= (1UL);           // Enable Hanning window
-  AD5941_writeRegister(AD_DFTCON, reg, REG_SZ_32);
+  uint32_t dftcon = 0UL
+    | (1UL   << 21)    // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
+    | (0b1000 <<  4);  // DFT point number is 1024
+    //| (1UL);           // Enable Hanning window
+  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+
+  // Clear any pending interrupt flags
+  uint32_t intcclr = AD5941_readRegister(AD_INTCCLR, REG_SZ_32)
+    | (1UL << 1); // DFT result IRQ. Write 1 to clear
+  AD5941_writeRegister(AD_INTCCLR, intcclr, REG_SZ_32); 
+
+  // Interrupt Controller Select Registers — INTCSEL0
+  uint32_t intcsel0 = 0UL
+    | (1UL << 1); // DFT result IRQ enable
+  AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
+
 }
-void AD5941_DFTWrite(void){
-  //verifica se a dft está ligada
-  uint32_t reg = AD5941_readRegister(AD_DFTCON, REG_SZ_32);
-  //
 }
 void AD5941_DFTON(void){
   uint32_t reg = AD5941_readRegister(AD_DFTCON, REG_SZ_32);
