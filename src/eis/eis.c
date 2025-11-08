@@ -7,15 +7,9 @@ extern "C" {
 
 EIS_t gEISparams;
 
-#include <avr/io.h>
-#include <stdio.h>
-#include <avr/interrupt.h>
-#include <math.h>
-#include <stdbool.h>
+// -- default: ~1% relative -- //
+float COHERENCE_TOL_REL = 0.01;   
 
-float COHERENCE_TOL_REL = 0.01;   /* default: ~1% relative */
-
-//int AFE::setEISSinSequence(uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, uint16_t sampleDuration){}
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
@@ -67,16 +61,16 @@ static CoherenceCheck_t check_coherence(double f, uint32_t N, double fDFT_in) {
   else o.coherent = false;
   return o;
 }
-/* Converts frequency (Hz) to SINEFCW (integer). */
+// Converts frequency (Hz) to SINEFCW (integer)
 static uint32_t freq_to_FCW(double f) {
-  double fcw = (f / FACLK) * (double)(1ULL<<30); /* 2^30 */
-  if(fcw < 0) fcw = 0;
-  if(fcw > (double)((1ULL<<24)-1)) { /* SINEFCW is 24 bits (bits[23:0]) */
-    fcw = (double)((1ULL<<24)-1);
-  }
+  if (f <= 0.0) return 0;
+  const double TWO_POW_30 = 1073741824.0; /* 2^30 */
+  double fcw = (f / FACLK) * TWO_POW_30;
+  if (fcw < 0.0) fcw = 0.0;
+  if (fcw > (double)((1ULL<<24)-1)) fcw = (double)((1ULL<<24)-1);
   return (uint32_t) round(fcw);
 }
-
+//
 uint32_t EIS_calculate_num_points(uint32_t startF, uint32_t endF, uint32_t stepsForDecade) {
   if (startF == 0 || endF == 0 || endF <= startF || stepsForDecade == 0) return 0;
   double decades = log10((double)endF) - log10((double)startF);
@@ -86,6 +80,7 @@ uint32_t EIS_calculate_num_points(uint32_t startF, uint32_t endF, uint32_t steps
   //if (total_points > MAX_EIS_POINTS) total_points = MAX_EIS_POINTS; // clamp to static array size
   return total_points;
 } 
+//
 uint32_t EIS_get_frequency_u32(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t idx) {
   if (numPoints == 0) return 0;
   if (idx >= numPoints) return 0;
@@ -101,7 +96,7 @@ uint32_t EIS_get_frequency_u32(uint32_t startF, uint32_t endF, uint32_t numPoint
   double fi = pow(10.0, log_start + delta * (double)idx);
   return (uint32_t) round(fi);
 }
-
+//
 EIS_Point_t EIS_get_point(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
   EIS_Point_t out;
   out.fcw = 0; out.DFTNum = 0; out.freq = 0.0;

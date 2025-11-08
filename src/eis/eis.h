@@ -1,9 +1,13 @@
 #ifndef SRC_CORE_EIS_H
 #define SRC_CORE_EIS_H
 
+#include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
+
 #include "../device/ad5941.h"
 #include "../openafe_status_codes.h"
 #include "math-utils/utils.h"
@@ -48,21 +52,22 @@ static const uint32_t allowedSINC3OSR[] = {2, 4, 5};
 static const int allowedSINC3Count = 3;
 static const uint32_t allowedSINC2OSR[] = {22,44,89,178,267,533,640,667,800,889,1067,1333};
 static const int allowedSINC2Count = 12;
-/* Estrutura de retorno por valor: contém fcw, DFTNum e flags/OSR usados */
+
 typedef struct {
-  uint32_t fcw;         /* SINE FCW escolhido (WGFCW integer) */
-  uint32_t DFTNum;      /* N escolhido para DFT (4..16384) */
-  double   freq;        /* frequência efetiva (Hz) gerada pelo fcw */
-  /* flags e OSR usados */
+  uint32_t fcw;
+  uint32_t DFTNum;
+  double   freq;
+  
   bool     use_sinc3;
-  uint32_t sinc3_osr;   /* 0 se não usado, senão o valor OSR testado (2/4/5) */
+  uint32_t sinc3_osr;
   bool     use_sinc2;
-  uint32_t sinc2_osr;   /* 0 se não usado, senão o valor OSR (22,44,..) */
+  uint32_t sinc2_osr;
 } EIS_Point_t;
+
 typedef struct {
-  bool coherent;
-  double candidate_f;/* candidate frequency = k * fDFT_in / N */
-  double Err;     /* relative error (errHz / f) */
+  bool coherent;      // Coherent
+  double candidate_f; // candidate frequency = k * fDFT_in / N
+  double Err;         // relative error (errHz / f)
 } CoherenceCheck_t;
 
 /**
