@@ -324,17 +324,33 @@ void AD5941_waveOFF(void){
 
 
 void AD5941_setupADC_for_EIS(void){
-  uint32_t adccon = 0UL;
-  //adccon &= ~(1UL << 16);     // GNPGA = 0 -> PGA gain = 1
-  adccon |= (0b10UL << 16);   // PGA gain = 2 
-  //adccon |= (1UL << 15);      // ?? Enables dc offset cancellation
-  //adccon |= (0b01000 << 8);   // ?? (MUXSELN negative input) VBIAS_CAP
-  adccon |= (0b00001 << 8);   // ?? (MUXSELN negative input) High speed TIA negative input
-  adccon |= (0b00001);        // ?? (MUXSELN positive input) High speed TIA positive signal.
+  uint32_t adccon = 0UL
+    | (0b10UL << 16)  // GNPGA = 1 -> PGA gain = 2  |  GNPGA = 0 -> PGA gain = 1
+    //| (1UL << 15)     // ?? Enables dc offset cancellation
+    | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
+    | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
   AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
+  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
+  return;
+}
+void AD5941_ADC_TEST(void){
+  uint32_t adc_min = UINT32_MAX;
+  uint32_t adc_max = 0;
+  
+  for(int i=0; i<1000; i++){
+    uint32_t value = AD5941_readRegister(AD_ADCDAT, REG_SZ_32);
+    if(value < adc_min) adc_min = value;
+    if(value > adc_max) adc_max = value;
+    debug_log_i(value);
+  }
+  
+  uint32_t media = adc_max - adc_min;
 
-  // recommeded for low power
-  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32);
+  debug_log("ADC:");
+  debug_log_i(adc_min);
+  debug_log_i(adc_max);
+  debug_log_i(media);
+  return;
 }
 void AD5941_ADC_ON(void){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32) 
@@ -342,13 +358,16 @@ void AD5941_ADC_ON(void){
     | (1UL << 7);  // ADC power enable
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
   debug_delay(10); // (ADC Wake-Up Máx 180us) 10ms to wake-up ADC 
+  return;
 }
 void AD5941_ADC_OFF(void){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32); 
   afecon &= ~(1UL << 8);  // ADC conversions enabled
   afecon &= ~(1UL << 7);  // ADC power enable
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+  return;
 }
+
 
 void AD5941_setupDFT(void){
   // DFT config.
