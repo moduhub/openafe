@@ -65,10 +65,23 @@ typedef struct {
 } EIS_Point_t;
 
 typedef struct {
+  uint32_t real;
+  uint32_t imag;
+} DFT_Point;
+
+typedef struct {
   bool coherent;      // Coherent
   double candidate_f; // candidate frequency = k * fDFT_in / N
   double Err;         // relative error (errHz / f)
 } CoherenceCheck_t;
+
+// DFT
+void AD5941_setupDFT(void);
+void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2);
+DFT_Point AD5941_DFT_READ(void);
+void AD5941_DFT_TEST(uint32_t pNumberSamples);
+void AD5941_DFT_ON(void);
+void AD5941_DFT_OFF(void);
 
 /**
  * @brief

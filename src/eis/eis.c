@@ -461,31 +461,37 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
 
   return;
 }
-void AD5941_DFT_READ(void){
-  return;
+DFT_Point AD5941_DFT_READ(void){
+  DFT_Point point;
+  point.real = 0; point.imag = 0;
+
+  while((AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32) & (1UL << 1)) == 0);
+  uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+  uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
+  AD5941_writeRegister(AD_INTCCLR, AD5941_readRegister(AD_INTCCLR, REG_SZ_32) | (1UL << 1)  , REG_SZ_32); 
+
+  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+
+  //debug_log_i(dft_r);
+  //debug_log_i(dft_i);
+
+  if(dft_r < 0) point.real = 0;
+  else point.real = dft_r;
+  if(dft_i < 0) point.imag = 0;
+  else point.imag = dft_i;
+  
+  return point;
 }
-void AD5941_DFT_TEST(uint32_t pNumberSamples){
+void AD5941_DFT_Average(uint32_t pNumberSamples){
   float real_average = 0;
   float imag_average = 0;
 
   // DFT value capture
   for(int i=0; i<pNumberSamples; i++){
-    // --- Wait for DFT result ready (INTCFLAG0 bit 1) -- //
-    while((AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32) & (1UL << 1)) == 0);
-    // --- Read raw DFT registers (32-bit read returns lower 18 bits valid) --- //
-    uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
-    uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
-    // --- Sign-extend 18-bit two's complement to 32-bit signed int --- //
-    int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
-    int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
-    // --- accumulate --- //
-    real_average += (float)dft_r;
-    imag_average += (float)dft_i;
-    // debug/log //
-    debug_log_i(dft_r);
-    //debug_log_i(dft_i);
-    // --- clear interrupt flag (write 1 to INTCCLR bit 1) --- //
-    AD5941_writeRegister(AD_INTCCLR, (1UL << 1), REG_SZ_32);
+    DFT_Point point = AD5941_DFT_READ();
+    real_average += point.real;
+    imag_average += point.imag;
   }
 
   real_average /= (float)pNumberSamples;
@@ -493,7 +499,7 @@ void AD5941_DFT_TEST(uint32_t pNumberSamples){
   if(real_average < 0) real_average = 0;
   if(imag_average < 0) imag_average = 0;
 
-  debug_log("Average (DFT 18-bit samples):");
+  debug_log("\nAverage (DFT 18-bit samples):");
   debug_log_f((float)real_average);
   debug_log_f((float)imag_average);
 
@@ -516,6 +522,34 @@ void AD5941_DFT_OFF(void){
     & ~(1UL << 0); // Disable DFT
   AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
   return;
+}
+
+// EIS Test
+void EIS_TEST(void){
+  uint32_t startF = 1000;
+  uint32_t endF   = 10000;
+  uint32_t steps  = 10;
+  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+  gEISparams.totalPoints = numPoints;
+
+  debug_log("Number of points:");
+  debug_log_i(gEISparams.totalPoints);
+
+  AD5941_ADC_ON();
+  AD5941_waveON();
+  AD5941_DFT_ON();
+  for(int i = 0; i < gEISparams.totalPoints; i++){
+    EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, i);
+
+    AD5941_waveWrite(0, 500, p.fcw);
+    AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+
+    AD5941_DFT_Average(100); // 100 samples
+    debug_log_f(p.freq);
+  }
+  AD5941_ADC_OFF();
+  AD5941_waveOFF();
+  AD5941_DFT_OFF();
 }
 
 int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
@@ -543,34 +577,8 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
     //uint32_t endF   = gEISparams.parameters.endingOmega;
     //uint32_t steps  = gEISparams.parameters.stepForADecade; 
   }
-
-  uint32_t startF = 1000;
-  uint32_t endF   = 10000;
-  uint32_t steps  = 10;
-  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
-  gEISparams.totalPoints = numPoints;
-
-
-  debug_log("Number of points:");
-  debug_log_i(gEISparams.totalPoints);
-
-  EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
-  debug_log_f(p.freq);
-  debug_log_i(p.DFTNum);
-
-  AD5941_ADC_ON();
-  AD5941_waveON();
-  AD5941_waveWrite(0, 500, p.fcw);
-  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
-  AD5941_DFT_ON();
-
-  AD5941_DFT_TEST(20); // 20 samples
-
-  for(uint32_t i=0; i<1000; i++) debug_delay(10);
-
-  AD5941_waveOFF();
-  AD5941_ADC_OFF();
-  AD5941_DFT_OFF();
+  
+  EIS_TEST();
 
   return NO_ERROR;
 }
