@@ -365,13 +365,12 @@ void AD5941_ADC_OFF(void){
 
 
 void AD5941_setupDFT(void){
-  uint32_t adcfiltercon = (AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32)
+  uint32_t adcfiltercon = ((AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32)
     & ~(1UL<<18))    // DFT clock enable | 0 Enable
-    | (1UL);
+    & ~(1UL<<7))     // Disable average.
+    | (1UL << 4)     // Bypasses the 50 Hz notch and 60 Hz notch filters.
+    | (1UL);         // ADC data rate. Unfiltered ADC output rate. 800 kHz.
   AD5941_writeRegister(AD_ADCFILTERCON, adcfiltercon, REG_SZ_32);
-
-  debug_log("DFT:");
-  debug_log_u(AD5941_readRegister(AD_DFTCON,REG_SZ_32));
 
   uint32_t dftcon = 0UL
     | (1UL   << 21)    // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
