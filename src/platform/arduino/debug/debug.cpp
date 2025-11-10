@@ -24,7 +24,7 @@ extern "C" void arduino_debug_log_i(int32_t num) {
 
 extern "C" void arduino_debug_log_f(float num) {
   Serial.print("float: ");
-  Serial.println(num);
+  Serial.println(num, 8);
   Serial.flush(); 
 }
 

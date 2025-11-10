@@ -8,7 +8,7 @@ extern "C" {
 EIS_t gEISparams;
 
 // -- default: ~1% relative -- //
-float COHERENCE_TOL_REL = 0.01;   
+float COHERENCE_TOL_REL = 0.0001;   
 
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -71,7 +71,7 @@ static uint32_t freq_to_FCW(double f) {
   return (uint32_t) round(fcw);
 }
 //
-uint32_t EIS_calculate_num_points(uint32_t startF, uint32_t endF, uint32_t stepsForDecade) {
+uint32_t EIS_CalculateNumberPoints(uint32_t startF, uint32_t endF, uint32_t stepsForDecade) {
   if (startF == 0 || endF == 0 || endF <= startF || stepsForDecade == 0) return 0;
   double decades = log10((double)endF) - log10((double)startF);
   double total_points_d = ceil(decades * (double)stepsForDecade) + 1.0;
@@ -97,7 +97,7 @@ uint32_t EIS_get_frequency_u32(uint32_t startF, uint32_t endF, uint32_t numPoint
   return (uint32_t) round(fi);
 }
 //
-EIS_Point_t EIS_get_point(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
+EIS_Point_t EIS_GetPoint(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
   EIS_Point_t out;
   out.fcw = 0; out.DFTNum = 0; out.freq = 0.0;
   out.use_sinc3 = false; out.sinc3_osr = 0;
@@ -191,7 +191,7 @@ EIS_Point_t EIS_get_point(uint32_t startF, uint32_t endF, uint32_t numPoints, ui
 
 
 
-
+// GENREAL CONFIG.
 void AD5941_init_for_EIS(void){
   // --- SPI init --- //
   platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
@@ -277,7 +277,7 @@ void AD5941_setupKeyMatrix_for_EIS(void){
   return;
 }
 
-
+// WAVE CONFIG.
 void AD5941_setupWAVEGEN(void){
   uint32_t sinefcw = EIS_calc_SineFCW(3125, 16000000UL);      // 721 hz -> Tem que ser inteiro com o dft sample ( freq_step = DFT-input-rate​ / N = 800000​ / 1024 =781.25 Hz.)
   uint32_t amplitude = EIS_calc_WGAmplitude(1000, 2.0, 1.0);   // 1000mV
@@ -317,7 +317,7 @@ void AD5941_waveOFF(void){
   return;
 }
 
-
+// ADC GENERAL CONFIG.
 void AD5941_setupADC_for_EIS(void){
   uint32_t adccon = 0UL
     | (0b10UL << 16)  // GNPGA = 1 -> PGA gain = 2  |  GNPGA = 0 -> PGA gain = 1
@@ -363,7 +363,7 @@ void AD5941_ADC_OFF(void){
   return;
 }
 
-
+// DFT CONFIG.
 void AD5941_setupDFT(void){
   uint32_t adcfiltercon = ((AD5941_readRegister(AD_ADCFILTERCON,REG_SZ_32)
     & ~(1UL<<18))    // DFT clock enable | 0 Enable

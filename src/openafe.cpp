@@ -1,7 +1,6 @@
 #include "openafe.h"
 
 AFE::AFE(void){
-  debug_log("\nInciado");
 	//AD5941_init(0, 0, 0); //FOR TEST'S [WORK IN PROGRESS]
 }
 
