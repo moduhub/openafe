@@ -541,19 +541,31 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
     //openafe_setVoltammetrySEQ();
     //uint32_t startF = gEISparams.parameters.startingOmega;
     //uint32_t endF   = gEISparams.parameters.endingOmega;
-    //uint32_t steps  = gEISparams.parameters.stepForADecade;
-    //uint32_t startF = 1000;
-    //uint32_t endF   = 10000;
-    //uint32_t steps  = 10;
-    //uint32_t numPoints = EIS_calculate_num_points(startF, endF, steps);
-    //gEISparams.totalPoints = numPoints;
+    //uint32_t steps  = gEISparams.parameters.stepForADecade; 
   }
+
+  uint32_t startF = 1000;
+  uint32_t endF   = 10000;
+  uint32_t steps  = 10;
+  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+  gEISparams.totalPoints = numPoints;
+
+
+  debug_log("Number of points:");
+  debug_log_i(gEISparams.totalPoints);
+
+  EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
+  debug_log_f(p.freq);
+  debug_log_i(p.DFTNum);
 
   AD5941_ADC_ON();
   AD5941_waveON();
+  AD5941_waveWrite(0, 500, p.fcw);
+  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
   AD5941_DFT_ON();
 
-  AD5941_DFT_TEST(20); //20 samples
+  AD5941_DFT_TEST(20); // 20 samples
+
   for(uint32_t i=0; i<1000; i++) debug_delay(10);
 
   AD5941_waveOFF();
