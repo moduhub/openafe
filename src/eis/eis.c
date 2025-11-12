@@ -10,6 +10,9 @@ EIS_t gEISparams;
 // -- default: ~1% relative -- //
 float COHERENCE_TOL_REL = 0.0001;   
 
+// INTERRUPT
+volatile uint8_t gDFTReady = 0;
+
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
@@ -191,7 +194,7 @@ EIS_Point_t EIS_GetPoint(uint32_t startF, uint32_t endF, uint32_t numPoints, uin
 
 
 
-// GENREAL CONFIG.
+// GENERAL CONFIG.
 void AD5941_init_for_EIS(void){
   // --- SPI init --- //
   platform_setup(0, 0, SPI_CLK_DEFAULT_HZ);
@@ -206,6 +209,22 @@ void AD5941_init_for_EIS(void){
   AD5941_writeRegister(AD_PWRKEY, 0xF27B, REG_SZ_16);
   AD5941_writeRegister(AD_PWRMOD, 0x8009, REG_SZ_16); // awake
   AD5941_writeRegister(AD_PMBW,   0x0000, REG_SZ_32); // <80kHz band
+
+  // ...
+  AD5941_writeRegister(0x0908, 0x02C9, REG_SZ_16);     // register not found (?)
+	AD5941_writeRegister(0x0C08, 0x206C, REG_SZ_16);     // register not found (?)
+	AD5941_writeRegister(0x21F0, 0x0010, REG_SZ_32);     // REPEATADCCNV - Repeat ADC conversion control register
+	AD5941_writeRegister(0x0410, 0x02C9, REG_SZ_16);     // CLKEN1 - Clock gate enable
+	AD5941_writeRegister(0x0A28, 0x0009, REG_SZ_16);     // EI2CON - External Interrupt Configuration 2 register
+	AD5941_writeRegister(0x238C, 0x0104, REG_SZ_32);     // ADCBUFCON - ADC buffer configuration register
+	AD5941_writeRegister(0x0A04, 0x4859, REG_SZ_16);     // PWRKEY - Key protection for PWRMOD register
+	AD5941_writeRegister(0x0A04, 0xF27B, REG_SZ_16);     // PWRKEY - Key protection for PWRMOD register
+	AD5941_writeRegister(0x0A00, 0x8009, REG_SZ_16);     // PWRMOD - Power mode configuration register
+	AD5941_writeRegister(0x22F0, 0x0000, REG_SZ_32);     // PMBW - Power modes configuration register
+	AD5941_writeRegister(0x238C, 0x005F3D04, REG_SZ_32); // ADCBUFCON - ADC buffer configuration register
+  AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);           // Disable bootloader interrupt
+  AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
+	AD5941_writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, 32); // zero voltage across electrodes
 
   debug_delay(10);
 
@@ -524,6 +543,67 @@ void AD5941_DFT_OFF(void){
   return;
 }
 
+// INTERRUPT CONFIG.
+void AD5941_interruptConfig_EIS(void) {
+  // Configure GP0 pin (GPIO0) as Interrupt 0 output (PIN0CFG = 00)
+  // Observação: GP0CON usa pares de bits por pin. Vamos escrever apenas o campo PIN0CFG=00.
+  uint32_t gp0con = AD5941_readRegister(AD_GP0CON, REG_SZ_32);
+  gp0con &= ~(0b11U << 0); // clear PIN0CFG bits [1:0] (00 -> Interrupt 0 output)
+  AD5941_writeRegister(AD_GP0CON, gp0con, REG_SZ_32);
+
+  // Enable GP0 output (so the pin drives) for the pins we use
+  // GP0OEN bit mask: set bit0 to enable GPIO0 output
+  uint32_t gp0oen = AD5941_readRegister(AD_GP0OEN, REG_SZ_32);
+  gp0oen |= (1UL << 0);
+  AD5941_writeRegister(AD_GP0OEN, gp0oen, REG_SZ_32);
+
+  // 3) forçar o pino para HIGH por padrão (escreve GP0SET bit0)
+  AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+
+  // Set interrupt polarity: rising edge -> pin goes high when interrupt asserted
+  uint32_t intcpol = AD5941_readRegister(AD_INTCPOL, REG_SZ_32);
+  intcpol &= ~(1UL << 0); // garante 0
+  AD5941_writeRegister(AD_INTCPOL, intcpol, REG_SZ_32);
+
+  // Enable DFT result IRQ (INTCSEL0 bit1)
+  uint32_t intcsel0 = AD5941_readRegister(AD_INTCSEL0, REG_SZ_32);
+  intcsel0 |= (1UL << 1);  // enable DFT result IRQ source
+  AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
+
+  // Clear any pending internal interrupt flags (W1C)
+  AD5941_writeRegister(AD_INTCCLR, (1UL << 1), REG_SZ_32);
+
+  gDFTReady = 0;
+}
+void openafe_interruptHandler_EIS(void) {
+	uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+
+	if (tInterruptFlags0 & ((uint32_t)1 << 1)) {	// trigger DFT result read
+    //debug_log("--Interrupt--");
+    if(!gDFTReady) gDFTReady++;
+	}
+  AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
+	AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
+}
+uint16_t openafe_dataAvailable_EIS(void) {
+	return gDFTReady;
+}
+void openafe_getPoint_EIS(void){
+  uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+  uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
+
+  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+
+  //debug_log_i(dft_r);
+  //debug_log_i(dft_i);
+
+  gDFTReady = 0;
+
+  return;
+}
+
+
 // EIS Test
 void EIS_TEST(void){
   uint32_t startF = 1000;
@@ -564,23 +644,45 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   AD5941_setupADC_for_EIS();
   AD5941_setupDFT();
 
-  {
-    //AD5941_zeroVoltageAcrossElectrodes();
-    //AD5941_sequencerConfig();
-    //AD5941_interruptConfig();
-    //memset(&gEISparams, 0, sizeof(EIS_t));
-    //gEISparams.parameters = *pEISParams;
-    //int tPossibility = openafe_calculateParamsForCV();
-    //if (IS_ERROR(tPossibility)) return tPossibility;
-    //openafe_setVoltammetrySEQ();
-    //uint32_t startF = gEISparams.parameters.startingOmega;
-    //uint32_t endF   = gEISparams.parameters.endingOmega;
-    //uint32_t steps  = gEISparams.parameters.stepForADecade; 
-  }
-  
-  EIS_TEST();
+  AD5941_interruptConfig_EIS();
+
+  memset(&gEISparams, 0, sizeof(EIS_t));
+
+  gEISparams.parameters = *pEISParams;
+
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF   = gEISparams.parameters.endingOmega;
+  uint32_t steps  = gEISparams.parameters.stepForADecade; 
+
+  //int tPossibility = openafe_calculateParamsForEIS();
+  //if (IS_ERROR(tPossibility)) return tPossibility;
+
+  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+  gEISparams.totalPoints = numPoints;
+
+  debug_log("Number of points:");
+  debug_log_i(gEISparams.totalPoints);
+
+  gEISparams.state.currentFrequency = startF;
+  gEISparams.state.currentFrequencyPoint = 0;
+
 
   return NO_ERROR;
+}
+
+openafe_startEIS(){
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF = gEISparams.parameters.endingOmega;
+  uint32_t steps = gEISparams.parameters.stepForADecade;
+  uint32_t numPoints = gEISparams.totalPoints;
+
+  EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
+  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+  AD5941_waveWrite(0, 500, p.fcw);
+
+  AD5941_ADC_ON();
+  AD5941_waveON();
+  AD5941_DFT_ON();
 }
 
 /*

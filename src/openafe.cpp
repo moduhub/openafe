@@ -110,3 +110,19 @@ float AFE::readDataFIFO(void){
 void AFE::interruptHandler(void){
 	openafe_interruptHandler();
 }
+
+void AFE::startEIS(void){
+  openafe_startEIS();
+}
+
+void AFE::interruptHandler_EIS(void){
+	openafe_interruptHandler_EIS();
+}
+
+uint16_t AFE::dataAvailable_EIS(void){
+	return openafe_dataAvailable_EIS();
+}
+
+void AFE::getPoint_EIS(void){
+	return openafe_getPoint_EIS();
+}

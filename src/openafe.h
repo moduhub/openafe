@@ -184,6 +184,14 @@ class AFE {
 		 * @brief Handle interrupts triggered by the AD5941 device.
 		 */
 		static void interruptHandler(void);
+
+    static void startEIS(void);
+
+    static void interruptHandler_EIS(void);
+
+    static uint16_t dataAvailable_EIS(void);
+
+    static void getPoint_EIS(void);
     
 	private:
 
