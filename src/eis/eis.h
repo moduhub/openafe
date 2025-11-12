@@ -14,13 +14,8 @@
 
 /** Type that store all the necessary data for the EIS process. */
 typedef struct EIS_state_struct{
-  uint8_t currentSlope;           // Current slope.
-  uint16_t currentSlopeFrequency; // Current frequency point of the slope.
-  uint16_t SEQ_currentFrequency;  // Current frequency point of the sequencer command in the voltammetry itself.
-  //uint16_t SEQ_currentSRAMAddress;// Current SRAM address (the address prior to this was the last one used).
-  //uint16_t SEQ_nextSRAMAddress;   // Next SRAM address for a step to be placed.
-  //uint8_t SEQ_numCommandsPerStep; // Number of commands per step in the current voltammetry type.
-  //uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
+  uint8_t currentFrequency;
+  uint16_t currentFrequencyPoint;
 } EIS_state_t;
 
 typedef struct EIS_parameters_t { 
@@ -90,6 +85,14 @@ void AD5941_DFT_OFF(void);
  * @return
  */
 int openafe_setupEIS(const EIS_parameters_t *pEISParams);
+
+int openafe_startEIS(void);
+
+void openafe_interruptHandler_EIS(void);
+
+uint16_t openafe_dataAvailable_EIS(void);
+
+void openafe_getPoint_EIS(void);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 
