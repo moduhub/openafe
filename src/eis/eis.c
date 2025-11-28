@@ -545,34 +545,12 @@ void AD5941_DFT_OFF(void){
 
 // INTERRUPT CONFIG.
 void AD5941_interruptConfig_EIS(void) {
-  // Configure GP0 pin (GPIO0) as Interrupt 0 output (PIN0CFG = 00)
-  // Observação: GP0CON usa pares de bits por pin. Vamos escrever apenas o campo PIN0CFG=00.
-  uint32_t gp0con = AD5941_readRegister(AD_GP0CON, REG_SZ_32);
-  gp0con &= ~(0b11U << 0); // clear PIN0CFG bits [1:0] (00 -> Interrupt 0 output)
-  AD5941_writeRegister(AD_GP0CON, gp0con, REG_SZ_32);
-
-  // Enable GP0 output (so the pin drives) for the pins we use
-  // GP0OEN bit mask: set bit0 to enable GPIO0 output
-  uint32_t gp0oen = AD5941_readRegister(AD_GP0OEN, REG_SZ_32);
-  gp0oen |= (1UL << 0);
-  AD5941_writeRegister(AD_GP0OEN, gp0oen, REG_SZ_32);
-
-  // 3) forçar o pino para HIGH por padrão (escreve GP0SET bit0)
-  AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
-
-  // Set interrupt polarity: rising edge -> pin goes high when interrupt asserted
-  uint32_t intcpol = AD5941_readRegister(AD_INTCPOL, REG_SZ_32);
-  intcpol &= ~(1UL << 0); // garante 0
-  AD5941_writeRegister(AD_INTCPOL, intcpol, REG_SZ_32);
-
-  // Enable DFT result IRQ (INTCSEL0 bit1)
-  uint32_t intcsel0 = AD5941_readRegister(AD_INTCSEL0, REG_SZ_32);
-  intcsel0 |= (1UL << 1);  // enable DFT result IRQ source
-  AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
-
-  // Clear any pending internal interrupt flags (W1C)
-  AD5941_writeRegister(AD_INTCCLR, (1UL << 1), REG_SZ_32);
-
+  AD5941_writeRegister(AD_GP0OEN, (uint32_t)1, REG_SZ_32);        // Set GPIO0 as output (maybe this is breaking the interrupt)
+	AD5941_writeRegister(AD_GP0CON, (uint32_t)0, REG_SZ_32);        // Makes sure GPIO0 configured as output of Interrupt 0
+	AD5941_writeRegister(AD_INTCPOL, (uint32_t)1, REG_SZ_32);       // Set interrupt polarity to rising edge
+  AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);         // Force the pin to HIGH by default (writes GP0SET bit0)
+  AD5941_writeRegister(AD_INTCSEL0, 0UL | (1UL << 1), REG_SZ_32); // Enable DFT result IRQ (INTCSEL0 bit1)
+  AD5941_writeRegister(AD_INTCCLR, ~0UL, REG_SZ_32);              // Clear any pending internal interrupt flags (W1C)
   gDFTReady = 0;
 }
 void openafe_interruptHandler_EIS(void) {
