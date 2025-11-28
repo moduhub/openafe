@@ -448,8 +448,8 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
   if(pBSINC3){
     filtercon &= ~(3UL<<12);
     bool foundSINC3 = false;
-    for(uint32_t i = allowedSINC3Count - 1; i >= 0 && !foundSINC3; i--) {
-      if(allowedSINC3OSR[i] == pSINC3) {
+    for(uint32_t i = allowedSINC3Count - 1, i2 = 0; i2 < allowedSINC3Count && !foundSINC3; i--, i2++) {
+      if(allowedSINC3OSR[i2] == pSINC3) {
         filtercon |= ((uint32_t)i << 12);
         foundSINC3 = true;
       }
