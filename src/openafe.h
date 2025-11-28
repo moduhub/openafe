@@ -70,7 +70,7 @@ class AFE {
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		int setEISSequence(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
+		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
 
     
 		/**
