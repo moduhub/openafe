@@ -430,7 +430,7 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
   if (!pBSINC3 && !pBSINC2) debug_log(" no SINC filter used (fallback approximation)");
   debug_log(" ");
   */
-
+  uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
   uint32_t filtercon = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
   int DFT_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 15)) != 0;
 
