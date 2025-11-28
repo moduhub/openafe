@@ -12,6 +12,8 @@ float COHERENCE_TOL_REL = 0.0001;
 
 // INTERRUPT
 volatile uint8_t gDFTReady = 0;
+volatile uint32_t raw_r = 0;
+volatile uint32_t raw_i = 0;
 
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -555,13 +557,16 @@ void AD5941_interruptConfig_EIS(void) {
 }
 void openafe_interruptHandler_EIS(void) {
 	uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+  //debug_log_u(tInterruptFlags0); // Only for debug
 
 	if (tInterruptFlags0 & ((uint32_t)1 << 1)) {	// trigger DFT result read
-    //debug_log("--Interrupt--");
+    raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+    raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
     if(!gDFTReady) gDFTReady++;
 	}
-  AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
-	AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
+
+  // Clear the flag only after collecting the point via getpoint,
+  //  to avoid readings and interrupt triggers without a signal
 }
 uint16_t openafe_dataAvailable_EIS(void) {
 	return gDFTReady;
