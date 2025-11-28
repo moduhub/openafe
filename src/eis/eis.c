@@ -7,13 +7,16 @@ extern "C" {
 
 EIS_t gEISparams;
 
-// -- default: ~1% relative -- //
-float COHERENCE_TOL_REL = 0.0001;   
+// -- default: ~0,05% relative -- // 
+// tip: Use 0.0001 to triple sinc in 1khz //
+float COHERENCE_TOL_REL = 0.0005;   
 
 // INTERRUPT
 volatile uint8_t gDFTReady = 0;
 volatile uint32_t raw_r = 0;
 volatile uint32_t raw_i = 0;
+
+volatile uint8_t sinc2_active = 0;
 
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -470,13 +473,20 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
       }
     }
     filtercon &= ~(1UL << 16); // Sinc2 filter clock enable
-    dftcon &= (3UL << 20);     // Select the output from the Sinc2 filter
+    filtercon |= (1UL << 4);   // Bypasses the 50 Hz notch and 60 Hz notch filters.
+    dftcon &= ~(3UL << 20);    // Select the output from the Sinc2 filter
+    afecon |= (1UL << 16); // Supply rejection filter enabled. Enables sinc2 (50 Hz/60 Hz digital filter)
+    sinc2_active = 1;
   }
-  else filtercon |= (1UL << 16); // Bypass SINC2
+  else {
+    filtercon |= (1UL << 16); // Bypass SINC2
+    afecon &= ~(1UL << 16);   // Supply rejection filter disabled. Disables sinc2 (50 Hz/60 Hz digital filter). Disable this bit for impedance measurements.
+    sinc2_active = 0;
+  }
 
-
-  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+  AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
   AD5941_writeRegister(AD_ADCFILTERCON, filtercon, REG_SZ_32);
+  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
 
   if(DFT_FLAG) AD5941_DFT_ON();
 

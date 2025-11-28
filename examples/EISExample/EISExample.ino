@@ -34,7 +34,6 @@ void setup(){
         int available = openAFE.dataAvailable_EIS();
         unsigned long now = micros();
         if (prevMicros == 0) {
-          // primeiro ponto recebido
           Serial.print(F("[#"));
           Serial.print(pointCount);
           Serial.print(F("] First point: "));
