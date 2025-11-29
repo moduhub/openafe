@@ -661,16 +661,63 @@ DFT_Point reverse_sinc_apply(
 
 // POINT
 void openafe_getPoint_EIS(void){
-  uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
-  uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
 
   int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
   int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
 
-  //debug_log_i(dft_r);
-  //debug_log_i(dft_i);
+  /* [wp]
+  debug_log("Ponto:");
+  debug_log_i(dft_r);
+  debug_log_i(dft_i);
+  float mag = (float)sqrt(pow(dft_r,2) + pow(dft_i,2));
+  debug_log_f(mag);  
+  float fase_rad = atan2((double)dft_i, (double)dft_r);   // resultado em radianos
+  float fase_deg = fase_rad * 180.0 / M_PI;  
+  debug_log_f(fase_deg);
+  EIS_Point_t p = currentPoint;
+  DFT_Point prefilter = reverse_sinc_apply(
+    dft_r, dft_i, p.freq,
+    (uint8_t)p.use_sinc2, (uint16_t)p.sinc2_osr,
+    (uint8_t)p.use_sinc3, (uint16_t)p.sinc3_osr
+  );
+  debug_log("Reverse-sinc:");
+  debug_log_f(prefilter.real);
+  debug_log_f(prefilter.imag);
+  mag = (float)sqrt(pow(prefilter.real,2) + pow(prefilter.imag,2));
+  debug_log_f(mag);
+  */
 
   gDFTReady = 0;
+
+  gEISparams.state.currentFrequencyPoint++;
+  if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints){
+    EIS_Point_t p = EIS_GetPoint(
+      gEISparams.parameters.startingOmega, 
+      gEISparams.parameters.endingOmega, 
+      gEISparams.totalPoints, 
+      gEISparams.parameters.stepForADecade, 
+      gEISparams.state.currentFrequencyPoint);
+    currentPoint = p;
+    debug_log("\n--------------");
+    debug_log("Freq:");
+    debug_log_f((float)p.freq);
+    AD5941_waveWrite(0, 600, p.fcw);
+    AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+
+    //AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
+	  //AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
+    // Clear only the flags that were set (write 1 to clear W1C)
+    uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+    uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+    if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+    AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+  }
+  else{
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+    while(1);
+  }
 
   return;
 }
