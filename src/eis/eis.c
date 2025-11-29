@@ -17,6 +17,7 @@ volatile uint32_t raw_r = 0;
 volatile uint32_t raw_i = 0;
 
 volatile uint8_t sinc2_active = 0;
+EIS_Point_t currentPoint;
 
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -581,6 +582,84 @@ void openafe_interruptHandler_EIS(void) {
 uint16_t openafe_dataAvailable_EIS(void) {
 	return gDFTReady;
 }
+
+// REVERSE SINC
+static float sincf_fast(float x) {
+  if (fabsf(x) < 1e-8f) return 1.0f;
+  return sinf(x) / x;
+}
+DFT_Point compute_inverse_sinc_runtime(
+  float freqHz,
+  uint8_t useSinc2, uint16_t osrSinc2,
+  uint8_t useSinc3, uint16_t osrSinc3
+) {
+  DFT_Point C; C.real = 1.0f; C.imag = 0.0f;
+
+  // Se nenhum sinc ativo, retorno 1
+  if (!useSinc2 && !useSinc3) return C;
+
+  // R_total e N_total
+  uint32_t R = 1;
+  unsigned int N_total = 0;
+  if (useSinc3 && osrSinc3 > 0) { R *= osrSinc3; N_total += 3; }
+  if (useSinc2 && osrSinc2 > 0) { R *= osrSinc2; N_total += 2; }
+  if (R == 0 || N_total == 0) return C;
+
+  const float PI = 3.14159265358979323846f;
+  const float fs = (float)800000.0f;
+  // args
+  float arg_num = PI * freqHz * (float)R / fs; // pi * f * R / fs
+  float arg_den = PI * freqHz / fs;           // pi * f / fs
+
+  float sn = sincf_fast(arg_num);
+  float sd = sincf_fast(arg_den);
+
+  // base = sn / sd
+  float MIN_DEN = 1e-8f;
+  if (fabsf(sd) < MIN_DEN) sd = (sd >= 0.0f) ? MIN_DEN : -MIN_DEN;
+  float base = sn / sd;
+
+  // H = base^N
+  float H = 1.0f;
+  for (unsigned int k = 0; k < N_total; ++k) H *= base;
+
+  // inversion magnitude
+  float invMag;
+  float MIN_H = 1e-10f; // evita divisão por zero
+  if (fabsf(H) < MIN_H) invMag = 1.0f / MIN_H;
+  else invMag = 1.0f / H;
+
+  // compute group delay in seconds: D_samples = N*(R-1)/2
+  float D_samples = (float)N_total * ((float)R - 1.0f) * 0.5f;
+  float tau = D_samples / fs; // seconds
+
+  // phase correction: multiply by exp(+j*2*pi*f*tau) => cos + j sin
+  float phase = 2.0f * PI * freqHz * tau;
+  float cosp = cosf(phase);
+  float sinp = sinf(phase);
+
+  // C = invMag * (cosp + j sinp)
+  C.real = invMag * cosp;
+  C.imag = invMag * sinp;
+  return C;
+}
+DFT_Point reverse_sinc_apply(
+  float dft_real, float dft_imag,
+  float freqHz,
+  uint8_t useSinc2, uint16_t osrSinc2,
+  uint8_t useSinc3, uint16_t osrSinc3
+) {
+  // runtime compute C(f)
+  DFT_Point C = compute_inverse_sinc_runtime(freqHz, useSinc2, osrSinc2, useSinc3, osrSinc3);
+  // complex multiplication: (a+jb)*(c+jd) = (ac - bd) + j(ad + bc)
+  DFT_Point out;
+  out.real = dft_real * C.real - dft_imag * C.imag;
+  out.imag = dft_real * C.imag + dft_imag * C.real;
+  return out;
+
+}
+
+// POINT
 void openafe_getPoint_EIS(void){
   uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
   uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
