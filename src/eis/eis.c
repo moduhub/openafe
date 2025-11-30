@@ -397,9 +397,10 @@ void AD5941_setupDFT(void){
     | (1UL);         // ADC data rate. Unfiltered ADC output rate. 800 kHz.
   AD5941_writeRegister(AD_ADCFILTERCON, adcfiltercon, REG_SZ_32);
 
-  uint32_t dftcon = 0UL
+  uint32_t dftcon = (0UL
     | (1UL   << 21)    // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
-    | (0b1000 <<  4);  // DFT point number is 1024
+    | (0b1000 <<  4))  // DFT point number is 1024
+    & ~(1UL);          // Disable Hanning window
     //| (1UL);           // Enable Hanning window
   AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
 
@@ -541,9 +542,6 @@ void AD5941_DFT_ON(void){
   uint32_t afecon = AD5941_readRegister(AD_AFECON,REG_SZ_32)
     | (1UL<<15); // DFT hardware accelerator enabled
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
-  uint32_t dftcon = AD5941_readRegister(AD_DFTCON, REG_SZ_32)
-    | (1UL << 0); // Enable DFT
-  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
   return;
 }
 void AD5941_DFT_OFF(void){
