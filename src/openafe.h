@@ -66,11 +66,10 @@ class AFE {
 		 * @param pStartingOmega IN -- Starting omega of the waveform in Hz, e.g. 100.
 		 * @param pEndingOmega IN -- Ending omega of the waveform in Hz, e.g. 10000.
 		 * @param pStepForADecade IN -- Steps for a decade the wave, e.g. 10.
-		 * @param pSamplesPerFrequency IN -- Samples per frequency, e.g. 100.
 		 * @return >0 if successful, otherwise error.
 		 * 
 		 */
-		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency);
+		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade);
 
     
 		/**

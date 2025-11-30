@@ -19,9 +19,8 @@ void setup(){
   int startingOmega = 1000;
   int endingOmega = 10000;
   int stepForADecade = 10;
-  int samplesPerFrequency = 10;
 
-  success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade, samplesPerFrequency);
+  success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);
 
   if (success){
     Serial.println(F("<<< EIS started >>>")); 

@@ -27,13 +27,12 @@ void AFE::resetBySoftware(void){
 	AD5941_softwareReset();
 }
 
-int AFE::setEISConfig( uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pSamplesPerFrequency){
+int AFE::setEISConfig( uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade){
   EIS_parameters_t parametersEIS;
   parametersEIS.settlingTime = pSettlingTime;
   parametersEIS.startingOmega = pStartingOmega;
   parametersEIS.endingOmega = pEndingOmega;
   parametersEIS.stepForADecade = pStepForADecade;
-  parametersEIS.samplesPerFrequency = pSamplesPerFrequency;
   return openafe_setupEIS(&parametersEIS);
 }
 
