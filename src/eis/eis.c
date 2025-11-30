@@ -274,11 +274,11 @@ void AD5941_setupAFECON_for_EIS(void){
 }
 void AD5941_setupHSDAC_for_EIS(void){
   uint32_t hsdaccon = AD5941_readRegister(AD_HSDACCON, REG_SZ_32);
-  hsdaccon &= ~(1UL << 12); // INAMPGNMDE = 0 (gain=2)
-  //hsdaccon |= (1UL << 12); // INAMPGNMDE = 1 (gain=0.25)
+  //hsdaccon &= ~(1UL << 12); // INAMPGNMDE = 0 (gain=2)
+  hsdaccon |= (1UL << 12); // INAMPGNMDE = 1 (gain=0.25)
   hsdaccon &= ~(1UL << 0);  // ATTENEN = 0 (no attenuation)
   hsdaccon &= ~(0xFF << 1); // Clear rate bits
-  hsdaccon |= (0x7F << 1);  // Rate = 16MHz/127 ≈ 126kHz
+  hsdaccon |= (0x1B << 1);  // Low power mode and impedance measurements ≤80 kH
   AD5941_writeRegister(AD_HSDACCON, hsdaccon, REG_SZ_32);
   return;
 }
