@@ -345,7 +345,7 @@ void AD5941_waveOFF(void){
 // ADC GENERAL CONFIG.
 void AD5941_setupADC_for_EIS(void){
   uint32_t adccon = 0UL
-    //| (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
+    | (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
     //| (1UL << 15)     // ?? Enables dc offset cancellation
     | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
     | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
