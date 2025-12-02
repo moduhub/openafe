@@ -274,8 +274,8 @@ void AD5941_setupAFECON_for_EIS(void){
 }
 void AD5941_setupHSDAC_for_EIS(void){
   uint32_t hsdaccon = AD5941_readRegister(AD_HSDACCON, REG_SZ_32);
-  //hsdaccon &= ~(1UL << 12); // INAMPGNMDE = 0 (gain=2)
   hsdaccon |= (1UL << 12); // INAMPGNMDE = 1 (gain=0.25)
+  //hsdaccon &= ~(1UL << 12); // GAIN 2
   hsdaccon &= ~(1UL << 0);  // ATTENEN = 0 (no attenuation)
   hsdaccon &= ~(0xFF << 1); // Clear rate bits
   hsdaccon |= (0x1B << 1);  // Low power mode and impedance measurements ≤80 kH
@@ -345,7 +345,7 @@ void AD5941_waveOFF(void){
 // ADC GENERAL CONFIG.
 void AD5941_setupADC_for_EIS(void){
   uint32_t adccon = 0UL
-    | (0b10UL << 16)  // GNPGA = 1 -> PGA gain = 2  |  GNPGA = 0 -> PGA gain = 1
+    //| (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
     //| (1UL << 15)     // ?? Enables dc offset cancellation
     | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
     | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
