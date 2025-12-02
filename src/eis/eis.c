@@ -696,10 +696,11 @@ void openafe_getPoint_EIS(void){
       gEISparams.parameters.stepForADecade, 
       gEISparams.state.currentFrequencyPoint);
     currentPoint = p;
-    debug_log("\n--------------");
-    debug_log("Freq:");
+
+    debug_log("--------------");
     debug_log_f((float)p.freq);
-    AD5941_waveWrite(0, 600, p.fcw);
+    
+    AD5941_waveWrite(0, 500, p.fcw);
     AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
 
     //AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
@@ -720,6 +721,32 @@ void openafe_getPoint_EIS(void){
   return;
 }
 
+// CALIBRATION
+void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
+  // --- Key Matrix Configuration for Calibration --- //
+  uint32_t ad_swcon = 0UL 
+    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
+    | (0b1000 << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
+    | (0b0101 << 8)  // N5 - Connect VBIAS0 to excitation amplifier N input
+    //| (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
+    | (0b0001);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
+  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  return;
+}
+void AD5941_setupADC_for_EIS_Calibration(void){
+  //uint32_t adccon = AD5941_readRegister(AD_ADCCON, REG_SZ_32);
+  //adccon &= ~(15UL<<16);
+  //adccon |= 0UL
+  //  | (0b11 << 16)     // Gain = 4.
+  //  | (1UL  << 15)    // ?? Enables dc offset cancellation
+  // ;
+  //AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
+  //AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
+  return;
+}
+void AD5941_calibrationDFT(void){
+
+}
 
 // EIS Test
 void EIS_TEST(void){
@@ -777,9 +804,6 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
   gEISparams.totalPoints = numPoints;
 
-  debug_log("Number of points:");
-  debug_log_i(gEISparams.totalPoints);
-
   gEISparams.state.currentFrequency = startF;
   gEISparams.state.currentFrequencyPoint = 0;
 
@@ -793,9 +817,12 @@ openafe_startEIS(){
   uint32_t steps = gEISparams.parameters.stepForADecade;
   uint32_t numPoints = gEISparams.totalPoints;
 
+  AD5941_setupKeyMatrix_for_EIS_Calibration();
+
   EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
   AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
   AD5941_waveWrite(0, 500, p.fcw);
+  debug_log_f(p.freq);
 
   AD5941_ADC_ON();
   AD5941_waveON();

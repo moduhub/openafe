@@ -70,6 +70,11 @@ typedef struct {
   double Err;         // relative error (errHz / f)
 } CoherenceCheck_t;
 
+typedef struct {
+  int32_t mag;
+  int32_t phase;
+} DFT_Calibration;
+
 // DFT
 void AD5941_setupDFT(void);
 void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2);
