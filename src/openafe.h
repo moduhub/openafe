@@ -190,7 +190,7 @@ class AFE {
 
     static uint16_t dataAvailable_EIS(void);
 
-    static void getPoint_EIS(void);
+    void getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag);
     
 	private:
 

@@ -28,31 +28,42 @@ void setup(){
 		
 		do {
 			if (openAFE.dataAvailable_EIS() > 0){
+        /* [wp]
+          int available = openAFE.dataAvailable_EIS();
+          unsigned long now = micros();
+          if (prevMicros == 0) {
+            Serial.print(F("[#"));
+            Serial.print(pointCount);
+            Serial.print(F("] First point: "));
+            Serial.println(available);
+          } else {
+            unsigned long interval = now - prevMicros;
+            Serial.print(F("[#"));
+            Serial.print(pointCount);
+            Serial.print(F("] Interval: "));
+            Serial.print(interval);
+            Serial.print(F(" µs  ("));
+            Serial.print(interval / 1000.0, 3);
+            Serial.println(F(" ms)"));
+          }
 
-        int available = openAFE.dataAvailable_EIS();
-        unsigned long now = micros();
-        if (prevMicros == 0) {
-          Serial.print(F("[#"));
-          Serial.print(pointCount);
-          Serial.print(F("] First point: "));
-          Serial.println(available);
-        } else {
-          unsigned long interval = now - prevMicros;
-          Serial.print(F("[#"));
-          Serial.print(pointCount);
-          Serial.print(F("] Interval: "));
-          Serial.print(interval);
-          Serial.print(F(" µs  ("));
-          Serial.print(interval / 1000.0, 3);
-          Serial.println(F(" ms)"));
-        }
+          prevMicros = now;
+          pointCount++;
+        */
 
-        prevMicros = now;
-        pointCount++;
-
+        float frequency;
+        float impedance_real;
+        float impedance_imag;
 				noInterrupts();
-        openAFE.getPoint_EIS();
+        openAFE.getPoint_EIS(&frequency, &impedance_real, &impedance_imag);
         interrupts();
+
+        Serial.println(frequency, 4);
+        Serial.println(impedance_real);
+        Serial.println(impedance_imag);
+        Serial.print("--------------\n");
+        Serial.flush();
+        
 			}
 			delay(1);
 		} while (true);

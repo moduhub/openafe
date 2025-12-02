@@ -658,10 +658,14 @@ DFT_Point reverse_sinc_apply(
 }
 
 // POINT
-void openafe_getPoint_EIS(void){
+void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag){
 
   int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
   int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+
+  *frequency = currentPoint.freq;
+  *impedance_real = dft_r;
+  *impedance_imag = dft_i;
 
   /* [wp]
   debug_log("Ponto:");
@@ -696,9 +700,6 @@ void openafe_getPoint_EIS(void){
       gEISparams.parameters.stepForADecade, 
       gEISparams.state.currentFrequencyPoint);
     currentPoint = p;
-
-    debug_log("--------------");
-    debug_log_f((float)p.freq);
     
     AD5941_waveWrite(0, 500, p.fcw);
     AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
@@ -717,7 +718,7 @@ void openafe_getPoint_EIS(void){
     AD5941_DFT_OFF();
     while(1);
   }
-
+  
   return;
 }
 
@@ -798,9 +799,6 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   uint32_t endF   = gEISparams.parameters.endingOmega;
   uint32_t steps  = gEISparams.parameters.stepForADecade; 
 
-  //int tPossibility = openafe_calculateParamsForEIS();
-  //if (IS_ERROR(tPossibility)) return tPossibility;
-
   uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
   gEISparams.totalPoints = numPoints;
 
@@ -817,12 +815,12 @@ openafe_startEIS(){
   uint32_t steps = gEISparams.parameters.stepForADecade;
   uint32_t numPoints = gEISparams.totalPoints;
 
-  AD5941_setupKeyMatrix_for_EIS_Calibration();
+  //AD5941_setupKeyMatrix_for_EIS_Calibration();
 
   EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
+  currentPoint = p;
   AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
   AD5941_waveWrite(0, 500, p.fcw);
-  debug_log_f(p.freq);
 
   AD5941_ADC_ON();
   AD5941_waveON();
