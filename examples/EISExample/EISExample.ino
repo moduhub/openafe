@@ -6,11 +6,10 @@ unsigned long pointCount = 0;
 
 void setup(){
   Serial.begin(115200);
-	
+	noInterrupts();
 	AFE openAFE;
 
   pinMode(2, INPUT_PULLUP);
-	noInterrupts();
   attachInterrupt(digitalPinToInterrupt(2), openAFE.interruptHandler_EIS, FALLING);   
 	delay(200);
 
