@@ -293,6 +293,8 @@ void AD5941_setupHSDAC_for_EIS(void){
 }
 void AD5941_setupHSTIA_for_EIS(void){
   uint32_t hsrtia = 0UL
+    //                                                    // 1 uF
+    //| (32UL << 5)                                       // 100 uF
     | (0b100000UL << 5)                                 // not used cap
     | (0b0011UL << 0);                                  // R_tia = 10k
   AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);    
@@ -304,7 +306,7 @@ void AD5941_setupKeyMatrix_for_EIS(void){
   uint32_t ad_swcon = 0UL 
     | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
     | (0b0101 << 12) // T5 - Connect to SE0 pin in negative input HSTIA
-    | (0b0101 << 8)  // N5 - Connect VBIAS0 to excitation amplifier N input
+    | (0b0000 << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
     | (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
     | (0b0101);      // D5 - Connect HSDAC output to excitation amplifier
   AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
@@ -753,10 +755,20 @@ void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
   uint32_t ad_swcon = 0UL 
     | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
     | (0b1000 << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
-    | (0b0101 << 8)  // N5 - Connect VBIAS0 to excitation amplifier N input
-    //| (0b0101 << 4 ) // P5 - Connect common-mode reference to P input 
+    | (0b0000 << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
+    | (0b0000 << 4 ) // PL - Connect common-mode reference to P input 
     | (0b0001);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
   AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  return ;
+}
+void AD5941_setupHSTIA_for_EIS_Calibration(void){
+  uint32_t hsrtia = 0UL
+    //                                                    // 1 uF
+    //| (32UL << 5)                                       // 100 uF
+    | (0b100000UL << 5)                                 // not used cap
+    | (0b0000);                                  // R_tia = 200
+  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+
   return;
 }
 void AD5941_setupADC_for_EIS_Calibration(void){
