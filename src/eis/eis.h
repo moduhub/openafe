@@ -95,6 +95,8 @@ int openafe_startEIS(void);
 
 void openafe_interruptHandler_EIS(void);
 
+uint8_t openafe_done_EIS(void);
+
 uint16_t openafe_dataAvailable_EIS(void);
 
 void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag);

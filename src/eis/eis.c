@@ -19,6 +19,15 @@ volatile uint32_t raw_i = 0;
 volatile uint8_t sinc2_active = 0;
 EIS_Point_t currentPoint;
 
+/** Whether or not the EIS should be stopped. */
+uint8_t gShoulKillEIS = 0;
+
+/**
+ * @brief Whether the AD594x has finish or not the current operation.
+ * @note READ ONLY! This variable is automatically managed by the library.
+ */
+uint8_t gFinished;
+
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
@@ -234,10 +243,10 @@ void AD5941_init_for_EIS(void){
 
   debug_delay(10);
 
-  uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
-  char dbgmsg[64]; 
-  snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
-  debug_log(dbgmsg);
+  //uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
+  //char dbgmsg[64]; 
+  //snprintf(dbgmsg, sizeof(dbgmsg), "AD_CHIPID: 0x%08lX", chipID); 
+  //debug_log(dbgmsg);
 
   return;
 }
@@ -416,22 +425,19 @@ void AD5941_setupDFT(void){
 
 }
 void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
-  /* [WK]
-  debug_log("DFTN:");
+  /* [WK]  
+  //debug_log("DFTN:");
   debug_log_i(pN);
   if (pBSINC3) {
-    debug_log(" using SINC3 OSR:");
     debug_log_i(pSINC3);
   }
   else debug_log(" no using SINC3 OSR");
   if (pBSINC2) {
-    debug_log(" using SINC2 OSR:");
     debug_log_i(pSINC2);
   } 
-  else debug_log(" no using SINC2 OSR");
-  if (!pBSINC3 && !pBSINC2) debug_log(" no SINC filter used (fallback approximation)");
-  debug_log(" ");
+  else debug_log(" no using SINC2 OSR"); 
   */
+  
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
   uint32_t filtercon = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
   int DFT_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 15)) != 0;
@@ -667,30 +673,48 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   *impedance_real = dft_r;
   *impedance_imag = dft_i;
 
-  /* [wp]
-  debug_log("Ponto:");
-  debug_log_i(dft_r);
-  debug_log_i(dft_i);
-  float mag = (float)sqrt(pow(dft_r,2) + pow(dft_i,2));
-  debug_log_f(mag);  
-  float fase_rad = atan2((double)dft_i, (double)dft_r);   // resultado em radianos
-  float fase_deg = fase_rad * 180.0 / M_PI;  
-  debug_log_f(fase_deg);
-  EIS_Point_t p = currentPoint;
-  DFT_Point prefilter = reverse_sinc_apply(
-    dft_r, dft_i, p.freq,
-    (uint8_t)p.use_sinc2, (uint16_t)p.sinc2_osr,
-    (uint8_t)p.use_sinc3, (uint16_t)p.sinc3_osr
-  );
-  debug_log("Reverse-sinc:");
-  debug_log_f(prefilter.real);
-  debug_log_f(prefilter.imag);
-  mag = (float)sqrt(pow(prefilter.real,2) + pow(prefilter.imag,2));
-  debug_log_f(mag);
+  /* [wp] 
+    debug_log("Ponto:");
+    debug_log_i(dft_r);
+    debug_log_i(dft_i);
+    float mag = (float)sqrt(pow(dft_r,2) + pow(dft_i,2));
+    debug_log_f(mag);  
+    float fase_rad = atan2((double)dft_i, (double)dft_r);   // resultado em radianos
+    float fase_deg = fase_rad * 180.0 / M_PI;  
+    debug_log_f(fase_deg);
+    debug_log("AD_HSDACCON");
+    debug_log_u(AD5941_readRegister(AD_HSDACCON, REG_SZ_32));
+    debug_log("AD_SWCON");
+    debug_log_u(AD5941_readRegister(AD_SWCON, REG_SZ_32));
+    debug_log("AD_HSTIACON");
+    debug_log_u(AD5941_readRegister(AD_HSTIACON, REG_SZ_32));
+    debug_log("AD_HSRTIACON");
+    debug_log_u(AD5941_readRegister(AD_HSRTIACON, REG_SZ_32));
+    debug_log("AD_AFECON");
+    debug_log_u(AD5941_readRegister(AD_AFECON, REG_SZ_32));
+    debug_log("ADCFILTERCON");
+    debug_log_u(AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32));
+    debug_log("ADCCON");
+    debug_log_u(AD5941_readRegister(AD_ADCCON, REG_SZ_32));
+    debug_log("DFTCON");
+    debug_log_u(AD5941_readRegister(AD_DFTCON, REG_SZ_32));
+    debug_log("REPEATADCCNV");
+    debug_log_u(AD5941_readRegister(AD_REPEATADCCNV, REG_SZ_32));
+    debug_log("ADCBUFCON");
+    debug_log_u(AD5941_readRegister(AD_ADCBUFCON, REG_SZ_32));
+    for(uint16_t i = 0; i < 10; i++){
+      raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+      raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
+      int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+      int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+      //debug_log_i(dft_r);
+      //debug_log_i(dft_i);
+      debug_delay(1);
+    }
   */
+  
 
   gDFTReady = 0;
-
   gEISparams.state.currentFrequencyPoint++;
   if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints){
     EIS_Point_t p = EIS_GetPoint(
@@ -713,10 +737,11 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
     AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
   }
   else{
+    gFinished = 1;
+    
     AD5941_ADC_OFF();
     AD5941_waveOFF();
     AD5941_DFT_OFF();
-    while(1);
   }
   
   return;
@@ -776,6 +801,16 @@ void EIS_TEST(void){
   AD5941_waveOFF();
   AD5941_DFT_OFF();
 }
+uint8_t openafe_done_EIS(void) {
+  
+	if (gShoulKillEIS) { 
+		return STATUS_EIS_DONE;
+	}
+	return ((gFinished) && (!gDFTReady)) ||
+				   ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
+			   ? STATUS_EIS_DONE
+			   : STATUS_EIS_UNDERGOING;
+}
 
 int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
 
@@ -793,6 +828,8 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
 
   memset(&gEISparams, 0, sizeof(EIS_t));
 
+  gShoulKillEIS = 0;
+  gFinished = 0;
   gEISparams.parameters = *pEISParams;
 
   uint32_t startF = gEISparams.parameters.startingOmega;

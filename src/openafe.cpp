@@ -1,7 +1,7 @@
 #include "openafe.h"
 
 AFE::AFE(void){
-	//AD5941_init(0, 0, 0); //FOR TEST'S [WORK IN PROGRESS]
+	AD5941_init(0, 0, 0);
 }
 
 
@@ -90,6 +90,10 @@ bool AFE::done(void){
 	return openafe_done() == 0 ? false : true;
 }
 
+bool AFE::doneEIS(void){
+	return openafe_done_EIS() == 0 ? false : true;
+}
+
 
 uint16_t AFE::dataAvailable(void){
 	return openafe_dataAvailable();
@@ -122,6 +126,7 @@ uint16_t AFE::dataAvailable_EIS(void){
 	return openafe_dataAvailable_EIS();
 }
 
-void AFE::getPoint_EIS(void){
-	return openafe_getPoint_EIS();
+void AFE::getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag){
+  openafe_getPoint_EIS(frequency, impedance_real, impedance_imag);
+	return;
 }

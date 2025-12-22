@@ -158,6 +158,14 @@ class AFE {
 		 */
 		static bool done(void);
 
+    /**
+		 * @brief Check if the AFE device has finished operations.
+		 * 
+		 * @return True if device has finished operation, or has not begun an operation. 
+		 * @return False if device is currently under work. 
+		 */
+		static bool doneEIS(void);
+
 		/**
 		 * @brief Check if there is data available or not. 
 		 * 

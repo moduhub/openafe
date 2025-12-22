@@ -3,6 +3,8 @@
 
 #define STATUS_VOLTAMMETRY_DONE 1       // The voltammetry proccess has finished.
 #define STATUS_VOLTAMMETRY_UNDERGOING 0 // The voltammetry proccess is undergoing.
+#define STATUS_EIS_DONE 1               // The EIS proccess has finished.
+#define STATUS_EIS_UNDERGOING 0         // The EIS proccess is undergoing.
 
 #define SUCCESS 1  // No error, success.
 #define NO_ERROR 1 // No error, success.

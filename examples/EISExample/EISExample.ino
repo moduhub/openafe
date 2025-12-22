@@ -15,8 +15,8 @@ void setup(){
 
   int success;
   int settlingTime = 1000;
-  int startingOmega = 1000;
-  int endingOmega = 10000;
+  int startingOmega = 20; // min ?
+  int endingOmega = 1000; // work at 60k
   int stepForADecade = 10;
 
   success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);
@@ -66,7 +66,7 @@ void setup(){
         
 			}
 			delay(1);
-		} while (true);
+		} while (!openAFE.doneEIS()); 
 
 		Serial.println(F("<<< FINISHED EIS >>>")); 
   }
