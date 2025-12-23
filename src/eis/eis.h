@@ -101,7 +101,7 @@ uint8_t openafe_done_EIS(void);
 
 uint16_t openafe_dataAvailable_EIS(void);
 
-void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag);
+void rotate(float *R, float *I, float ang);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 

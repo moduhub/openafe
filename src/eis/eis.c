@@ -782,8 +782,11 @@ void AD5941_setupADC_for_EIS_Calibration(void){
   //AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
   return;
 }
-void AD5941_calibrationDFT(void){
-
+void rotate(float *R, float *I, float ang) {
+  float c = cosf(ang), s = sinf(ang);
+  float r = *R, i = *I;
+  *R = r * c - i * s;
+  *I = r * s + i * c;
 }
 
 // EIS Test
