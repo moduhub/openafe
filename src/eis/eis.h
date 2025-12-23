@@ -70,11 +70,6 @@ typedef struct {
   double Err;         // relative error (errHz / f)
 } CoherenceCheck_t;
 
-typedef struct {
-  int32_t mag;
-  int32_t phase;
-} DFT_Calibration;
-
 // DFT
 void AD5941_setupDFT(void);
 void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2);
@@ -101,7 +96,15 @@ uint8_t openafe_done_EIS(void);
 
 uint16_t openafe_dataAvailable_EIS(void);
 
+
+typedef struct {
+  float phase;
+  float gR;
+  float gI;
+} DFTCal;
 void rotate(float *R, float *I, float ang);
+void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal);
+void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 

@@ -28,6 +28,8 @@ uint8_t gShoulKillEIS = 0;
  */
 uint8_t gFinished;
 
+DFTCal cal;
+
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
@@ -787,6 +789,18 @@ void rotate(float *R, float *I, float ang) {
   float r = *R, i = *I;
   *R = r * c - i * s;
   *I = r * s + i * c;
+}
+void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal){
+  cal->phase = -atan2f(dft_imag_Rcal, dft_real_Rcal);
+
+  //debug_log_f((float)cal->phase);
+
+  // Rotate
+  rotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
+
+  // Gain
+  cal->gR = (dft_real_Rcal) ? (10000.0f / dft_real_Rcal) : 1.0f;
+  cal->gI = 1.0f;
 }
 
 // EIS Test
