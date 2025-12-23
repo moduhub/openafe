@@ -802,6 +802,21 @@ void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *
   cal->gR = (dft_real_Rcal) ? (10000.0f / dft_real_Rcal) : 1.0f;
   cal->gI = 1.0f;
 }
+void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
+  float R = *dft_real;
+  float I = *dft_imag;
+
+  // Phase
+  //rotate(&R, &I, cal.phase);
+  rotate(&R, &I, 90); // [WP]
+
+  // Gain
+  R *= cal.gR;
+  I *= cal.gI;
+
+  *dft_real = R;
+  *dft_imag = I;
+}
 
 // EIS Test
 void EIS_TEST(void){
