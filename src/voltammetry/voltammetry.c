@@ -20,7 +20,7 @@ voltammetry_t gVoltammetryParams;
  * @brief Whether the AD594x has finish or not the current operation.
  * @note READ ONLY! This variable is automatically managed by the library.
  */
-uint8_t gFinished;
+uint8_t gFinished = 1;
 
 /**
  * @brief Store the index of the sequence that is currently running.
@@ -57,10 +57,33 @@ int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFre
 }
 
 void openafe_killVoltammetry(void) {
-	gShoulKillVoltammetry = 1;
-	AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32); // Disable interrupts
-	AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32); // Disable all int flags
-	AD5941_zeroVoltageAcrossElectrodes();
+  if(!gFinished || !gShoulKillVoltammetry){ // behave like EIS: only act if running and not already requested
+    gShoulKillVoltammetry = 1;
+
+    // Disable interrupts and clear flags
+    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
+
+    // Safe hardware shutdown (mirror EIS shutdown)
+    AD5941_zeroVoltageAcrossElectrodes();
+    { //AD5941_ADC_OFF();
+      uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32); 
+      afecon &= ~(1UL << 8);  // ADC conversions enabled
+      afecon &= ~(1UL << 7);  // ADC power enable
+      AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
+    }
+    
+    // Reset sequencer / FIFO to a known idle state
+    AD5941_writeRegister(AD_SEQCON, 0, REG_SZ_32);
+    AD5941_writeRegister(AD_FIFOCON, 0, REG_SZ_32);
+
+    // Clear library state so future runs start clean
+    gFinished = 1;
+    gDataAvailable = 0;
+    gNumDataPointsRead = 0;
+    gNumPointsRead = 0;
+  }
 }
 
 float openafe_getVoltage(uint32_t pNumPointsRead) {
