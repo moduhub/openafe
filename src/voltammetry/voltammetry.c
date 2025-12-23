@@ -20,7 +20,7 @@ voltammetry_t gVoltammetryParams;
  * @brief Whether the AD594x has finish or not the current operation.
  * @note READ ONLY! This variable is automatically managed by the library.
  */
-uint8_t gFinished = 1;
+uint8_t gFinished;
 
 /**
  * @brief Store the index of the sequence that is currently running.
@@ -175,10 +175,9 @@ uint8_t openafe_done(void) {
 	if (gShoulKillVoltammetry == 1) {
 		return STATUS_VOLTAMMETRY_DONE;
 	}
-	return ((gFinished == 1) && (gDataAvailable == 0)) ||
-				   ((gFinished == 1) && (gNumDataPointsRead == gVoltammetryParams.numPoints))
-			   ? STATUS_VOLTAMMETRY_DONE
-			   : STATUS_VOLTAMMETRY_UNDERGOING;
+	return ((gFinished == 1) && (gDataAvailable == 0)) || ((gFinished == 1) && (gNumDataPointsRead == gVoltammetryParams.numPoints))
+      ? STATUS_VOLTAMMETRY_DONE
+      : STATUS_VOLTAMMETRY_UNDERGOING;
 }
 
 
@@ -241,6 +240,7 @@ void openafe_interruptHandler(void) {
 	if (tInterruptFlags0 & ((uint32_t)1 << 12)) { // end of voltammetry
 		AD5941_zeroVoltageAcrossElectrodes();
 		AD5941_clearRegisterBit(AD_SEQCON, 0);
+    openafe_killVoltammetry();
 	}
 	if (tInterruptFlags0 & ((uint32_t)1 << 15)) { // end of sequence
 		// start the next sequence
