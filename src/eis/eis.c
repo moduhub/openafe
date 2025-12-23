@@ -718,7 +718,7 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
 
   gDFTReady = 0;
   gEISparams.state.currentFrequencyPoint++;
-  if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints){
+  if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS){
     EIS_Point_t p = EIS_GetPoint(
       gEISparams.parameters.startingOmega, 
       gEISparams.parameters.endingOmega, 
@@ -813,15 +813,34 @@ void EIS_TEST(void){
   AD5941_waveOFF();
   AD5941_DFT_OFF();
 }
+
+void openafe_killEIS(void) {
+  if(!gFinished && !gShoulKillEIS){ // Check to allow being called together in killprogress
+    gShoulKillEIS = 1;
+
+    // Disable interrupts and clear flags
+    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
+
+    // Safe hardware shutdown
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+
+    // Clear library state so future runs start clean
+    gFinished = 1;
+  }
+}
 uint8_t openafe_done_EIS(void) {
-  
-	if (gShoulKillEIS) { 
-		return STATUS_EIS_DONE;
-	}
-	return ((gFinished) && (!gDFTReady)) ||
-				   ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
-			   ? STATUS_EIS_DONE
-			   : STATUS_EIS_UNDERGOING;
+
+	if (gShoulKillEIS) 
+    return STATUS_EIS_DONE;
+
+  else 
+    return ((gFinished) && (!gDFTReady)) || ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
+      ? STATUS_EIS_DONE
+      : STATUS_EIS_UNDERGOING;
 }
 
 int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
