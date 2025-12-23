@@ -96,6 +96,7 @@ uint8_t openafe_done_EIS(void);
 
 uint16_t openafe_dataAvailable_EIS(void);
 
+void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration);
 
 typedef struct {
   float phase;

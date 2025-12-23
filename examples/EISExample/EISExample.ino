@@ -54,8 +54,10 @@ void setup(){
         float frequency;
         float impedance_real;
         float impedance_imag;
+        uint8_t bCalibration;
+
 				noInterrupts();
-        openAFE.getPoint_EIS(&frequency, &impedance_real, &impedance_imag);
+        openAFE.getPoint_EIS(&frequency, &impedance_real, &impedance_imag, &bCalibration);
         interrupts();
 
         Serial.println(frequency, 4);

@@ -126,7 +126,7 @@ uint16_t AFE::dataAvailable_EIS(void){
 	return openafe_dataAvailable_EIS();
 }
 
-void AFE::getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag){
-  openafe_getPoint_EIS(frequency, impedance_real, impedance_imag);
+void AFE::getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){
+  openafe_getPoint_EIS(frequency, impedance_real, impedance_imag, bCalibration);
 	return;
 }

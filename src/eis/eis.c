@@ -28,6 +28,7 @@ uint8_t gShoulKillEIS = 0;
  */
 uint8_t gFinished;
 
+uint8_t gPendingCalibration;
 DFTCal cal;
 
 // f (Hz) to WGFCW 
@@ -668,7 +669,7 @@ DFT_Point reverse_sinc_apply(
 }
 
 // POINT
-void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag){
+void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){
 
   int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
   int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
@@ -719,7 +720,80 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   
 
   gDFTReady = 0;
-  gEISparams.state.currentFrequencyPoint++;
+  
+  //gEISparams.state.currentFrequencyPoint++;
+
+  if(
+    gPendingCalibration
+    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
+  ){
+    
+    *bCalibration = 1;
+    AD5941_computeCalibration(*impedance_real, *impedance_imag, &cal);
+    AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
+
+    AD5941_setupKeyMatrix_for_EIS();
+    AD5941_setupHSTIA_for_EIS();
+
+    uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+    uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+    if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+    AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+
+    gPendingCalibration = 0;
+  }
+  else if(
+    !gPendingCalibration
+    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
+  ){
+    *bCalibration = 0;
+
+    //*impedance_real = 10000.0 / (*impedance_real);
+    //*impedance_imag = 10000.0 / (*impedance_imag);
+
+    //AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
+    //AD5941_calculateImpedance(*impedance_real, *impedance_imag, impedance_real, impedance_imag);
+
+    uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
+    if(nextIdx < gEISparams.totalPoints){
+      gEISparams.state.currentFrequencyPoint = nextIdx;
+      EIS_Point_t p = EIS_GetPoint(
+        gEISparams.parameters.startingOmega, 
+        gEISparams.parameters.endingOmega, 
+        gEISparams.totalPoints, 
+        gEISparams.parameters.stepForADecade, 
+        gEISparams.state.currentFrequencyPoint);
+      currentPoint = p;
+      
+      AD5941_setupKeyMatrix_for_EIS_Calibration();
+      AD5941_setupHSTIA_for_EIS_Calibration();
+      
+      AD5941_waveWrite(0, 500, p.fcw);
+      AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+
+      uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+      uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+      if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+      AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+
+      gPendingCalibration = 1;
+    } else {
+      // last measurement received — finish without scheduling an extra (invalid) calibration point
+      gFinished = 1;
+      AD5941_ADC_OFF();
+      AD5941_waveOFF();
+      AD5941_DFT_OFF();
+    }
+  }
+  else{
+    gFinished = 1;
+    
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+  }
+
+  /* [WP]
   if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS){
     EIS_Point_t p = EIS_GetPoint(
       gEISparams.parameters.startingOmega, 
@@ -746,7 +820,7 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
     AD5941_ADC_OFF();
     AD5941_waveOFF();
     AD5941_DFT_OFF();
-  }
+  }*/
   
   return;
 }
@@ -892,6 +966,7 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
 
   memset(&gEISparams, 0, sizeof(EIS_t));
 
+  gPendingCalibration = 0;
   gShoulKillEIS = 0;
   gFinished = 0;
   gEISparams.parameters = *pEISParams;
@@ -916,7 +991,9 @@ openafe_startEIS(){
   uint32_t steps = gEISparams.parameters.stepForADecade;
   uint32_t numPoints = gEISparams.totalPoints;
 
-  //AD5941_setupKeyMatrix_for_EIS_Calibration();
+  AD5941_setupKeyMatrix_for_EIS_Calibration();
+  AD5941_setupHSTIA_for_EIS_Calibration();
+  gPendingCalibration = 1;
 
   EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
   currentPoint = p;
