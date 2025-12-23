@@ -754,10 +754,10 @@ void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
   // --- Key Matrix Configuration for Calibration --- //
   uint32_t ad_swcon = 0UL 
     | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
-    | (0b1000 << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
-    | (0b0000 << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
-    | (0b0000 << 4 ) // PL - Connect common-mode reference to P input 
-    | (0b0001);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
+    | (0b1000UL << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
+    | (0b0000UL << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
+    | (0b0000UL << 4 ) // PL - Connect common-mode reference to P input 
+    | (0b0001UL);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
   AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
   return ;
 }
@@ -766,7 +766,7 @@ void AD5941_setupHSTIA_for_EIS_Calibration(void){
     //                                                    // 1 uF
     //| (32UL << 5)                                       // 100 uF
     | (0b100000UL << 5)                                 // not used cap
-    | (0b0000);                                  // R_tia = 200
+    | (0b0000UL);                                       // R_tia = 200
   AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
 
   return;
