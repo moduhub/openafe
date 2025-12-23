@@ -1,6 +1,7 @@
 #include "swv.h"
 
 int openafe_setSWVSequence(const voltammetry_parameters_t *pVoltammetryParams){
+  AD5941_init(0, 0, 0);
   AD5941_zeroVoltageAcrossElectrodes();
 	AD5941_sequencerConfig();
 	AD5941_interruptConfig();

@@ -844,6 +844,7 @@ uint8_t openafe_done_EIS(void) {
 }
 
 int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
+  AD5941_init(0,0,0);
 
   AD5941_init_for_EIS();
   AD5941_setupClock_for_EIS();

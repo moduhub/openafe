@@ -1,8 +1,6 @@
 #include "openafe.h"
 
-AFE::AFE(void){
-	AD5941_init(0, 0, 0);
-}
+AFE::AFE(void){}
 
 
 AFE::AFE(uint32_t pSPIFrequency){

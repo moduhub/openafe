@@ -1,6 +1,7 @@
 #include "dpv.h"
 
 int openafe_setupDPV(const voltammetry_parameters_t *pVoltammetryParams) {
+  AD5941_init(0, 0, 0);
   AD5941_zeroVoltageAcrossElectrodes();
 	AD5941_sequencerConfig();
 	AD5941_interruptConfig();
