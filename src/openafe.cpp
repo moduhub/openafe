@@ -14,8 +14,10 @@ bool AFE::isAFEResponding(void){
 	return (bool)AD5941_isResponding();
 }
 
-void AFE::killVoltammetry(void){
+void AFE::killProcess(void){
 	openafe_killVoltammetry();
+  openafe_killEIS();
+  delay(20);
 }
 
 void AFE::resetByHardware(void){

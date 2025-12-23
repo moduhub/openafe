@@ -38,10 +38,10 @@ class AFE {
 		static bool isAFEResponding(void);
 
 		/**
-		 * @brief Kill the voltammetry proccess.
+		 * @brief Kill the all proccess.
 		 *
 		 */
-		static void killVoltammetry(void);
+		static void killProcess(void);
 
 		/**
 		 * @brief Reset the AD5941 by hardware.
