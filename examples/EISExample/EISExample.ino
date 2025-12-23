@@ -26,6 +26,16 @@ void setup(){
     openAFE.startEIS();
     interrupts();
 		
+    const int W_FREQ = 10;   // largura total do campo Freq
+    const int W_REAL = 12;   // largura total do campo REAL
+    const int W_IMAG = 12;   // largura total do campo IMAG
+    const int PREC   = 4;    // casas decimais
+    char fbuf[20], rbuf[20], ibuf[20];
+    char line[80];
+
+    Serial.println("   Freq    |     REAL     |     IMAG    ");
+    Serial.println("-----------------------------------------");
+
 		do {
 			if (openAFE.dataAvailable_EIS() > 0){
         /* [wp]
@@ -60,11 +70,22 @@ void setup(){
         openAFE.getPoint_EIS(&frequency, &impedance_real, &impedance_imag, &bCalibration);
         interrupts();
 
-        Serial.println(frequency, 4);
-        Serial.println(impedance_real);
-        Serial.println(impedance_imag);
-        Serial.print("--------------\n");
-        Serial.flush();
+        if(!bCalibration){
+          dtostrf(frequency,      W_FREQ, PREC, fbuf);
+          dtostrf(impedance_real, W_REAL, PREC, rbuf);
+          dtostrf(impedance_imag, W_IMAG, PREC, ibuf);
+          snprintf(line, sizeof(line), "%s | %s | %s", fbuf, rbuf, ibuf);
+          Serial.println(line);
+          Serial.flush();
+        }
+        else{
+          dtostrf(frequency,      W_FREQ, PREC, fbuf);
+          dtostrf(impedance_real, W_REAL, PREC, rbuf);
+          dtostrf(impedance_imag, W_IMAG, PREC, ibuf);
+          snprintf(line, sizeof(line), "%s | %s | %s", fbuf, rbuf, ibuf);
+          Serial.println(line);
+          Serial.flush();
+        }
         
 			}
 			delay(1);
