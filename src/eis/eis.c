@@ -31,6 +31,9 @@ uint8_t gFinished;
 uint8_t gPendingCalibration;
 DFTCal cal;
 
+#define AMPLITUDE_SINAL 125 // ~128mV output
+#define GAIN_HSDAC 4        // 1/4 of sinal
+
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
@@ -209,8 +212,54 @@ EIS_Point_t EIS_GetPoint(uint32_t startF, uint32_t endF, uint32_t numPoints, uin
   out.use_sinc2 = true; out.sinc2_osr = 1333;
   return out;
 }
+//
+EIS_Point_t EIS_GetPoint_fixed(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
+  EIS_Point_t out;
 
+  out.fcw = 0; out.freq = 0.0;
+  out.DFTNum = allowedDFTNums[allowedCount - 1]; // fixed
+  out.use_sinc3 = false; out.sinc3_osr = 0;      // open
+  out.use_sinc2 = true;  out.sinc2_osr = 22;     // fixed
 
+  if (numPoints == 0 || idx >= numPoints) return out;
+  if (startF == 0 || endF == 0) return out;
+
+  double fstart = (double)startF;
+  double fend = (double)endF;
+  double log_start = log10(fstart);
+  double log_end = log10(fend);
+  double fi;
+  if (numPoints == 1) fi = pow(10.0, log_start);
+  else {
+    double delta = (log_end - log_start) / (double)(numPoints - 1);
+    fi = pow(10.0, log_start + delta * (double)idx);
+  }
+  if (fi <= 0.0) return out;
+
+  /* -------------------- BLOCK SINC3: N = Nmax with SINC3 (2,4,5) -------------------- */
+  {
+    bool found = false;
+    out.use_sinc3 = true;
+    for (int s3i = 0; s3i < allowedSINC3Count && !found; s3i++) {
+      out.sinc3_osr = allowedSINC3OSR[s3i]; // 2,4,5
+      double fDFT_in = (double)ADC_FS / (double)out.sinc3_osr / (double)out.sinc2_osr;
+      CoherenceCheck_t chk = check_coherence(fi, allowedDFTNums[allowedCount - 1], fDFT_in);
+      if (chk.coherent) {
+        out.freq = chk.candidate_f;
+        out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+        found = true;
+      }
+    }
+    if(!found){
+      double fDFT_in = (double)ADC_FS / (double)out.sinc3_osr / (double)out.sinc2_osr;
+      CoherenceCheck_t chk = check_coherence(fi, allowedDFTNums[allowedCount - 1], fDFT_in);
+      out.freq = chk.candidate_f;
+      out.fcw = EIS_calc_SineFCW(out.freq, 16000000UL);
+    }
+  }  
+
+  return out;
+}
 
 // GENERAL CONFIG.
 void AD5941_init_for_EIS(void){
