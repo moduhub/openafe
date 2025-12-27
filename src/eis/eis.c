@@ -667,6 +667,20 @@ DFT_Point reverse_sinc_apply(
   return out;
 
 }
+// IMPEDANCE
+void AD5941_calculateImpedance(float vRef, float vPeak, float dft_real, float dft_imag, float R_tia, float *impedance_real, float *impedance_imag) {
+  // t_tia = VREF * v_dft / 2^15
+  float T_tia_real = (vRef * dft_real);// / 32768.0;
+  float T_tia_imag = (vRef * dft_imag);// / 32768.0;
+
+  // I_tia = T_tia / R_tia
+  float I_tia_real = T_tia_real / R_tia;
+  float I_tia_imag = T_tia_imag / R_tia;
+
+  // Impedance
+  *impedance_real =  vPeak / I_tia_real;
+  *impedance_imag =  vPeak / I_tia_imag;
+}
 
 // POINT
 void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){

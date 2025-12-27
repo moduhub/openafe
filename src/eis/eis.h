@@ -106,6 +106,11 @@ typedef struct {
 void rotate(float *R, float *I, float ang);
 void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal);
 void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal);
+/**
+ * @brief
+  * @param vref vREF is the ADC reference voltage (1.82 V typical)
+ */
+void AD5941_calculateImpedance(float vRef, float vPeak, float dft_real, float dft_imag, float R_tia, float *impedance_real, float *impedance_imag);
 
 //int openafe_setEISTrapSequence( uint16_t settlingTime, float startFrequency, float endFrequency, int numPoints, float amplitude, float offset, float riseTime, float fallTime, uint16_t sampleDuration);
 
