@@ -718,6 +718,84 @@ DFT_Point reverse_sinc_apply(
   return out;
 
 }
+
+// CALIBRATION
+void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
+  // --- Key Matrix Configuration for Calibration --- //
+  uint32_t ad_swcon = 0UL 
+    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
+    | (0b1000UL << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
+    | (0b0000UL << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
+    | (0b0000UL << 4 ) // PL - Connect common-mode reference to P input 
+    | (0b0001UL);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
+  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  return ;
+}
+void AD5941_setupHSTIA_for_EIS_Calibration(void){
+  uint32_t hsrtia = 0UL
+    //                                                    // 1 uF
+    //| (32UL << 5)                                       // 100 uF
+    | (0b100000UL << 5)                                 // not used cap
+    | (0b0000UL);                                       // R_tia = 200
+  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+
+  return;
+}
+void ADC_beforeHSTIA(void){
+  uint32_t adccon = 0UL
+    | (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
+    //| (1UL << 15)     // ?? Enables dc offset cancellation
+    | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
+    | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
+  AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
+  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
+  return;
+}
+void ADC_afterHSTIA(void){
+  uint32_t adccon = 0UL
+    | (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
+    //| (1UL << 15)     // ?? Enables dc offset cancellation
+    | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
+    | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
+  AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
+  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
+  return;
+}
+void rotate(float *R, float *I, float ang) {
+  float c = cosf(ang), s = sinf(ang);
+  float r = *R, i = *I;
+  *R = r * c - i * s;
+  *I = r * s + i * c;
+}
+void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal){
+  cal->phase = -atan2f(dft_imag_Rcal, dft_real_Rcal);
+
+  //debug_log_f((float)cal->phase);
+
+  // Rotate
+  rotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
+
+  // Gain
+  float RCAL = 200.0;
+  cal->gR = (dft_real_Rcal) ? (RCAL / dft_real_Rcal) : 1.0f;
+  cal->gI = 1.0f;
+}
+void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
+  float R = *dft_real;
+  float I = *dft_imag;
+
+  // Phase
+  rotate(&R, &I, cal.phase);
+  //rotate(&R, &I, 90); // [WP]
+
+  // Gain
+  R *= cal.gR;
+  I *= cal.gI;
+
+  *dft_real = R;
+  *dft_imag = I;
+}
+
 // IMPEDANCE
 void AD5941_calculateImpedance(float vRef, float vPeak, float dft_real, float dft_imag, float R_tia, float *impedance_real, float *impedance_imag) {
   // t_tia = VREF * v_dft / 2^15
@@ -733,6 +811,92 @@ void AD5941_calculateImpedance(float vRef, float vPeak, float dft_real, float df
   *impedance_imag =  vPeak / I_tia_imag;
 }
 
+// UTIL
+void openafe_killEIS(void) {
+  if(!gFinished && !gShoulKillEIS){ // Check to allow being called together in killprogress
+    gShoulKillEIS = 1;
+
+    // Disable interrupts and clear flags
+    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
+
+    // Safe hardware shutdown
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+
+    // Clear library state so future runs start clean
+    gFinished = 1;
+  }
+}
+uint8_t openafe_done_EIS(void) {
+
+	if (gShoulKillEIS) 
+    return STATUS_EIS_DONE;
+
+  else 
+    return ((gFinished) && (!gDFTReady)) || ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
+      ? STATUS_EIS_DONE
+      : STATUS_EIS_UNDERGOING;
+}
+
+// START / SETUP
+int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
+  AD5941_init(0,0,0);
+
+  AD5941_init_for_EIS();
+  AD5941_setupClock_for_EIS();
+  AD5941_setupAFECON_for_EIS();
+  AD5941_setupHSDAC_for_EIS();
+  AD5941_setupHSTIA_for_EIS();
+  AD5941_setupKeyMatrix_for_EIS();
+  AD5941_setupWAVEGEN();
+  AD5941_setupADC_for_EIS();
+  AD5941_setupDFT();
+
+  AD5941_interruptConfig_EIS();
+
+  memset(&gEISparams, 0, sizeof(EIS_t));
+
+  gPendingCalibration = 0;
+  gShoulKillEIS = 0;
+  gFinished = 0;
+  gEISparams.parameters = *pEISParams;
+
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF   = gEISparams.parameters.endingOmega;
+  uint32_t steps  = gEISparams.parameters.stepForADecade; 
+
+  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+  gEISparams.totalPoints = numPoints;
+
+  gEISparams.state.currentFrequency = startF;
+  gEISparams.state.currentFrequencyPoint = 0;
+
+
+  return NO_ERROR;
+}
+openafe_startEIS(){
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF = gEISparams.parameters.endingOmega;
+  uint32_t steps = gEISparams.parameters.stepForADecade;
+  uint32_t numPoints = gEISparams.totalPoints;
+
+  AD5941_setupKeyMatrix_for_EIS_Calibration();
+  AD5941_setupHSTIA_for_EIS_Calibration();
+  gPendingCalibration = 1;
+
+  EIS_Point_t p = EIS_GetPoint_fixed(startF, endF, numPoints, steps, 0);
+  currentPoint = p;
+  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+  AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
+
+  AD5941_ADC_ON();
+  AD5941_waveON();
+  AD5941_DFT_ON();
+}
+
 // POINT
 void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){
 
@@ -744,6 +908,18 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   *impedance_imag = dft_i;
 
   /* [wp] 
+    debug_log_f((float)*frequency);
+    debug_log_f((float)*impedance_real);
+    debug_log_f((float)*impedance_imag);
+    debug_log("--------------\n");
+
+    AD5941_computeCalibration(*impedance_real, *impedance_imag, &cal);
+    AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
+
+    debug_log_f((float)*frequency);
+    debug_log_f((float)*impedance_real);
+    debug_log_f((float)*impedance_imag);
+    debug_log("--------------\n");
     debug_log("Ponto:");
     debug_log_i(dft_r);
     debug_log_i(dft_i);
@@ -862,218 +1038,68 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   }
 
   /* [WP]
-  if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS){
-    EIS_Point_t p = EIS_GetPoint(
-      gEISparams.parameters.startingOmega, 
-      gEISparams.parameters.endingOmega, 
-      gEISparams.totalPoints, 
-      gEISparams.parameters.stepForADecade, 
-      gEISparams.state.currentFrequencyPoint);
-    currentPoint = p;
-    
-    AD5941_waveWrite(0, 500, p.fcw);
-    AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+    if(gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS){
+      EIS_Point_t p = EIS_GetPoint(
+        gEISparams.parameters.startingOmega, 
+        gEISparams.parameters.endingOmega, 
+        gEISparams.totalPoints, 
+        gEISparams.parameters.stepForADecade, 
+        gEISparams.state.currentFrequencyPoint);
+      currentPoint = p;
+      
+      AD5941_waveWrite(0, 500, p.fcw);
+      AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
 
-    //AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
-	  //AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
-    // Clear only the flags that were set (write 1 to clear W1C)
-    uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
-    uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
-    if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
-    AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
-  }
-  else{
-    gFinished = 1;
-    
-    AD5941_ADC_OFF();
-    AD5941_waveOFF();
-    AD5941_DFT_OFF();
-  }*/
+      //AD5941_writeRegister(AD_INTCCLR, (1UL<<1) , REG_SZ_32); 
+      //AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // clear all interrupt flags
+      // Clear only the flags that were set (write 1 to clear W1C)
+      uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+      uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+      if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+      AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+    }
+    else{
+      gFinished = 1;
+      
+      AD5941_ADC_OFF();
+      AD5941_waveOFF();
+      AD5941_DFT_OFF();
+    }
+  */
   
   return;
 }
 
-// CALIBRATION
-void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
-  // --- Key Matrix Configuration for Calibration --- //
-  uint32_t ad_swcon = 0UL 
-    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
-    | (0b1000UL << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
-    | (0b0000UL << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
-    | (0b0000UL << 4 ) // PL - Connect common-mode reference to P input 
-    | (0b0001UL);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
-  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
-  return ;
-}
-void AD5941_setupHSTIA_for_EIS_Calibration(void){
-  uint32_t hsrtia = 0UL
-    //                                                    // 1 uF
-    //| (32UL << 5)                                       // 100 uF
-    | (0b100000UL << 5)                                 // not used cap
-    | (0b0000UL);                                       // R_tia = 200
-  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
 
-  return;
-}
-void AD5941_setupADC_for_EIS_Calibration(void){
-  //uint32_t adccon = AD5941_readRegister(AD_ADCCON, REG_SZ_32);
-  //adccon &= ~(15UL<<16);
-  //adccon |= 0UL
-  //  | (0b11 << 16)     // Gain = 4.
-  //  | (1UL  << 15)    // ?? Enables dc offset cancellation
-  // ;
-  //AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
-  //AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
-  return;
-}
-void rotate(float *R, float *I, float ang) {
-  float c = cosf(ang), s = sinf(ang);
-  float r = *R, i = *I;
-  *R = r * c - i * s;
-  *I = r * s + i * c;
-}
-void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal){
-  cal->phase = -atan2f(dft_imag_Rcal, dft_real_Rcal);
+/*
+  // EIS Test
+  void EIS_TEST(void){
+    uint32_t startF = 1000;
+    uint32_t endF   = 10000;
+    uint32_t steps  = 10;
+    uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+    gEISparams.totalPoints = numPoints;
 
-  //debug_log_f((float)cal->phase);
+    debug_log("Number of points:");
+    debug_log_i(gEISparams.totalPoints);
 
-  // Rotate
-  rotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
+    AD5941_ADC_ON();
+    AD5941_waveON();
+    AD5941_DFT_ON();
+    for(int i = 0; i < gEISparams.totalPoints; i++){
+      EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, i);
 
-  // Gain
-  cal->gR = (dft_real_Rcal) ? (10000.0f / dft_real_Rcal) : 1.0f;
-  cal->gI = 1.0f;
-}
-void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
-  float R = *dft_real;
-  float I = *dft_imag;
+      AD5941_waveWrite(0, 500, p.fcw, GAIN_HSDAC);
+      AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
 
-  // Phase
-  //rotate(&R, &I, cal.phase);
-  rotate(&R, &I, 90); // [WP]
-
-  // Gain
-  R *= cal.gR;
-  I *= cal.gI;
-
-  *dft_real = R;
-  *dft_imag = I;
-}
-
-// EIS Test
-void EIS_TEST(void){
-  uint32_t startF = 1000;
-  uint32_t endF   = 10000;
-  uint32_t steps  = 10;
-  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
-  gEISparams.totalPoints = numPoints;
-
-  debug_log("Number of points:");
-  debug_log_i(gEISparams.totalPoints);
-
-  AD5941_ADC_ON();
-  AD5941_waveON();
-  AD5941_DFT_ON();
-  for(int i = 0; i < gEISparams.totalPoints; i++){
-    EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, i);
-
-    AD5941_waveWrite(0, 500, p.fcw);
-    AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
-
-    AD5941_DFT_Average(100); // 100 samples
-    debug_log_f(p.freq);
-  }
-  AD5941_ADC_OFF();
-  AD5941_waveOFF();
-  AD5941_DFT_OFF();
-}
-
-void openafe_killEIS(void) {
-  if(!gFinished && !gShoulKillEIS){ // Check to allow being called together in killprogress
-    gShoulKillEIS = 1;
-
-    // Disable interrupts and clear flags
-    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
-    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
-    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
-
-    // Safe hardware shutdown
+      AD5941_DFT_Average(100); // 100 samples
+      debug_log_f(p.freq);
+    }
     AD5941_ADC_OFF();
     AD5941_waveOFF();
     AD5941_DFT_OFF();
-
-    // Clear library state so future runs start clean
-    gFinished = 1;
   }
-}
-uint8_t openafe_done_EIS(void) {
 
-	if (gShoulKillEIS) 
-    return STATUS_EIS_DONE;
-
-  else 
-    return ((gFinished) && (!gDFTReady)) || ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
-      ? STATUS_EIS_DONE
-      : STATUS_EIS_UNDERGOING;
-}
-
-int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
-  AD5941_init(0,0,0);
-
-  AD5941_init_for_EIS();
-  AD5941_setupClock_for_EIS();
-  AD5941_setupAFECON_for_EIS();
-  AD5941_setupHSDAC_for_EIS();
-  AD5941_setupHSTIA_for_EIS();
-  AD5941_setupKeyMatrix_for_EIS();
-  AD5941_setupWAVEGEN();
-  AD5941_setupADC_for_EIS();
-  AD5941_setupDFT();
-
-  AD5941_interruptConfig_EIS();
-
-  memset(&gEISparams, 0, sizeof(EIS_t));
-
-  gPendingCalibration = 0;
-  gShoulKillEIS = 0;
-  gFinished = 0;
-  gEISparams.parameters = *pEISParams;
-
-  uint32_t startF = gEISparams.parameters.startingOmega;
-  uint32_t endF   = gEISparams.parameters.endingOmega;
-  uint32_t steps  = gEISparams.parameters.stepForADecade; 
-
-  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
-  gEISparams.totalPoints = numPoints;
-
-  gEISparams.state.currentFrequency = startF;
-  gEISparams.state.currentFrequencyPoint = 0;
-
-
-  return NO_ERROR;
-}
-
-openafe_startEIS(){
-  uint32_t startF = gEISparams.parameters.startingOmega;
-  uint32_t endF = gEISparams.parameters.endingOmega;
-  uint32_t steps = gEISparams.parameters.stepForADecade;
-  uint32_t numPoints = gEISparams.totalPoints;
-
-  AD5941_setupKeyMatrix_for_EIS_Calibration();
-  AD5941_setupHSTIA_for_EIS_Calibration();
-  gPendingCalibration = 1;
-
-  EIS_Point_t p = EIS_GetPoint(startF, endF, numPoints, steps, 0);
-  currentPoint = p;
-  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
-  AD5941_waveWrite(0, 500, p.fcw);
-
-  AD5941_ADC_ON();
-  AD5941_waveON();
-  AD5941_DFT_ON();
-}
-
-/*
   void openafe_interruptHandler(void) {
       // There are two reads from the INTCFLAG0 register because the first read returns garbage, the second has the true interrupt flags 
       uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
