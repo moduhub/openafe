@@ -76,6 +76,10 @@ void debug_log(const char* msg) {
   return arduino_debug_log(msg);
 }
 
+void debug_log_ln(const char* msg) {
+  return arduino_debug_log_ln(msg);
+}
+
 void debug_log_u(uint32_t num) {
   return arduino_debug_log_u(num);
 }

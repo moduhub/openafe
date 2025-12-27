@@ -2,6 +2,11 @@
 #include "../platform_arduino.hpp"
 
 extern "C" void arduino_debug_log(const char* msg) {
+  Serial.print(msg);
+  Serial.flush(); 
+}
+
+extern "C" void arduino_debug_log_ln(const char* msg) {
   Serial.println(msg);
   Serial.flush(); 
 }
@@ -18,13 +23,13 @@ extern "C" void arduino_debug_log_u(uint32_t num) {
 
 extern "C" void arduino_debug_log_i(int32_t num) {
   //Serial.print("int: ");
-  Serial.println(num);
+  Serial.print(num);
   Serial.flush(); 
 }
 
 extern "C" void arduino_debug_log_f(float num) {
   Serial.print("float: ");
-  Serial.println(num, 8);
+  Serial.print(num, 8);
   Serial.flush(); 
 }
 
@@ -36,11 +41,11 @@ extern "C" void arduino_debug_log_u_bit(uint32_t num, uint32_t pos) {
     Serial.print("bit [");
     Serial.print(pos);
     Serial.print("]: ");
-    Serial.println(bitValue);
+    Serial.print(bitValue);
   } else {
     Serial.print("bit [");
     Serial.print(pos);
-    Serial.println("]: posição inválida (0-31)");
+    Serial.print("]: posição inválida (0-31)");
   }
 
   Serial.flush(); 

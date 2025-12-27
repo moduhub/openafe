@@ -95,6 +95,12 @@ uint8_t platform_SPIWrite(uint8_t *pTXBuffer, uint8_t pBufferSize);
 void debug_log(const char* msg);
 
 /**
+ * Log a message with a break row.
+ * @param msg Message with a line break for log.
+ */
+void debug_log_ln(const char* msg);
+
+/**
  * Log an unsigned integer.
  * @param num Unsigned integer to log.
  */
