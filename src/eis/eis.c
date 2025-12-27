@@ -478,19 +478,20 @@ void AD5941_setupDFT(void){
   AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
 
 }
-void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
-  /* [WK]  
-  //debug_log("DFTN:");
+void print_current_dftconfig(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
+  debug_log(" DFTN: ");
   debug_log_i(pN);
   if (pBSINC3) {
+    debug_log(" - SINC3:");
     debug_log_i(pSINC3);
   }
-  else debug_log(" no using SINC3 OSR");
+  else debug_log(" - No using SINC3 OSR");
   if (pBSINC2) {
+    debug_log(" - SINC2:");
     debug_log_i(pSINC2);
   } 
-  else debug_log(" no using SINC2 OSR"); 
-  */
+  else debug_log(" - No using SINC2 OSR"); 
+  debug_log(" \n");
 }
 void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
