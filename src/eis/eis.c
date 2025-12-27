@@ -31,8 +31,8 @@ uint8_t gFinished;
 uint8_t gPendingCalibration;
 DFTCal cal;
 
-#define AMPLITUDE_SINAL 125 // ~128mV output
-#define GAIN_HSDAC 4        // 1/4 of sinal
+#define AMPLITUDE_PP_SINAL 125 // ~128mV output
+#define GAIN_HSDAC 4           // 1/4 of sinal
 
 // f (Hz) to WGFCW 
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
@@ -380,9 +380,9 @@ void AD5941_setupWAVEGEN(void){
   AD5941_writeRegister(AD_WGCON, wgcon, REG_SZ_32);
   return;
 }
-void AD5941_waveWrite(uint32_t pF, uint32_t pAmplitude, uint32_t pSinefcw){
+void AD5941_waveWrite(uint32_t pF, uint32_t pAmplitude, uint32_t pSinefcw, uint16_t gainHSDAC){
   if(!pSinefcw) pSinefcw = EIS_calc_SineFCW(pF, 16000000UL);
-  uint32_t amplitude = EIS_calc_WGAmplitude(pAmplitude, 2.0, 1.0);
+  uint32_t amplitude = EIS_calc_WGAmplitude(pAmplitude*gainHSDAC, 1.0, 1.0);
 
   int WAVE_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 14)) != 0;
   if(WAVE_FLAG) AD5941_waveOFF();
@@ -491,7 +491,8 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
   } 
   else debug_log(" no using SINC2 OSR"); 
   */
-  
+}
+void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
   uint32_t filtercon = AD5941_readRegister(AD_ADCFILTERCON, REG_SZ_32);
   int DFT_FLAG = (AD5941_readRegister(AD_AFECON, REG_SZ_32) & (1UL << 15)) != 0;
@@ -820,7 +821,7 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
     uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
     if(nextIdx < gEISparams.totalPoints){
       gEISparams.state.currentFrequencyPoint = nextIdx;
-      EIS_Point_t p = EIS_GetPoint(
+      EIS_Point_t p = EIS_GetPoint_fixed(
         gEISparams.parameters.startingOmega, 
         gEISparams.parameters.endingOmega, 
         gEISparams.totalPoints, 
@@ -831,7 +832,7 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
       AD5941_setupKeyMatrix_for_EIS_Calibration();
       AD5941_setupHSTIA_for_EIS_Calibration();
       
-      AD5941_waveWrite(0, 500, p.fcw);
+      AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
       AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
 
       uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
@@ -841,8 +842,8 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
 
       gPendingCalibration = 1;
     } else {
-      // last measurement received — finish without scheduling an extra (invalid) calibration point
       gFinished = 1;
+
       AD5941_ADC_OFF();
       AD5941_waveOFF();
       AD5941_DFT_OFF();
