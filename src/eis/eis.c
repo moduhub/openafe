@@ -785,8 +785,6 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   
 
   gDFTReady = 0;
-  
-  //gEISparams.state.currentFrequencyPoint++;
 
   if(
     gPendingCalibration
@@ -794,6 +792,11 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   ){
     
     *bCalibration = 1;
+
+    float vPeak = 125.0;
+    float R_tia = 200.0;
+    AD5941_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+    
     AD5941_computeCalibration(*impedance_real, *impedance_imag, &cal);
     AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
 
@@ -813,11 +816,11 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
   ){
     *bCalibration = 0;
 
-    //*impedance_real = 10000.0 / (*impedance_real);
-    //*impedance_imag = 10000.0 / (*impedance_imag);
-
-    //AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
-    //AD5941_calculateImpedance(*impedance_real, *impedance_imag, impedance_real, impedance_imag);
+    float vPeak = 125.0;
+    float R_tia = 10000.0 + 0.37*10000.0; // 37% is a magic number
+    
+    AD5941_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+    AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
 
     uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
     if(nextIdx < gEISparams.totalPoints){
