@@ -15,8 +15,8 @@ void setup(){
 
   int success;
   int settlingTime = 1000;
-  int startingOmega = 20; // min ?
-  int endingOmega = 1000; // work at 60k
+  int startingOmega = 20; // min 6 hz
+  int endingOmega = 1000; // max 65 khz
   int stepForADecade = 10;
 
   success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);
