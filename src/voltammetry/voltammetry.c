@@ -338,9 +338,11 @@ uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress) {
     tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 2);
   } 
 		
-
-  if (gVoltammetryParams.state.SEQ_currentPoint == (gVoltammetryParams.numPoints - 1)) 
-		tCurrentSRAMAddress = AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
+	if (gVoltammetryParams.state.SEQ_currentPoint == (gVoltammetryParams.numPoints)) {
+		AD5941_sequencerWaitCommand(1);                                    // ensure ADC result interrupt is processed before signalling finished
+		tCurrentSRAMAddress = 
+      AD5941_sequencerWriteCommand(AD_AFEGENINTSTA, (uint32_t)1 << 3); // trigger custom interrupt 3 - finished!
+	}
 
 	gVoltammetryParams.state.SEQ_currentPoint++;
 	return tCurrentSRAMAddress;
