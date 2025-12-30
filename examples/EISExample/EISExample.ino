@@ -22,14 +22,14 @@ void setup(){
   success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);
 
   if (success){
-    Serial.println(F("<<< EIS started >>>")); 
+    Serial.println(F("<<< STARTED EIS >>>")); 
     openAFE.startEIS();
     interrupts();
 		
-    const int W_FREQ = 10;   // largura total do campo Freq
-    const int W_REAL = 12;   // largura total do campo REAL
-    const int W_IMAG = 12;   // largura total do campo IMAG
-    const int PREC   = 4;    // casas decimais
+    const int W_FREQ = 10;   // Total width of the Freq field
+    const int W_REAL = 12;   // Total width of the REAL field
+    const int W_IMAG = 12;   // Total width of the IMAG field
+    const int PREC   = 4;    // Decimal places
     char fbuf[20], rbuf[20], ibuf[20];
     char line[80];
 
@@ -38,29 +38,6 @@ void setup(){
 
 		do {
 			if (openAFE.dataAvailable_EIS() > 0){
-        /* [wp]
-          int available = openAFE.dataAvailable_EIS();
-          unsigned long now = micros();
-          if (prevMicros == 0) {
-            Serial.print(F("[#"));
-            Serial.print(pointCount);
-            Serial.print(F("] First point: "));
-            Serial.println(available);
-          } else {
-            unsigned long interval = now - prevMicros;
-            Serial.print(F("[#"));
-            Serial.print(pointCount);
-            Serial.print(F("] Interval: "));
-            Serial.print(interval);
-            Serial.print(F(" µs  ("));
-            Serial.print(interval / 1000.0, 3);
-            Serial.println(F(" ms)"));
-          }
-
-          prevMicros = now;
-          pointCount++;
-        */
-
         float frequency;
         float impedance_real;
         float impedance_imag;
