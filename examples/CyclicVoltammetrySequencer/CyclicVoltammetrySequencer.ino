@@ -22,7 +22,7 @@ void loop(){
   int pulse = 50;
   switch (process) {
     case 0:
-      success = openAFE.setCVSequence(settlingTime, -800, 0, scanRate, stepPotential, 1);
+      success = openAFE.setCVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, 1);
       break;
     case 1:
       success = openAFE.setDPVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 10);
@@ -36,8 +36,27 @@ void loop(){
   }
 
 	if (success){
+    Serial.println(F("<<< STARTED CYCLIC VOLTAMMETRY >>>")); 
 		interrupts();
 		openAFE.startVoltammetry();
+
+    const int W_VOLTAGE = 10;   // Total width of the voltage field
+    const int W_VOLTAGE_2 = 10; // Total width of the voltage 2 field
+    const int W_CURRENT_1 = 12; // Total width of the current 1 field
+    const int W_CURRENT_2 = 12; // Total width of the current 2 field
+    const int PREC   = 4;     // Decimal places
+    char vbuf[20], v2buf[20], ibuf[20], i2buf[20];
+    char line[100];
+
+    if(process == 0){
+      Serial.println("  Voltage  |   Current    ");
+      Serial.println("--------------------------");
+    }
+    else if(process == 1 || process == 2){
+      Serial.println("  Voltage  |    Current   |  Voltage |    Current  ");
+      Serial.println("----------------------------------------------------");
+    }
+
 		
 		do {
 			if (openAFE.dataAvailable() > 0){
@@ -51,27 +70,31 @@ void loop(){
 
         if (process == 0) {
           // CV -> 1 point
-          Serial.print(voltage_mV);
-          Serial.print(",");
-          Serial.println(currents_uA[0]);
+          dtostrf(voltage_mV, W_VOLTAGE, PREC, vbuf);
+          dtostrf(currents_uA[0], W_CURRENT_1, PREC, ibuf);
+          snprintf(line, sizeof(line), "%s | %s", vbuf, ibuf);
+          Serial.println(line);
+          Serial.flush();
         } 
         else if (process == 1){
           // DPV -> 2 point
-          Serial.print(voltage_mV + pulse);
-          Serial.print(",");
-          Serial.println(currents_uA[0]);
-          Serial.print(voltage_mV);
-          Serial.print(",");
-          Serial.println(currents_uA[1]);
+          dtostrf(voltage_mV + pulse, W_VOLTAGE, PREC, vbuf);
+          dtostrf(currents_uA[0], W_CURRENT_1, PREC, ibuf);
+          dtostrf(voltage_mV, W_VOLTAGE_2, PREC, v2buf);
+          dtostrf(currents_uA[1], W_CURRENT_2, PREC, i2buf);
+          snprintf(line, sizeof(line), "%s | %s | %s | %s", vbuf, ibuf, v2buf, i2buf);
+          Serial.println(line);
+          Serial.flush();
         }
         else if (process == 2) {
           // SW -> 2 point
-          Serial.print(voltage_mV + pulse);
-          Serial.print(",");
-          Serial.println(currents_uA[0]);
-          Serial.print(voltage_mV - pulse);
-          Serial.print(",");
-          Serial.println(currents_uA[1]);
+          dtostrf(voltage_mV + pulse, W_VOLTAGE, PREC, vbuf);
+          dtostrf(currents_uA[0], W_CURRENT_1, PREC, ibuf);
+          dtostrf(voltage_mV - pulse, W_VOLTAGE_2, PREC, v2buf);
+          dtostrf(currents_uA[1], W_CURRENT_2, PREC, i2buf);
+          snprintf(line, sizeof(line), "%s | %s | %s | %s", vbuf, ibuf, v2buf, i2buf);
+          Serial.println(line);
+          Serial.flush();
         }
 			}
 			delay(1);
