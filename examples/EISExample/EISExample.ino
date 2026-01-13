@@ -1,7 +1,6 @@
 #include <openafe.h>
 
-//temporário
-volatile unsigned long prevMicros = 0; // última leitura em micros
+volatile unsigned long prevMicros = 0;
 unsigned long pointCount = 0;
 
 void setup(){
@@ -15,8 +14,8 @@ void setup(){
 
   int success;
   int settlingTime = 1000;
-  int startingOmega = 20; // min 6 hz
-  int endingOmega = 1000; // max 65 khz
+  int startingOmega = 100; // min 6 hz
+  int endingOmega = 10000; // max 65 khz
   int stepForADecade = 10;
 
   success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);

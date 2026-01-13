@@ -8,7 +8,6 @@ extern "C" {
 EIS_t gEISparams;
 
 // -- default: ~0,05% relative -- // 
-// tip: Use 0.0001 to triple sinc in 1khz //
 float COHERENCE_TOL_REL = 0.02;   
 
 // INTERRUPT
@@ -31,10 +30,8 @@ uint8_t gFinished;
 uint8_t gPendingCalibration;
 DFTCal cal;
 
-#define AMPLITUDE_PP_SINAL 125 // ~128mV output
-#define GAIN_HSDAC 4           // 1/4 of sinal
 
-// f (Hz) to WGFCW 
+// MATH UTILS
 static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (SINEFCW <= 0.0f) return 0;
   const double TWO_POW_30 = 1073741824.0; // 2^30
@@ -43,7 +40,6 @@ static uint32_t EIS_calc_SineFCW(float SINEFCW, uint32_t fACLK) {
   if (FCW > 0xFFFFFF) FCW = 0xFFFFFF; // WGFCW is 24-bit in many devices; clamp guard
   return (uint32_t)lround(FCW);
 }
-// Vpp (mV) to WGAMPLITUDE (11-bit -> 0..2047)
 static uint16_t EIS_calc_WGAmplitude(float Vpp_mV, float INAMPGNMDE, float ATTENEN) {
   if (Vpp_mV <= 0.0f) return 0;
   const float ESCALE_mV = 808.8f;
@@ -56,13 +52,6 @@ static uint16_t EIS_calc_WGAmplitude(float Vpp_mV, float INAMPGNMDE, float ATTEN
   if (amp > MAX_AMP) amp = MAX_AMP;
   return (uint16_t)lround(amp);
 }
-//
-static float Vout_SineWaveAmplitude_From_WG(uint16_t WGAMPLITUDE, float INAMPGNMDE, float ATTENEN) {
-  const int MAX_AMP = (1 << 11) - 1; // 2047
-  const float ESCALE_mV = 808.8f;
-  return (float)WGAMPLITUDE / (float)MAX_AMP * ESCALE_mV * INAMPGNMDE * ATTENEN; // mVpp
-}
-// Checks consistency: returns true if there exist integers k such that f * N / fDFT_in is an integer (within tolerance)
 static CoherenceCheck_t check_coherence(double f, uint32_t N, double fDFT_in) {
   CoherenceCheck_t o;
   o.coherent = false; o.candidate_f = 0.0; o.Err = 0;
@@ -85,16 +74,6 @@ static CoherenceCheck_t check_coherence(double f, uint32_t N, double fDFT_in) {
   else o.coherent = false;
   return o;
 }
-// Converts frequency (Hz) to SINEFCW (integer)
-static uint32_t freq_to_FCW(double f) {
-  if (f <= 0.0) return 0;
-  const double TWO_POW_30 = 1073741824.0; // 2^30
-  double fcw = (f / FACLK) * TWO_POW_30;
-  if (fcw < 0.0) fcw = 0.0;
-  if (fcw > (double)((1ULL<<24)-1)) fcw = (double)((1ULL<<24)-1);
-  return (uint32_t) round(fcw);
-}
-//
 uint32_t EIS_CalculateNumberPoints(uint32_t startF, uint32_t endF, uint32_t stepsForDecade) {
   if (startF == 0 || endF == 0 || endF <= startF || stepsForDecade == 0) return 0;
   double decades = log10((double)endF) - log10((double)startF);
@@ -103,23 +82,6 @@ uint32_t EIS_CalculateNumberPoints(uint32_t startF, uint32_t endF, uint32_t step
   if (total_points < 1) total_points = 1;
   return total_points;
 } 
-//
-uint32_t EIS_get_frequency_u32(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t idx) {
-  if (numPoints == 0) return 0;
-  if (idx >= numPoints) return 0;
-  double fstart = (double)startF;
-  double fend = (double)endF;
-  double log_start = log10(fstart);
-  double log_end = log10(fend);
-  if (numPoints == 1) {
-    double f = pow(10.0, log_start);
-    return (uint32_t) round(f);
-  }
-  double delta = (log_end - log_start) / (double)(numPoints - 1);
-  double fi = pow(10.0, log_start + delta * (double)idx);
-  return (uint32_t) round(fi);
-}
-//
 EIS_Point_t EIS_GetPoint(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
   EIS_Point_t out;
   out.fcw = 0; out.DFTNum = 0; out.freq = 0.0;
@@ -211,7 +173,6 @@ EIS_Point_t EIS_GetPoint(uint32_t startF, uint32_t endF, uint32_t numPoints, uin
   out.use_sinc2 = true; out.sinc2_osr = 1333;
   return out;
 }
-//
 EIS_Point_t EIS_GetPoint_fixed(uint32_t startF, uint32_t endF, uint32_t numPoints, uint32_t stepsForDecade, uint32_t idx) {
   EIS_Point_t out;
 
@@ -415,25 +376,6 @@ void AD5941_setupADC_for_EIS(void){
   AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
   return;
 }
-void AD5941_ADC_TEST(void){
-  uint32_t adc_min = UINT32_MAX;
-  uint32_t adc_max = 0;
-  
-  for(int i=0; i<1000; i++){
-    uint32_t value = AD5941_readRegister(AD_ADCDAT, REG_SZ_32);
-    if(value < adc_min) adc_min = value;
-    if(value > adc_max) adc_max = value;
-    debug_log_i(value);
-  }
-  
-  uint32_t media = adc_max - adc_min;
-
-  debug_log("ADC:");
-  debug_log_i(adc_min);
-  debug_log_i(adc_max);
-  debug_log_i(media);
-  return;
-}
 void AD5941_ADC_ON(void){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32) 
     | (1UL << 8)   // ADC conversions enabled
@@ -459,10 +401,10 @@ void AD5941_setupDFT(void){
     | (1UL);         // ADC data rate. Unfiltered ADC output rate. 800 kHz.
   AD5941_writeRegister(AD_ADCFILTERCON, adcfiltercon, REG_SZ_32);
 
-  uint32_t dftcon = (0UL
+  uint32_t dftcon = ((0UL
     | (1UL   << 21)    // ADC raw data. Selects the output direct from the ADC; no offset/gain correction. Only supported for an ADC sample rate of 800 kHz.
     | (0b1000 <<  4))  // DFT point number is 1024
-    & ~(1UL);          // Disable Hanning window
+    & ~(1UL));          // Disable Hanning window
     //| (1UL);           // Enable Hanning window
   AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
 
@@ -476,21 +418,6 @@ void AD5941_setupDFT(void){
     | (1UL << 1); // DFT result IRQ enable
   AD5941_writeRegister(AD_INTCSEL0, intcsel0, REG_SZ_32);
 
-}
-void print_current_dftconfig(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){ //FOR DEBUG
-  debug_log(" DFTN: ");
-  debug_log_i(pN);
-  if (pBSINC3) {
-    debug_log(" - SINC3:");
-    debug_log_i(pSINC3);
-  }
-  else debug_log(" - No using SINC3 OSR");
-  if (pBSINC2) {
-    debug_log(" - SINC2:");
-    debug_log_i(pSINC2);
-  } 
-  else debug_log(" - No using SINC2 OSR"); 
-  debug_log(" \n");
 }
 void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){
   uint32_t afecon = AD5941_readRegister(AD_AFECON, REG_SZ_32);
@@ -549,50 +476,11 @@ void AD5941_DFT_WRITE(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, 
 
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
   AD5941_writeRegister(AD_ADCFILTERCON, filtercon, REG_SZ_32);
-  AD5941_writeRegister(AD_DFTCON, dftcon, REG_SZ_32);
+  AD5941_writeRegister(AD_DFTCON, dftcon 
+    //| (1UL)
+    , REG_SZ_32);
 
   if(DFT_FLAG) AD5941_DFT_ON();
-
-  return;
-}
-DFT_Point AD5941_DFT_READ(void){
-  DFT_Point point;
-  point.real = 0; point.imag = 0;
-
-  while((AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32) & (1UL << 1)) == 0);
-  uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
-  uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
-  AD5941_writeRegister(AD_INTCCLR, AD5941_readRegister(AD_INTCCLR, REG_SZ_32) | (1UL << 1)  , REG_SZ_32); 
-
-  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
-  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
-
-  if(dft_r < 0) point.real = 0;
-  else point.real = dft_r;
-  if(dft_i < 0) point.imag = 0;
-  else point.imag = dft_i;
-  
-  return point;
-}
-void AD5941_DFT_Average(uint32_t pNumberSamples){
-  float real_average = 0;
-  float imag_average = 0;
-
-  // DFT value capture
-  for(int i=0; i<pNumberSamples; i++){
-    DFT_Point point = AD5941_DFT_READ();
-    real_average += point.real;
-    imag_average += point.imag;
-  }
-
-  real_average /= (float)pNumberSamples;
-  imag_average /= (float)pNumberSamples;
-  if(real_average < 0) real_average = 0;
-  if(imag_average < 0) imag_average = 0;
-
-  debug_log("\nAverage (DFT 18-bit samples):");
-  debug_log_f((float)real_average);
-  debug_log_f((float)imag_average);
 
   return;
 }
@@ -636,6 +524,341 @@ void openafe_interruptHandler_EIS(void) {
 }
 uint16_t openafe_dataAvailable_EIS(void) { // REVIEW THIS
 	return gDFTReady;
+}
+
+// CALIBRATION
+void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
+  // --- Key Matrix Configuration for Calibration --- //
+  uint32_t ad_swcon = 0UL 
+    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
+    | (0b1000UL << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
+    | (0b0000UL << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
+    | (0b0000UL << 4 ) // PL - Connect common-mode reference to P input 
+    | (0b0001UL);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
+  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
+  return ;
+}
+void AD5941_setupHSTIA_for_EIS_Calibration(void){
+  uint32_t hsrtia = 0UL
+    //                                                    // 1 uF
+    //| (32UL << 5)                                       // 100 uF
+    | (0b100000UL << 5)                                 // not used cap
+    | (0b0000UL);                                       // R_tia = 200
+  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+
+  return;
+}
+void EIS_pointRotate(float *R, float *I, float ang) {
+  float c = cosf(ang), s = sinf(ang);
+  float r = *R, i = *I;
+  *R = r * c - i * s;
+  *I = r * s + i * c;
+}
+void EIS_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal){
+  cal->phase = -atan2f(dft_imag_Rcal, dft_real_Rcal);
+
+  // EIS_pointRotate
+  EIS_pointRotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
+
+  // Gain
+  float RCAL = 200.0;
+  cal->gR = (dft_real_Rcal) ? (RCAL / dft_real_Rcal) : 1.0f;
+  cal->gI = 1.0f;
+}
+void EIS_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
+  float R = *dft_real;
+  float I = *dft_imag;
+
+  // Phase
+  EIS_pointRotate(&R, &I, cal.phase);
+
+  // Gain
+  R *= cal.gR;
+  I *= cal.gI;
+
+  *dft_real = R;
+  *dft_imag = I;
+}
+
+// IMPEDANCE
+void EIS_calculateImpedance(float vRef, float vPeak, float dft_real, float dft_imag, float R_tia, float *impedance_real, float *impedance_imag) {
+  // t_tia = VREF * v_dft / 2^15
+  float T_tia_real = vRef * dft_real;// / 32768.0; // REVIEW THIS
+  float T_tia_imag = vRef * dft_imag;// / 32768.0; // REVIEW THIS
+
+  float I_real = T_tia_real / R_tia;
+  float I_imag = T_tia_imag / R_tia;
+
+  // Compute complex impedance Z = V / I where V is scalar peak (vPeak)
+  // Z = vPeak * conj(I) / |I|^2
+  float I_mag2 = I_real * I_real + I_imag * I_imag;
+  const float MIN_DEN = 1e-12f;
+  if (I_mag2 < MIN_DEN) {
+    // Avoid division by (near) zero: mark as infinite
+    *impedance_real = INFINITY;
+    *impedance_imag = INFINITY;
+    return;
+  }
+
+  *impedance_real = vPeak * (I_real) / I_mag2;
+  *impedance_imag = -vPeak * (I_imag) / I_mag2;
+}
+
+// UTIL
+void openafe_killEIS(void) {
+  if(!gFinished && !gShoulKillEIS){ // Check to allow being called together in killprogress
+    gShoulKillEIS = 1;
+
+    // Disable interrupts and clear flags
+    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
+    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
+
+    // Safe hardware shutdown
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+
+    // Clear library state so future runs start clean
+    gFinished = 1;
+  }
+}
+uint8_t openafe_done_EIS(void) {
+
+	if (gShoulKillEIS) 
+    return STATUS_EIS_DONE;
+
+  else 
+    return ((gFinished) && (!gDFTReady)) || ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
+      ? STATUS_EIS_DONE
+      : STATUS_EIS_UNDERGOING;
+}
+
+// START / SETUP
+int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
+  AD5941_init(0,0,0);
+
+  AD5941_init_for_EIS();
+  AD5941_setupClock_for_EIS();
+  AD5941_setupAFECON_for_EIS();
+  AD5941_setupHSDAC_for_EIS();
+  AD5941_setupHSTIA_for_EIS();
+  AD5941_setupKeyMatrix_for_EIS();
+  AD5941_setupWAVEGEN();
+  AD5941_setupADC_for_EIS();
+  AD5941_setupDFT();
+
+  AD5941_interruptConfig_EIS();
+
+  memset(&gEISparams, 0, sizeof(EIS_t));
+
+  gPendingCalibration = 0;
+  gShoulKillEIS = 0;
+  gFinished = 0;
+  gEISparams.parameters = *pEISParams;
+
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF   = gEISparams.parameters.endingOmega;
+  uint32_t steps  = gEISparams.parameters.stepForADecade; 
+
+  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
+  gEISparams.totalPoints = numPoints;
+
+  gEISparams.state.currentFrequency = startF;
+  gEISparams.state.currentFrequencyPoint = 0;
+
+
+  return NO_ERROR;
+}
+void openafe_startEIS(){
+  uint32_t startF = gEISparams.parameters.startingOmega;
+  uint32_t endF = gEISparams.parameters.endingOmega;
+  uint32_t steps = gEISparams.parameters.stepForADecade;
+  uint32_t numPoints = gEISparams.totalPoints;
+
+  AD5941_setupKeyMatrix_for_EIS_Calibration();
+  AD5941_setupHSTIA_for_EIS_Calibration();
+  gPendingCalibration = 1;
+
+  EIS_Point_t p = EIS_GetPoint_fixed(startF, endF, numPoints, steps, 0);
+  currentPoint = p;
+  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+  AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
+
+  AD5941_ADC_ON();
+  AD5941_waveON();
+  AD5941_DFT_ON();
+}
+
+// POINT
+void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){
+
+  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+
+  *frequency = currentPoint.freq;
+  *impedance_real = dft_r;
+  *impedance_imag = dft_i;
+
+  gDFTReady = 0;
+
+  if(
+    gPendingCalibration
+    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
+  ){
+    
+    *bCalibration = 1;
+
+    float vPeak = 125.0;
+    float R_tia = 200.0;
+    EIS_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+    
+    EIS_computeCalibration(*impedance_real, *impedance_imag, &cal);
+    EIS_calibrationDFT(impedance_real, impedance_imag, cal);
+
+    AD5941_setupKeyMatrix_for_EIS();
+    AD5941_setupHSTIA_for_EIS();
+
+    uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+    uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+    if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+    AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+
+    gPendingCalibration = 0;
+  }
+  else if(
+    !gPendingCalibration
+    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
+  ){
+    *bCalibration = 0;
+
+    float vPeak = 125.0;
+    float R_tia = 10000.0 + 0.37*10000.0; // 37% is a magic number, REVIEW THIS
+    
+    EIS_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+    EIS_calibrationDFT(impedance_real, impedance_imag, cal);
+
+    uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
+    if(nextIdx < gEISparams.totalPoints){
+      gEISparams.state.currentFrequencyPoint = nextIdx;
+      EIS_Point_t p = EIS_GetPoint_fixed(
+        gEISparams.parameters.startingOmega, 
+        gEISparams.parameters.endingOmega, 
+        gEISparams.totalPoints, 
+        gEISparams.parameters.stepForADecade, 
+        gEISparams.state.currentFrequencyPoint);
+      currentPoint = p;
+      
+      AD5941_setupKeyMatrix_for_EIS_Calibration();
+      AD5941_setupHSTIA_for_EIS_Calibration();
+      
+      AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
+      AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
+
+      uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
+      uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
+      if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
+      AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
+
+      gPendingCalibration = 1;
+    } else {
+      gFinished = 1;
+
+      AD5941_ADC_OFF();
+      AD5941_waveOFF();
+      AD5941_DFT_OFF();
+    }
+  }
+  else{
+    gFinished = 1;
+    
+    AD5941_ADC_OFF();
+    AD5941_waveOFF();
+    AD5941_DFT_OFF();
+  }
+  
+  return;
+}
+
+
+
+// -- NO USING IN FINAL VERSION -- //
+
+// DEBUG (no using in final version)
+void AD5941_ADC_TEST(void){
+  uint32_t adc_min = UINT32_MAX;
+  uint32_t adc_max = 0;
+  
+  for(int i=0; i<1000; i++){
+    uint32_t value = AD5941_readRegister(AD_ADCDAT, REG_SZ_32);
+    if(value < adc_min) adc_min = value;
+    if(value > adc_max) adc_max = value;
+    debug_log_i(value);
+  }
+  
+  uint32_t media = adc_max - adc_min;
+
+  debug_log("ADC:");
+  debug_log_i(adc_min);
+  debug_log_i(adc_max);
+  debug_log_i(media);
+  return;
+}
+void print_current_dftconfig(uint32_t pN, bool pBSINC3, uint32_t pSINC3, bool pBSINC2, uint32_t pSINC2){ //FOR DEBUG
+  debug_log(" DFTN: ");
+  debug_log_i(pN);
+  if (pBSINC3) {
+    debug_log(" - SINC3:");
+    debug_log_i(pSINC3);
+  }
+  else debug_log(" - No using SINC3 OSR");
+  if (pBSINC2) {
+    debug_log(" - SINC2:");
+    debug_log_i(pSINC2);
+  } 
+  else debug_log(" - No using SINC2 OSR"); 
+  debug_log(" \n");
+}
+DFT_Point AD5941_DFT_READ(void){
+  DFT_Point point;
+  point.real = 0; point.imag = 0;
+
+  while((AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32) & (1UL << 1)) == 0);
+  uint32_t raw_r = AD5941_readRegister(AD_DFTREAL, REG_SZ_32);
+  uint32_t raw_i = AD5941_readRegister(AD_DFTIMAG, REG_SZ_32);
+  AD5941_writeRegister(AD_INTCCLR, AD5941_readRegister(AD_INTCCLR, REG_SZ_32) | (1UL << 1)  , REG_SZ_32); 
+
+  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
+  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
+
+  if(dft_r < 0) point.real = 0;
+  else point.real = dft_r;
+  if(dft_i < 0) point.imag = 0;
+  else point.imag = dft_i;
+  
+  return point;
+}
+void AD5941_DFT_Average(uint32_t pNumberSamples){
+  float real_average = 0;
+  float imag_average = 0;
+
+  // DFT value capture
+  for(int i=0; i<pNumberSamples; i++){
+    DFT_Point point = AD5941_DFT_READ();
+    real_average += point.real;
+    imag_average += point.imag;
+  }
+
+  real_average /= (float)pNumberSamples;
+  imag_average /= (float)pNumberSamples;
+  if(real_average < 0) real_average = 0;
+  if(imag_average < 0) imag_average = 0;
+
+  debug_log("\nAverage (DFT 18-bit samples):");
+  debug_log_f((float)real_average);
+  debug_log_f((float)imag_average);
+
+  return;
 }
 
 // REVERSE SINC (no using in final version)
@@ -711,271 +934,6 @@ DFT_Point reverse_sinc_apply(
   out.imag = dft_real * C.imag + dft_imag * C.real;
   return out;
 
-}
-
-// CALIBRATION
-void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
-  // --- Key Matrix Configuration for Calibration --- //
-  uint32_t ad_swcon = 0UL 
-    | (1UL << 17)    // T9 - Connect excitation amplifier to internal bus
-    | (0b1000UL << 12) // TR1 Connect to RCAL1 pin in negative input HSTIA (older T5)
-    | (0b0000UL << 8)  // NL - Connect VBIAS0 to excitation amplifier N input
-    | (0b0000UL << 4 ) // PL - Connect common-mode reference to P input 
-    | (0b0001UL);      // DR0 - Connect RCAL0 to HSDAC output (older D5)
-  AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
-  return ;
-}
-void AD5941_setupHSTIA_for_EIS_Calibration(void){
-  uint32_t hsrtia = 0UL
-    //                                                    // 1 uF
-    //| (32UL << 5)                                       // 100 uF
-    | (0b100000UL << 5)                                 // not used cap
-    | (0b0000UL);                                       // R_tia = 200
-  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
-
-  return;
-}
-void ADC_beforeHSTIA(void){
-  uint32_t adccon = 0UL
-    | (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
-    //| (1UL << 15)     // ?? Enables dc offset cancellation
-    | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
-    | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
-  AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
-  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
-  return;
-}
-void ADC_afterHSTIA(void){
-  uint32_t adccon = 0UL
-    | (0b11UL << 16)  // GNPGA = 11 -> PGA gain = 4 (to compensate for the HSDAC not having the gain 1 option)
-    //| (1UL << 15)     // ?? Enables dc offset cancellation
-    | (0b00001 << 8)  // (MUXSELN negative input) High speed TIA negative input
-    | (0b00001);      // (MUXSELN positive input) High speed TIA positive signal.
-  AD5941_writeRegister(AD_ADCCON, adccon, REG_SZ_32);
-  AD5941_writeRegister(AD_ADCBUFCON, 0x005F3D04, REG_SZ_32); // recommeded for low power
-  return;
-}
-void rotate(float *R, float *I, float ang) {
-  float c = cosf(ang), s = sinf(ang);
-  float r = *R, i = *I;
-  *R = r * c - i * s;
-  *I = r * s + i * c;
-}
-void AD5941_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal){
-  cal->phase = -atan2f(dft_imag_Rcal, dft_real_Rcal);
-
-  // Rotate
-  rotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
-
-  // Gain
-  float RCAL = 200.0;
-  cal->gR = (dft_real_Rcal) ? (RCAL / dft_real_Rcal) : 1.0f;
-  cal->gI = 1.0f;
-}
-void AD5941_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
-  float R = *dft_real;
-  float I = *dft_imag;
-
-  // Phase
-  rotate(&R, &I, cal.phase);
-
-  // Gain
-  R *= cal.gR;
-  I *= cal.gI;
-
-  *dft_real = R;
-  *dft_imag = I;
-}
-
-// IMPEDANCE
-void AD5941_calculateImpedance(float vRef, float vPeak, float dft_real, float dft_imag, float R_tia, float *impedance_real, float *impedance_imag) {
-  // t_tia = VREF * v_dft / 2^15
-  float T_tia_real = (vRef * dft_real);// / 32768.0; // REVIEW THIS
-  float T_tia_imag = (vRef * dft_imag);// / 32768.0; // REVIEW THIS
-
-  // I_tia = T_tia / R_tia
-  float I_tia_real = T_tia_real / R_tia;
-  float I_tia_imag = T_tia_imag / R_tia;
-
-  // Impedance
-  *impedance_real =  vPeak / I_tia_real;
-  *impedance_imag =  vPeak / I_tia_imag;
-}
-
-// UTIL
-void openafe_killEIS(void) {
-  if(!gFinished && !gShoulKillEIS){ // Check to allow being called together in killprogress
-    gShoulKillEIS = 1;
-
-    // Disable interrupts and clear flags
-    AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
-    AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
-    AD5941_writeRegister(AD_INTCFLAG0, ~(uint32_t)0, REG_SZ_32);
-
-    // Safe hardware shutdown
-    AD5941_ADC_OFF();
-    AD5941_waveOFF();
-    AD5941_DFT_OFF();
-
-    // Clear library state so future runs start clean
-    gFinished = 1;
-  }
-}
-uint8_t openafe_done_EIS(void) {
-
-	if (gShoulKillEIS) 
-    return STATUS_EIS_DONE;
-
-  else 
-    return ((gFinished) && (!gDFTReady)) || ((gFinished) && (gEISparams.state.currentFrequencyPoint == gEISparams.totalPoints))
-      ? STATUS_EIS_DONE
-      : STATUS_EIS_UNDERGOING;
-}
-
-// START / SETUP
-int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
-  AD5941_init(0,0,0);
-
-  AD5941_init_for_EIS();
-  AD5941_setupClock_for_EIS();
-  AD5941_setupAFECON_for_EIS();
-  AD5941_setupHSDAC_for_EIS();
-  AD5941_setupHSTIA_for_EIS();
-  AD5941_setupKeyMatrix_for_EIS();
-  AD5941_setupWAVEGEN();
-  AD5941_setupADC_for_EIS();
-  AD5941_setupDFT();
-
-  AD5941_interruptConfig_EIS();
-
-  memset(&gEISparams, 0, sizeof(EIS_t));
-
-  gPendingCalibration = 0;
-  gShoulKillEIS = 0;
-  gFinished = 0;
-  gEISparams.parameters = *pEISParams;
-
-  uint32_t startF = gEISparams.parameters.startingOmega;
-  uint32_t endF   = gEISparams.parameters.endingOmega;
-  uint32_t steps  = gEISparams.parameters.stepForADecade; 
-
-  uint32_t numPoints = EIS_CalculateNumberPoints(startF, endF, steps);
-  gEISparams.totalPoints = numPoints;
-
-  gEISparams.state.currentFrequency = startF;
-  gEISparams.state.currentFrequencyPoint = 0;
-
-
-  return NO_ERROR;
-}
-openafe_startEIS(){
-  uint32_t startF = gEISparams.parameters.startingOmega;
-  uint32_t endF = gEISparams.parameters.endingOmega;
-  uint32_t steps = gEISparams.parameters.stepForADecade;
-  uint32_t numPoints = gEISparams.totalPoints;
-
-  AD5941_setupKeyMatrix_for_EIS_Calibration();
-  AD5941_setupHSTIA_for_EIS_Calibration();
-  gPendingCalibration = 1;
-
-  EIS_Point_t p = EIS_GetPoint_fixed(startF, endF, numPoints, steps, 0);
-  currentPoint = p;
-  AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
-  AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
-
-  AD5941_ADC_ON();
-  AD5941_waveON();
-  AD5941_DFT_ON();
-}
-
-// POINT
-void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impedance_imag, uint8_t *bCalibration){
-
-  int32_t dft_r = (int32_t)(raw_r << 14) >> 14; // 32 - 18 = 14
-  int32_t dft_i = (int32_t)(raw_i << 14) >> 14;
-
-  *frequency = currentPoint.freq;
-  *impedance_real = dft_r;
-  *impedance_imag = dft_i;
-
-  gDFTReady = 0;
-
-  if(
-    gPendingCalibration
-    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
-  ){
-    
-    *bCalibration = 1;
-
-    float vPeak = 125.0;
-    float R_tia = 200.0;
-    AD5941_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
-    
-    AD5941_computeCalibration(*impedance_real, *impedance_imag, &cal);
-    AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
-
-    AD5941_setupKeyMatrix_for_EIS();
-    AD5941_setupHSTIA_for_EIS();
-
-    uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
-    uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
-    if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
-    AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
-
-    gPendingCalibration = 0;
-  }
-  else if(
-    !gPendingCalibration
-    && (gEISparams.state.currentFrequencyPoint < gEISparams.totalPoints && !gShoulKillEIS)
-  ){
-    *bCalibration = 0;
-
-    float vPeak = 125.0;
-    float R_tia = 10000.0 + 0.37*10000.0; // 37% is a magic number, REVIEW THIS
-    
-    AD5941_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
-    AD5941_calibrationDFT(impedance_real, impedance_imag, cal);
-
-    uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
-    if(nextIdx < gEISparams.totalPoints){
-      gEISparams.state.currentFrequencyPoint = nextIdx;
-      EIS_Point_t p = EIS_GetPoint_fixed(
-        gEISparams.parameters.startingOmega, 
-        gEISparams.parameters.endingOmega, 
-        gEISparams.totalPoints, 
-        gEISparams.parameters.stepForADecade, 
-        gEISparams.state.currentFrequencyPoint);
-      currentPoint = p;
-      
-      AD5941_setupKeyMatrix_for_EIS_Calibration();
-      AD5941_setupHSTIA_for_EIS_Calibration();
-      
-      AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
-      AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
-
-      uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
-      uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
-      if(toClear) AD5941_writeRegister(AD_INTCCLR, toClear, REG_SZ_32);
-      AD5941_writeRegister(AD_GP0SET, (1UL << 0), REG_SZ_32);
-
-      gPendingCalibration = 1;
-    } else {
-      gFinished = 1;
-
-      AD5941_ADC_OFF();
-      AD5941_waveOFF();
-      AD5941_DFT_OFF();
-    }
-  }
-  else{
-    gFinished = 1;
-    
-    AD5941_ADC_OFF();
-    AD5941_waveOFF();
-    AD5941_DFT_OFF();
-  }
-  
-  return;
 }
 
 #ifdef __cplusplus
