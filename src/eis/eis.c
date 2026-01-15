@@ -882,7 +882,7 @@ DFT_Point compute_inverse_sinc_runtime(
   if (useSinc2 && osrSinc2 > 0) { R *= osrSinc2; N_total += 2; }
   if (R == 0 || N_total == 0) return C;
 
-  const float PI = 3.14159265358979323846f;
+  //const float PI = 3.14159265358979323846f;
   const float fs = (float)800000.0f;
   // args
   float arg_num = PI * freqHz * (float)R / fs; // pi * f * R / fs

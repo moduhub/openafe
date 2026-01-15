@@ -10,11 +10,12 @@
 
 #include "../device/ad5941.h"
 #include "../openafe_status_codes.h"
+//#include "utils/MathAux.h"
 
 
 // MACROS //
 
-#define AMPLITUDE_PP_SINAL 10  // ~10mV output
+#define AMPLITUDE_PP_SINAL 50  // ~25mV output
 #define GAIN_HSDAC 4           // 1/4 of sinal
 
 
@@ -22,11 +23,11 @@
 
 #define FACLK        16000000.0    
 #define ADC_FS       800000.0 
-static const uint32_t allowedDFTNums[] = {4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384};
+static const uint16_t allowedDFTNums[13] PROGMEM = {4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384};
 static const int allowedCount = 13;
-static const uint32_t allowedSINC3OSR[] = {2, 4, 5};
+static const uint8_t allowedSINC3OSR[3] PROGMEM = {2, 4, 5};
 static const int allowedSINC3Count = 3;
-static const uint32_t allowedSINC2OSR[] = {22,44,89,178,267,533,640,667,800,889,1067,1333};
+static const uint16_t allowedSINC2OSR[12] PROGMEM = {22,44,89,178,267,533,640,667,800,889,1067,1333};
 static const int allowedSINC2Count = 12;
 
 
