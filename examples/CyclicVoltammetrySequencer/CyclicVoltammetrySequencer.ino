@@ -15,8 +15,8 @@ void loop(){
 	int process = 0 ; // 0 CV, 1 DPV, 2 SWV  
   int success;
   int settlingTime = 1000;
-  int startingPotential = -500;
-  int endingPotential = 500;
+  int startingPotential = -800;
+  int endingPotential = 0;
   int scanRate = 1000;
   int stepPotential = 100;
   int pulse = 50;
@@ -36,7 +36,14 @@ void loop(){
   }
 
 	if (success){
-    Serial.println(F("<<< STARTED CYCLIC VOLTAMMETRY >>>")); 
+    Serial.println(F("\n<<< STARTED CALIBRATION >>>")); 
+    VoltammetryCAL cal;
+    openAFE.computeCalibrationVoltammetry(startingPotential, endingPotential, &cal);
+    Serial.print("Offset: "); Serial.print(cal.offset);
+    Serial.print("\nGain: "); Serial.print(cal.K);
+    Serial.println(F("\n<<< FINISHED CALIBRATION >>>")); 
+
+    Serial.println(F("\n<<< STARTED VOLTAMMETRY >>>")); 
 		interrupts();
 		openAFE.startVoltammetry();
 
@@ -100,7 +107,7 @@ void loop(){
 			delay(1);
 		} while (!openAFE.done());
 
-		Serial.println(F("<<< FINISHED CYCLIC VOLTAMMETRY >>>"));
+		Serial.println(F("<<< FINISHED VOLTAMMETRY >>>"));
 	}
 	else Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));
 
