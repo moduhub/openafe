@@ -4,12 +4,18 @@
 #include <stdint.h>
 #include "../device/ad5941.h"
 
+// MACROS //
+
 #define STATE_CURRENT_CV 0  // Cyclic voltammetry in progress flag.
 #define STATE_CURRENT_SWV 2 // Square wave voltammetry in progress flag.
 #define STATE_CURRENT_DPV 3 // Differential Pulse voltammetry in progress flag.
 
 
-/** Variable type to store the current state of the voltammetry wave generation. */
+// TYPEDEFS / ENUMS //
+
+/** 
+ * Variable type to store the current state of the voltammetry wave generation. 
+ */
 typedef struct voltammetry_state_struct{
   uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
   uint8_t currentSlope;           // Current slope.
@@ -21,6 +27,9 @@ typedef struct voltammetry_state_struct{
   uint8_t SEQ_numCurrentPointsReadOnStep; // Number of currents points read in the current step. NOTE: used for voltammetries with more than one current point per step.
 } voltammetry_state_t;
 
+/**
+ *
+ */
 typedef struct voltammetry_parameters_t { 
   uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
   float startingPotential;        // Target starting voltage value of the wave, in mV.
@@ -34,7 +43,9 @@ typedef struct voltammetry_parameters_t {
   float dutyCycle;                // Duty Cycle, in percentage
 } voltammetry_parameters_t;
 
-/** Type that store all the necessary data for the voltammetry process. */
+/** 
+ * Type that store all the necessary data for the voltammetry process. 
+ */
 typedef struct voltammetry_t {
   voltammetry_state_t state;
   voltammetry_parameters_t parameters;
@@ -47,8 +58,25 @@ typedef struct voltammetry_t {
   uint8_t numCurrentPointsPerStep; // Number of current points per step, for example: CV has 1, DPV has 2;
 } voltammetry_t;
 
-/** Holds voltammetry parameters and state of the current voltammetry */
+/** 
+ * Holds voltammetry parameters and state of the current voltammetry 
+ */
 extern voltammetry_t gVoltammetryParams;
+
+/** 
+ * @brief Structure used to store the calibration parameters of the current point
+ */
+typedef struct {
+  float offset;
+  float K;
+} VoltammetryCAL;
+
+// FUNCTIONS //
+
+void openafe_setupKeyMatrix_for_Calibration(void);
+void openafe_setupHSTIA_for_Calibration(void);
+void openafe_computeCalibration(float voltage_min, float voltage_max, VoltammetryCAL *cal_);
+void openafe_calibration(float voltage_ref, float *current_to_cal);
 
 /**
  * @brief Minimal declaration, set a specific SPI Interface Frequency,
