@@ -211,6 +211,7 @@ EIS_Point_t EIS_GetPoint_fixed(uint32_t startF, uint32_t endF, uint32_t numPoint
       }
     }
     if(!found){
+      out.sinc3_osr = 5;
       double fDFT_in = (double)ADC_FS / (double)out.sinc3_osr / (double)out.sinc2_osr;
       CoherenceCheck_t chk = check_coherence(fi, allowedDFTNums[allowedCount - 1], fDFT_in);
       out.freq = chk.candidate_f;
