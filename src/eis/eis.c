@@ -229,7 +229,7 @@ void AD5941_init_for_EIS(void){
   // --- Software Reset --- //
   AD5941_writeRegister(AD_RSTCONKEY, (uint16_t)0x12EA, REG_SZ_16);
   AD5941_writeRegister(AD_SWRSTCON, (uint16_t)0xA158, REG_SZ_16);
-  debug_delay(10);
+  debug_delay((uint32_t)(10));
 
   // --- System Power Init --- //
   AD5941_writeRegister(AD_PWRKEY, 0x4859, REG_SZ_16);
@@ -253,7 +253,7 @@ void AD5941_init_for_EIS(void){
   AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32); // Clear any active interrupt
 	AD5941_writeRegister(AD_LPDACDAT0, DAC_LVL_ZERO_VOLT, 32); // zero voltage across electrodes
 
-  debug_delay(10);
+  debug_delay((uint32_t)(10));
 
   //uint32_t chipID = AD5941_readRegister(AD_CHIPID, REG_SZ_32); 
   //char dbgmsg[64]; 
@@ -381,7 +381,7 @@ void AD5941_ADC_ON(void){
     | (1UL << 8)   // ADC conversions enabled
     | (1UL << 7);  // ADC power enable
   AD5941_writeRegister(AD_AFECON, afecon, REG_SZ_32);
-  debug_delay(10); // (ADC Wake-Up Máx 180us) 10ms to wake-up ADC 
+  debug_delay((uint32_t)(10)); // (ADC Wake-Up Máx 180us) 10ms to wake-up ADC 
   return;
 }
 void AD5941_ADC_OFF(void){

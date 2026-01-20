@@ -10,7 +10,7 @@
 
 #include "../device/ad5941.h"
 #include "../openafe_status_codes.h"
-//#include "utils/MathAux.h"
+#include "utils/MathAux.h"
 
 
 // MACROS //
