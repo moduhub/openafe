@@ -684,9 +684,10 @@ void openafe_startEIS(){
   currentPoint = p;
   AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);
   AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
-
-  AD5941_ADC_ON();
   AD5941_waveON();
+
+  debug_delay((uint32_t)(gEISparams.parameters.settlingTime));
+  AD5941_ADC_ON();
   AD5941_DFT_ON();
 }
 
