@@ -97,7 +97,12 @@ extern "C" void arduino_debug_voltammetry(const voltammetry_t *pVoltammetry){
 }
 
 extern "C" void arduino_debug_delay(uint32_t ms) {
-  delay(ms);
+  uint32_t us = ms*1000u;
+  while (us) {
+    uint16_t chunk = us > 16000 ? 16000 : (uint16_t)us; // safe chunk for delayMicroseconds
+    delayMicroseconds(chunk);
+    us -= chunk;
+  }
 } 
 
 extern "C" void arduino_debug_break_point(void){
