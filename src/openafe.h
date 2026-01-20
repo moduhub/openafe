@@ -83,6 +83,10 @@ class AFE {
       */
 		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade);
 
+    /**
+     *
+     */
+    void AFE::computeCalibrationVoltammetry(float voltage_min, float voltage_max, VoltammetryCAL *cal_);
     
 		/**
       * @brief Configure and generate CV (Cyclic Voltammetry) waveform.
