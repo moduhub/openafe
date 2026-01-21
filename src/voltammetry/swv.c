@@ -20,6 +20,7 @@ int openafe_setSWVSequence(const voltammetry_parameters_t *pVoltammetryParams){
     return tPossibility;
 
   openafe_setVoltammetrySEQ();
+  debug_delay((uint32_t)(gVoltammetryParams.parameters.settlingTime));
 
 	return NO_ERROR;
 }
