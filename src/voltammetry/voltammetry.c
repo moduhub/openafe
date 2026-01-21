@@ -28,20 +28,44 @@ uint8_t gFinished;
  */
 uint8_t gCurrentSequence = 0;
 
+/** 
+ * @brief Whether or not there is data available to read. 
+ */
 int32_t gDataAvailable = 0; // Whether or not there is data available to read.
 
+/** 
+ * @brief The raw sample value read from the ADC. 
+ */
 uint32_t gRawSampleValue; // The raw sample value read from the ADC.
 
+/** 
+ * @brief Flag to skip the next point addition in the sequence. 
+ */
 volatile uint8_t gShouldSkipNextPointAddition = 1;
 
+/** 
+ * @brief Flag indicating if point addition should change the sequence. 
+ */
 uint8_t gShouldPointAdditionChangeSEQ = 0;
 
+/** 
+ * @brief Flag to determine if points should be added to the sequence. 
+ */
 uint8_t gShouldAddPoints = 0;
 
-uint32_t gNumDataPointsRead = 0; // Number of data points read.
+/** 
+* @brief Number of data points read. 
+*/
+uint32_t gNumDataPointsRead = 0;
 
+/** 
+ * @brief Raw SINC2 data array for ADC readings. 
+ */
 uint32_t gRawSINC2Data[2];
 
+/** 
+ * @brief Calibration structure for voltammetry. 
+ */
 VoltammetryCAL pCal;
 
 // INTERRUPT CONFIG
