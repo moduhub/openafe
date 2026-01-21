@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "../device/ad5941.h"
+#include "../eis/eis.h"
 
 // MACROS //
 
@@ -14,7 +15,7 @@
 // TYPEDEFS / ENUMS //
 
 /** 
- * Variable type to store the current state of the voltammetry wave generation. 
+ * @brief Variable type to store the current state of the voltammetry wave generation. 
  */
 typedef struct voltammetry_state_struct{
   uint8_t currentVoltammetryType; // Which voltammetry is in progress NOTE: check using STATE_CURRENT_x.
@@ -28,7 +29,7 @@ typedef struct voltammetry_state_struct{
 } voltammetry_state_t;
 
 /**
- *
+ * @brief Structure to hold voltammetry parameters.
  */
 typedef struct voltammetry_parameters_t { 
   uint16_t settlingTime;          // Settling time before the wave, in milliseconds.
@@ -44,7 +45,7 @@ typedef struct voltammetry_parameters_t {
 } voltammetry_parameters_t;
 
 /** 
- * Type that store all the necessary data for the voltammetry process. 
+ * @brief Type that stores all the necessary data for the voltammetry process. 
  */
 typedef struct voltammetry_t {
   voltammetry_state_t state;
@@ -59,12 +60,12 @@ typedef struct voltammetry_t {
 } voltammetry_t;
 
 /** 
- * Holds voltammetry parameters and state of the current voltammetry 
+ * @brief Holds voltammetry parameters and state of the current voltammetry 
  */
 extern voltammetry_t gVoltammetryParams;
 
 /** 
- * @brief Structure used to store the calibration parameters of the current point
+ * @brief Structure used to store the calibration parameters of the current point.
  */
 typedef struct {
   float offset;
@@ -73,77 +74,53 @@ typedef struct {
 
 // FUNCTIONS //
 
+/**
+ * @brief Handle interrupts triggered by the AD5941 device.
+ * 
+ * This function processes interrupt flags from the AD5941, handles ADC result reads,
+ * manages data availability, and controls sequence progression or termination.
+ */
+void openafe_interruptHandler(void);
+
+/**
+ * @brief Setup the key matrix switches for calibration.
+ * 
+ * Configures the switches to connect the excitation amplifier and RCAL for calibration purposes.
+ */
 void openafe_setupKeyMatrix_for_Calibration(void);
+
+/**
+ * @brief Setup the HSTIA for calibration.
+ * 
+ * Configures the HSTIA register for calibration, including capacitor and resistor settings.
+ */
 void openafe_setupHSTIA_for_Calibration(void);
+
+/**
+ * @brief Compute calibration parameters based on min and max voltages.
+ * 
+ * @param voltage_min IN -- Minimum voltage for calibration, in mV.
+ * @param voltage_max IN -- Maximum voltage for calibration, in mV.
+ * @param cal_ IN/OUT -- Pointer to the calibration structure to update.
+ */
 void openafe_computeCalibration(float voltage_min, float voltage_max, VoltammetryCAL *cal_);
+
+/**
+ * @brief Apply calibration to a current value based on reference voltage.
+ * 
+ * @param voltage_ref IN -- Reference voltage for calibration, in mV.
+ * @param current_to_cal IN/OUT -- Pointer to the current value to calibrate, in µA.
+ * @note If the pointer is NULL, the function returns without changes.
+ */
 void openafe_calibration(float voltage_ref, float *current_to_cal);
 
 /**
- * @brief Minimal declaration, set a specific SPI Interface Frequency,
- * all other parameters are default.
- *
- * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
- * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
- * @param pSPIFrequency IN -- SPI Interface Frequency (in Hertz).
- * @return Status code on success, error code on error.
- */
-int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency);
-
-/**
- * @brief Get the voltage at the given data point.
- *
- * @param pNumPointsRead IN -- data point to get the voltage.
- * @return Voltage at the point, in mV.
- */
-float openafe_getVoltage(uint32_t pNumPointsRead);
-
-/**
- * @brief Check wheter the value in the ADIID register is the expected 0x4144.
- * Useful to check if the SPI and/or the AFE IC is working.
- *
- * @return Error code.
- */
-int openafe_isResponding(void);
-
-/**
- * @brief Kill the voltammetry proccess.
- *
+ * @brief Kill the voltammetry process safely.
+ * 
+ * Disables interrupts, clears flags, shuts down hardware, and resets state variables.
+ * Mirrors EIS shutdown behavior for safety.
  */
 void openafe_killVoltammetry(void);
-
-/**
- * @brief Get both voltage and current of a point.
- * 
- * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV. 
- * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
- * @return The point index, it starts at 0.
- */
-uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
-
-/**
- * @brief Set a general voltammetry in the sequencer.
- * 
- */
-void openafe_setVoltammetrySEQ(void);
-
-/**
- * @brief Set the TIA gain resistor based on the desired current range.
- *
- * @param pDesiredCurrentRange IN -- the desired current range, in microamperes (uA).
- *
- * @return /= 0 if successful, 0 (zero) on error.
- */
-uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange);
-
-/**
- * @brief Set the gain of the RTIA.
- * @param pTIAGainResistor IN -- Gain of the TIA, e.g. AD_LPTIACON0_TIAGAIN_3K.
- * @note If the gain value passed to this function is not a valid gain
- * value, a gain value of 10k will be set, to avoid passing invalid
- * gain values use the AD_LPTIACON0_TIAGAIN_xx values.
- * @return The TIA gain set.
- */
-unsigned long openafe_setTIAGain(unsigned long pTIAGain);
 
 /**
  * @brief Check if the AFE device has finished operations.
@@ -162,6 +139,25 @@ uint8_t openafe_done(void);
 uint16_t openafe_dataAvailable(void);
 
 /**
+ * @brief Check wheter the value in the ADIID register is the expected 0x4144.
+ * Useful to check if the SPI and/or the AFE IC is working.
+ *
+ * @return Error code.
+ */
+int openafe_isResponding(void);
+
+/**
+ * @brief Minimal declaration, set a specific SPI Interface Frequency,
+ * all other parameters are default.
+ *
+ * @param pShieldCSPin IN -- Shield Chip Select pin descriptor or code.
+ * @param pShieldResetPin IN -- Shield reset pin descriptor or code.
+ * @param pSPIFrequency IN -- SPI Interface Frequency (in Hertz).
+ * @return Status code on success, error code on error.
+ */
+int openafe_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIFrequency);
+
+/**
  * @brief Start the voltametry.
  * 
  * @note Use this after seting a voltammetry.
@@ -169,27 +165,21 @@ uint16_t openafe_dataAvailable(void);
 void openafe_startVoltammetry(void);
 
 /**
- * @brief Read the data FIFO.
+ * @brief Get the voltage at the given data point.
  *
- * @return float
+ * @param pNumPointsRead IN -- data point to get the voltage.
+ * @return Voltage at the point, in mV.
  */
-float openafe_readDataFIFO(void);
+float openafe_getVoltage(uint32_t pNumPointsRead);
 
 /**
- * @brief Handle interrupts triggered by the AD5941 device.
+ * @brief Get both voltage and current of a point.
  * 
+ * @param pVoltage_mV OUT -- (pointer) voltage at point, in mV. 
+ * @param pCurrent_uA OUT -- (pointer) current at point, in uA.
+ * @return The point index, it starts at 0.
  */
-void openafe_interruptHandler(void);
-
-/**
- * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
- * SRAM address.
- *
- * @param pSRAMAddress IN -- SRAM address to start placing the point.
- * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
- * @return Last written SRAM address.
- */
-uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress);
+uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA);
 
 /**
  * @brief Fill a given sequence index with the required commands for a voltammetry.
@@ -211,5 +201,49 @@ uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress);
  * @note This function assumes that the AFE has been properly initialized and configured for Cyclic Voltammetry.
  */
 uint8_t openafe_fillSequence(uint8_t pSequenceIndex, uint16_t pStartingAddress, uint16_t pEndingAddress);
+
+/**
+ * @brief Set up the voltammetry sequence.
+ * 
+ * Initializes state and fills sequences for voltammetry.
+ */
+void openafe_setVoltammetrySEQ(void);
+
+/**
+ * @brief Read data from the FIFO.
+ * 
+ * @return Current value from ADC, or 0 if no data.
+ */
+float openafe_readDataFIFO(void);
+
+/**
+ * @brief Set the TIA gain resistor based on the desired current range.
+ *
+ * @param pDesiredCurrentRange IN -- the desired current range, in microamperes (uA).
+ *
+ * @return /= 0 if successful, 0 (zero) on error.
+ */
+uint8_t openafe_setCurrentRange(uint16_t pDesiredCurrentRange);
+
+/**
+ * @brief Set the gain of the RTIA.
+ * @param pTIAGainResistor IN -- Gain of the TIA, e.g. AD_LPTIACON0_TIAGAIN_3K.
+ * @note If the gain value passed to this function is not a valid gain
+ * value, a gain value of 10k will be set, to avoid passing invalid
+ * gain values use the AD_LPTIACON0_TIAGAIN_xx values.
+ * @return The TIA gain set.
+ */
+unsigned long openafe_setTIAGain(unsigned long pTIAGain);
+
+/**
+ * @brief Add a voltammetry point with the given voltammetry params, starting from the passed
+ * SRAM address.
+ *
+ * @param pSRAMAddress IN -- SRAM address to start placing the point.
+ * @param pVoltammetryParams IN/OUT -- current voltammetry params/state.
+ * @return Last written SRAM address.
+ */
+uint32_t openafe_SEQ_addPoint(uint32_t pSRAMAddress);
+
 
 #endif //_OPENAFE_VOLTAMMETRY_H_
