@@ -42,7 +42,6 @@ void AFE::computeCalibrationVoltammetry(float voltage_min, float voltage_max, Vo
 }
 
 int AFE::setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles){
-  openafe_init(0, 0, 0);
   voltammetry_parameters_t parametersCV;
   parametersCV.settlingTime = pSettlingTime;
   parametersCV.startingPotential = pStartingPotential;
@@ -54,7 +53,6 @@ int AFE::setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float p
 }
 
 int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle){
-  openafe_init(0, 0, 0);
   voltammetry_parameters_t parametersDPV;
   parametersDPV.settlingTime = pSettlingTime;
   parametersDPV.startingPotential = pStartingPotential;
@@ -67,7 +65,6 @@ int AFE::setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float 
 }
 
 int AFE::setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle){
-  openafe_init(0, 0, 0);
 	voltammetry_parameters_t parametersSWV;
   parametersSWV.settlingTime = pSettlingTime;
   parametersSWV.startingPotential = pStartingPotential;

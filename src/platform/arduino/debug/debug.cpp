@@ -22,13 +22,11 @@ extern "C" void arduino_debug_log_u(uint32_t num) {
 }
 
 extern "C" void arduino_debug_log_i(int32_t num) {
-  //Serial.print("int: ");
   Serial.print(num);
   Serial.flush(); 
 }
 
 extern "C" void arduino_debug_log_f(float num) {
-  Serial.print("float: ");
   Serial.print(num, 8);
   Serial.flush(); 
 }

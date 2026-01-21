@@ -198,7 +198,7 @@ void AD5941_switchConfiguration(void) {
 	// Power up low power TIA
 	// Set TIA GAIN resistor to 3kOhms
 	// Connects TIA output to LP filter
-	AD5941_writeRegister(AD_LPTIACON0, 0x2080, REG_SZ_32);
+	AD5941_setTIAGain(3000u);
 	AD5941_writeRegister(AD_AFECON, 0, REG_SZ_32);
 	AD5941_writeRegister(AD_AFECON,
 		(uint32_t)1 << 21 | // Enables the dc DAC buffer
@@ -399,6 +399,8 @@ uint32_t AD5941_setTIAGain(uint32_t pTIAGain) {
 
 void AD5941_setTIAGainResistor(uint32_t pTIAGainResistor) {
 	uint32_t valueInRegister = AD5941_readRegister(AD_LPTIACON0, REG_SZ_32);
+  valueInRegister &= ~(0b111U << 10);
+	valueInRegister |= (0b100U << 10); // RLOAD = 100 Ω  =>  RTIA = (100 Ω − RLOAD) + pTIAGainResistor kΩ
 	valueInRegister &= ~(0b11111U << 5);
 	valueInRegister |= (pTIAGainResistor << 5);
 	AD5941_writeRegister(AD_LPTIACON0, valueInRegister, REG_SZ_32);
