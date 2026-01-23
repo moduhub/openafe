@@ -20,15 +20,16 @@ void loop(){
   int scanRate = 1000;
   int stepPotential = 100;
   int pulse = 50;
+  uint16_t lpTIAGain = (uint16_t)3000;
   switch (process) {
     case 0:
-      success = openAFE.setCVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, 1);
+      success = openAFE.setCVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, 1, lpTIAGain);
       break;
     case 1:
-      success = openAFE.setDPVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 10);
+      success = openAFE.setDPVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 10, lpTIAGain);
       break;
     case 2:
-      success = openAFE.setSWVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 50);
+      success = openAFE.setSWVSequence(settlingTime, startingPotential, endingPotential, scanRate, stepPotential, pulse, 50, lpTIAGain);
       break;
     default:
       success = -1;
@@ -36,12 +37,13 @@ void loop(){
   }
 
 	if (success){
-    Serial.println(F("\n<<< STARTED CALIBRATION >>>")); 
+    Serial.print(F("\n<<< STARTED CALIBRATION >>>")); 
     VoltammetryCAL cal;
     openAFE.computeCalibrationVoltammetry(startingPotential, endingPotential, &cal);
-    Serial.print("Offset: "); Serial.print(cal.offset);
+    Serial.print("\nOffset: "); Serial.print(cal.offset);
     Serial.print("\nGain: "); Serial.print(cal.K);
     Serial.println(F("\n<<< FINISHED CALIBRATION >>>")); 
+    Serial.flush();
 
     Serial.println(F("\n<<< STARTED VOLTAMMETRY >>>")); 
 		interrupts();
