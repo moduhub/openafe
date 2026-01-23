@@ -156,7 +156,6 @@ void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClo
   AD5941_zeroVoltageAcrossElectrodes();
 
   AD5941_switchConfiguration(); // Set the switches in the required configuration
-	AD5941_setTIAGain(3000u); 
 }
 
 uint32_t AD5941_readADC(void) {
@@ -198,7 +197,8 @@ void AD5941_switchConfiguration(void) {
 	// Power up low power TIA
 	// Set TIA GAIN resistor to 3kOhms
 	// Connects TIA output to LP filter
-	AD5941_setTIAGain(3000u);
+  AD5941_LPTIAPowerUp();
+
 	AD5941_writeRegister(AD_AFECON, 0, REG_SZ_32);
 	AD5941_writeRegister(AD_AFECON,
 		(uint32_t)1 << 21 | // Enables the dc DAC buffer
@@ -280,7 +280,7 @@ uint32_t AD5941_setTIAGain(uint32_t pTIAGain) {
 	int tTIAGAIN;
 	switch (pTIAGain) {
 		case 200UL:
-			tGain = 100 - gRload + 110;
+			tGain = pTIAGain;
 			tTIAGAIN = AD_LPTIACON0_TIAGAIN_200;
 			break;
 		case 1000UL:
@@ -389,18 +389,14 @@ uint32_t AD5941_setTIAGain(uint32_t pTIAGain) {
 			break;
 	}
 	AD5941_setTIAGainResistor(tTIAGAIN);
-	if (tGain == 200) {
-		gTIAGain = tGain;
-	} else {
-		gTIAGain = tGain + 100;
-	}
+  gTIAGain = tGain;
 	return gTIAGain;
 }
 
 void AD5941_setTIAGainResistor(uint32_t pTIAGainResistor) {
 	uint32_t valueInRegister = AD5941_readRegister(AD_LPTIACON0, REG_SZ_32);
   valueInRegister &= ~(0b111U << 10);
-	valueInRegister |= (0b100U << 10); // RLOAD = 100 Ω  =>  RTIA = (100 Ω − RLOAD) + pTIAGainResistor kΩ
+  valueInRegister |= (0b100U << 10); // RLOAD = 100 Ω  =>  RTIA = (100 Ω − RLOAD) + pTIAGainResistor kΩ
 	valueInRegister &= ~(0b11111U << 5);
 	valueInRegister |= (pTIAGainResistor << 5);
 	AD5941_writeRegister(AD_LPTIACON0, valueInRegister, REG_SZ_32);

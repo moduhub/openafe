@@ -383,6 +383,9 @@ uint16_t openafe_getPoint(float *pVoltage_mV, float *pCurrent_uA) {
   if (gNumDataPointsRead == gVoltammetryParams.numPoints) {
     gFinished = 1;
 
+    // Disable TIA
+    AD5941_LPTIAPowerDown();
+
     // Disable interrupts and clear flags
     AD5941_writeRegister(AD_INTCSEL0, 0, REG_SZ_32);
     AD5941_writeRegister(AD_INTCCLR, ~(uint32_t)0, REG_SZ_32);
