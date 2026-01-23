@@ -14,11 +14,16 @@ void setup(){
 
   int success;
   int settlingTime = 1000;
-  int startingOmega = 100; // min 6 hz
+  int startingOmega = 1000; // min 6 hz
   int endingOmega = 10000; // max 65 khz
   int stepForADecade = 10;
+  int Rtia = 5000;
 
-  success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade);
+  uint32_t rtias[] = {200, 1000, 5000, 10000, 20000, 40000UL, 80000UL, 160000UL};
+  Rtia = rtias[0];
+  
+  debug_log("\n\n Rtia: "); debug_log_i(Rtia); debug_log(" ohms\n");
+  success = openAFE.setEISConfig(settlingTime, startingOmega, endingOmega, stepForADecade, Rtia);
 
   if (success){
     Serial.println(F("<<< STARTED EIS >>>")); 
@@ -69,7 +74,7 @@ void setup(){
 
 		Serial.println(F("<<< FINISHED EIS >>>")); 
   }
-  else Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));
+  else Serial.println(F("*** ERROR: Cannot generate desired waveform! ***"));  
 
   while (true);
 }
