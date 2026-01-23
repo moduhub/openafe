@@ -229,9 +229,10 @@ void AD5941_setupHSDAC_for_EIS(void);
  * @brief Configures the high-speed transimpedance amplifier (HSTIA).
  * @details Sets the feedback resistor to 10 kΩ and configures the feedback capacitor.
  *          Enables the VBIAS_CAP pin with 1.11 V voltage source.
+ * @param pTIAGain IN -- HSTIA Gain
  * @return void
  */
-void AD5941_setupHSTIA_for_EIS(void);
+void AD5941_setHSRTIA(uint32_t pRtia);
 
 /**
  * @brief Configures the key matrix (switch matrix) for normal EIS operation.

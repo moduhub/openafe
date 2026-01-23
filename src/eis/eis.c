@@ -304,15 +304,46 @@ void AD5941_setupHSDAC_for_EIS(void){
   AD5941_writeRegister(AD_HSDACCON, hsdaccon, REG_SZ_32);
   return;
 }
-void AD5941_setupHSTIA_for_EIS(void){
+void AD5941_setHSRTIA(uint32_t pRtia){
+
+  int tRtia;
+	switch (pRtia) {
+		case 200UL:
+			tRtia = 0b0000UL; // 200 ohms
+			break;
+		case 1000UL:
+			tRtia = 0b0001UL; // 1k ohms
+			break;
+		case 5000UL:
+			tRtia = 0b0010UL; // 5k ohms
+			break;
+		case 10000UL:
+			tRtia = 0b0011UL; // 10k ohms
+			break;
+		case 20000UL:
+			tRtia = 0b0100UL; // 20k ohms
+			break;
+		case 40000UL:
+			tRtia = 0b0101UL; // 40k ohms
+			break;
+		case 80000UL:
+			tRtia = 0b0110UL; // 80k ohms
+			break;
+		case 160000UL:
+			tRtia = 0b0111UL; // 160k ohms
+			break;
+		default:
+			tRtia = 0b0011UL; // 10k ohms
+			break;
+	}
+	
   uint32_t hsrtia = 0UL
-    //                                                    // 1 uF
-    //| (32UL << 5)                                       // 100 uF
-    | (0b100000UL << 5)                                 // not used cap
-    | (0b0011UL << 0);                                  // R_tia = 10k
-  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);    
+    | (0b100000UL << 5) // not used cap
+    | (tRtia << 0);     // Set RTIA
+  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);
   AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
-  return;
+
+	return;
 }
 void AD5941_setupKeyMatrix_for_EIS(void){
   // --- Key Matrix Configuration --- //
@@ -643,7 +674,7 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
   AD5941_setupClock_for_EIS();
   AD5941_setupAFECON_for_EIS();
   AD5941_setupHSDAC_for_EIS();
-  AD5941_setupHSTIA_for_EIS();
+  AD5941_setHSRTIA((uint32_t)10000U);
   AD5941_setupKeyMatrix_for_EIS();
   AD5941_setupWAVEGEN();
   AD5941_setupADC_for_EIS();
