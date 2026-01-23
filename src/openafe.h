@@ -99,6 +99,7 @@ class AFE {
       * @param pScanRate IN -- Scan rate in mV/s (e.g., 250).
       * @param pStepSize IN -- Potential step size in mV (e.g., 5).
       * @param pNumCycles IN -- Number of forward/reverse cycles (e.g., 2).
+      * @param pTIAGain IN -- LPTIA Gain
       * @return NO_ERROR on success, otherwise error code.
       * @pre The AFE object must be constructed and initialized.
       * @post Call startVoltammetry() to begin measurement, then use getPoint()
@@ -127,7 +128,7 @@ class AFE {
       * @note Higher sensitivity compared to CV, requires careful parameter selection
       *       to avoid noise and baseline distortion.
       */
-		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle);
+		int setDPVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential,float pDutyCycle, uint16_t pTIAGain);
 
 		/**
       * @brief Configure and generate SWV (Square Wave Voltammetry) waveform.
@@ -141,6 +142,7 @@ class AFE {
       * @param pStepPotential IN -- Staircase step potential in mV (e.g., 5).
       * @param pPulsePotential IN -- Pulse amplitude in mV (e.g., 5).
       * @param pDutyCycle IN -- Pulse duration as percentage of period (e.g., 50 for 50%).
+      * @param pTIAGain IN -- LPTIA Gain
       * @return NO_ERROR on success, otherwise error code.
       * @pre The AFE object must be constructed and initialized.
       * @post Call startVoltammetry() to begin measurement, then use getPoint()
@@ -148,7 +150,7 @@ class AFE {
       * @note SWV is faster than CV/DPV and provides good sensitivity for kinetic
       *       and quantitative analysis.
       */
-		int setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle);
+		int setSWVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepPotential, float pPulsePotential, float pDutyCycle, uint16_t pTIAGain);
 
 		/**
       * @brief Set the TIA (Transimpedance Amplifier) gain resistor based on current range.
