@@ -50,6 +50,7 @@ typedef struct EIS_parameters_t {
   uint16_t endingOmega;              // Target ending omega value of the wave, in Hz.
   uint16_t stepForADecade;
   uint16_t samplesPerFrequency;
+  uint16_t Rtia;
 } EIS_parameters_t;
 
 /**

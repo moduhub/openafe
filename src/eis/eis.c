@@ -27,6 +27,9 @@ uint8_t gShoulKillEIS = 0;
  */
 uint8_t gFinished;
 
+uint32_t gRtia;
+
+#define gRCAL 200UL
 uint8_t gPendingCalibration;
 DFTCal cal;
 
@@ -570,16 +573,6 @@ void AD5941_setupKeyMatrix_for_EIS_Calibration(void){
   AD5941_writeRegister(AD_SWCON, ad_swcon, REG_SZ_32);
   return ;
 }
-void AD5941_setupHSTIA_for_EIS_Calibration(void){
-  uint32_t hsrtia = 0UL
-    //                                                    // 1 uF
-    //| (32UL << 5)                                       // 100 uF
-    | (0b100000UL << 5)                                 // not used cap
-    | (0b0000UL);                                       // R_tia = 200
-  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
-
-  return;
-}
 void EIS_pointRotate(float *R, float *I, float ang) {
   float c = cosf(ang), s = sinf(ang);
   float r = *R, i = *I;
@@ -593,8 +586,7 @@ void EIS_computeCalibration(float dft_real_Rcal, float dft_imag_Rcal,DFTCal *cal
   EIS_pointRotate(&dft_real_Rcal, &dft_imag_Rcal, cal->phase);
 
   // Gain
-  float RCAL = 200.0;
-  cal->gR = (dft_real_Rcal) ? (RCAL / dft_real_Rcal) : 1.0f;
+  cal->gR = (dft_real_Rcal) ? ((float)gRCAL / dft_real_Rcal) : 1.0f;
   cal->gI = 1.0f;
 }
 void EIS_calibrationDFT(float *dft_real, float *dft_imag, const DFTCal cal){
@@ -684,6 +676,7 @@ int openafe_setupEIS(const EIS_parameters_t *pEISParams) {
 
   memset(&gEISparams, 0, sizeof(EIS_t));
 
+  gRtia = pEISParams->Rtia;
   gPendingCalibration = 0;
   gShoulKillEIS = 0;
   gFinished = 0;
@@ -709,7 +702,7 @@ void openafe_startEIS(){
   uint32_t numPoints = gEISparams.totalPoints;
 
   AD5941_setupKeyMatrix_for_EIS_Calibration();
-  AD5941_setupHSTIA_for_EIS_Calibration();
+  AD5941_setHSRTIA(gRCAL);
   gPendingCalibration = 1;
 
   EIS_Point_t p = EIS_GetPoint_fixed(startF, endF, numPoints, steps, 0);
@@ -743,14 +736,13 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
     *bCalibration = 1;
 
     float vPeak = 125.0;
-    float R_tia = 200.0;
-    EIS_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+    EIS_calculateImpedance(1.82, vPeak, dft_r, dft_i, gRCAL, impedance_real, impedance_imag);
     
     EIS_computeCalibration(*impedance_real, *impedance_imag, &cal);
     EIS_calibrationDFT(impedance_real, impedance_imag, cal);
 
     AD5941_setupKeyMatrix_for_EIS();
-    AD5941_setupHSTIA_for_EIS();
+    AD5941_setHSRTIA(gRtia);
 
     uint32_t tInterruptFlags0 = AD5941_readRegister(AD_INTCFLAG0, REG_SZ_32);
     uint32_t toClear = (tInterruptFlags0 & ((1UL<<1) | (1UL<<2)));
@@ -766,9 +758,10 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
     *bCalibration = 0;
 
     float vPeak = 125.0;
-    float R_tia = 10000.0 + 0.37*10000.0; // 37% is a magic number, REVIEW THIS
-    
+    float R_tia = (float)gRtia + 0.37*(float)gRtia; // 37% is a magic number, REVIEW THIS
+
     EIS_calculateImpedance(1.82, vPeak, dft_r, dft_i, R_tia, impedance_real, impedance_imag);
+
     EIS_calibrationDFT(impedance_real, impedance_imag, cal);
 
     uint32_t nextIdx = gEISparams.state.currentFrequencyPoint + 1;
@@ -783,7 +776,7 @@ void openafe_getPoint_EIS(float *frequency, float *impedance_real, float *impeda
       currentPoint = p;
       
       AD5941_setupKeyMatrix_for_EIS_Calibration();
-      AD5941_setupHSTIA_for_EIS_Calibration();
+      AD5941_setHSRTIA(gRCAL);
       
       AD5941_waveWrite(0, AMPLITUDE_PP_SINAL, p.fcw, GAIN_HSDAC);
       AD5941_DFT_WRITE(p.DFTNum, p.use_sinc3, p.sinc3_osr, p.use_sinc2, p.sinc2_osr);

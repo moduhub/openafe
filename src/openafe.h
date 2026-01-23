@@ -75,13 +75,14 @@ class AFE {
       * @param pStartingOmega IN -- Starting frequency of the sweep in Hz (e.g., 100).
       * @param pEndingOmega IN -- Ending frequency of the sweep in Hz (e.g., 100000).
       * @param pStepForADecade IN -- Number of frequency points per decade (e.g., 10 gives 10 points per decade).
+      * @param pRtia IN -- HSTIA Gain
       * @return NO_ERROR on success, otherwise error code.
       * @pre The AFE object must be constructed and initialized.
       * @post Call startEIS() next to begin the measurement sequence.
       * @note The total number of frequency points is calculated as:
       *       numPoints = ceil(log10(endFreq/startFreq) * stepsPerDecade) + 1
       */
-		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade);
+		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade, uint16_t pRtia);
 
     /**
       * @brief Compute calibration parameters based on min and max voltages.
