@@ -42,6 +42,7 @@ typedef struct voltammetry_parameters_t {
   //uint32_t pulsePeriod_ms;        // REMOVE THIS
   //uint32_t stepPeriod_ms;         // REMOVE THIS
   float dutyCycle;                // Duty Cycle, in percentage
+  uint16_t TIAGain;               // Tia Gain, in ohms
 } voltammetry_parameters_t;
 
 /** 

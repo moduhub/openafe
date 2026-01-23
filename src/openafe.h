@@ -84,8 +84,12 @@ class AFE {
 		int setEISConfig(uint16_t pSettlingTime, uint16_t pStartingOmega, uint16_t pEndingOmega, uint16_t pStepForADecade);
 
     /**
-     *
-     */
+      * @brief Compute calibration parameters based on min and max voltages.
+      * 
+      * @param voltage_min IN -- Minimum voltage for calibration, in mV.
+      * @param voltage_max IN -- Maximum voltage for calibration, in mV.
+      * @param cal_ IN/OUT -- Pointer to the calibration structure to update.
+      */
     void AFE::computeCalibrationVoltammetry(float voltage_min, float voltage_max, VoltammetryCAL *cal_);
     
 		/**
@@ -107,7 +111,7 @@ class AFE {
       * @note Actual potential range = [pStartingPotential, pEndingPotential, pStartingPotential]
       *       and this cycle repeats pNumCycles times.
       */
-		int setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles);
+		int setCVSequence(uint32_t pSettlingTime, float pStartingPotential, float pEndingPotential, float pScanRate, float pStepSize, int pNumCycles, uint16_t pTIAGain);
 
 		/**
       * @brief Configure and generate DPV (Differential Pulse Voltammetry) waveform.
@@ -121,6 +125,7 @@ class AFE {
       * @param pStepPotential IN -- Staircase step potential in mV (e.g., 5).
       * @param pPulsePotential IN -- Pulse amplitude in mV (e.g., 100).
       * @param pDutyCycle IN -- Pulse duration as percentage of period (e.g., 50 for 50%).
+      * @param pTIAGain IN -- LPTIA Gain
       * @return NO_ERROR on success, otherwise error code.
       * @pre The AFE object must be constructed and initialized.
       * @post Call startVoltammetry() to begin measurement, then use getPoint()
