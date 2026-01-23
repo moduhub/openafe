@@ -406,6 +406,20 @@ void AD5941_setTIAGainResistor(uint32_t pTIAGainResistor) {
 	AD5941_writeRegister(AD_LPTIACON0, valueInRegister, REG_SZ_32);
 }
 
+void AD5941_LPTIAPowerDown(void) {
+  uint32_t tTIACon = AD5941_readRegister(AD_LPTIACON0, REG_SZ_32);
+  tTIACon |= (1UL << 0);  // TIA power-dowm
+  tTIACon |= (1UL << 1);  // Potentiostat amplifier power-dowm
+  AD5941_writeRegister(AD_LPTIACON0, tTIACon, REG_SZ_32);
+}
+
+void AD5941_LPTIAPowerUp(void) {
+  uint32_t tTIACon = AD5941_readRegister(AD_LPTIACON0, REG_SZ_32);
+  tTIACon &= ~(1UL << 0);  // TIA power-up
+  tTIACon &= ~(1UL << 1);  // Potentiostat amplifier power-up
+  AD5941_writeRegister(AD_LPTIACON0, tTIACon, REG_SZ_32);
+}
+
 void AD5941_setRegisterBit(uint16_t pAddress, uint8_t pBitIndex) {
 	uint32_t pRegisterValue = AD5941_readRegister(pAddress, REG_SZ_32);
 	pRegisterValue |= 1 << pBitIndex;

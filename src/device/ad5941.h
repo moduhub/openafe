@@ -164,6 +164,16 @@ uint16_t AD5941_increaseSequencerMemoryAddress(void);
 uint32_t AD5941_setTIAGain(uint32_t pTIAGain);
 
 /**
+ * @brief Turn off the LPTIA
+ */
+void AD5941_LPTIAPowerDown(void);
+
+/** 
+ * @brief Turn on the LPTIA
+ */
+void AD5941_LPTIAPowerUp(void);
+
+/**
  * @brief Set the value of the RTIA resistor.
  *
  * @param pTIAGainResistor IN -- The bits to be written in the LPTIACON0 register TIAGAIN bits, e.g. AD_LPTIACON0_TIAGAIN_3K.
