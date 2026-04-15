@@ -131,7 +131,7 @@ void AD5941_init(uint8_t pShieldCSPin, uint8_t pShieldResetPin, uint32_t pSPIClo
 	if (!pSPIClockSpeed) tSPIClockSpeed = SPI_CLK_DEFAULT_HZ;
 	else tSPIClockSpeed = pSPIClockSpeed;	
 
-	gTIAGain = 0;
+	gTIAGain = 0; //REVER AONDE É ALTERADO
 	gRload = 0;
 	gPGA = 1;
   platform_setup(pShieldCSPin, pShieldResetPin, tSPIClockSpeed);

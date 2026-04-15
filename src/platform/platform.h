@@ -137,6 +137,8 @@ void debug_voltammetry(const voltammetry_t *pVoltammetry);
  */
 void debug_delay(uint32_t ms);
 
+void bug_delay_us(uint32_t us);
+
 /**
  * Trigger a breakpoint in the code.
  */

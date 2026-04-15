@@ -104,6 +104,10 @@ void debug_delay(uint32_t ms) {
   return arduino_debug_delay(ms);
 }
 
+void bug_delay_us(uint32_t us) {
+  return arduino_bug_delay_us(us);
+}
+
 void debug_break_point(void){
   return arduino_debug_break_point();
 }
