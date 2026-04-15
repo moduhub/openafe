@@ -273,7 +273,7 @@ void AD5941_setupClock_for_EIS(void){
   // 2. In this mode, the system clock to the high speed DAC and the ADC is 16 MHz OK!
   // 3. Ensure that CLKSEL, Bits[1:0] = 0 to select a 16 MHz, internal, high frequency oscillator clock source. Ensure the system clock divide ratio is 1 (CLKCON0, Bits[5:0] = 0 or 1)
   AD5941_writeRegister(AD_CLKSEL, AD5941_readRegister(AD_CLKSEL, REG_SZ_32) & ~(0b11UL<<0), REG_SZ_32);             // high frequency
-  AD5941_writeRegister(AD_CLKSEL, (AD5941_readRegister(AD_CLKCON0, REG_SZ_32) & (0b11111UL)) | (0b1UL), REG_SZ_32); // divide frequency by 1
+  AD5941_writeRegister(AD_CLKCON0, (AD5941_readRegister(AD_CLKCON0, REG_SZ_32) & (0b11111UL)) | (0b1UL), REG_SZ_32); // divide frequency by 1
   // 4. If the internal high speed oscillator is selected as the system clock source, ensure that the 16 MHz option is selected. Set HSOSCCON, Bit 2 = 1
   AD5941_writeRegister(AD_HSOSCCON, AD5941_readRegister(AD_HSOSCCON, REG_SZ_32) | (1UL<<2) , REG_SZ_32);            // Select 16 MHz output 
   
@@ -343,8 +343,8 @@ void AD5941_setHSRTIA(uint32_t pRtia){
   uint32_t hsrtia = 0UL
     | (0b100000UL << 5) // not used cap
     | (tRtia << 0);     // Set RTIA
-  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32);
-  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+  AD5941_writeRegister(AD_HSTIACON, 0UL, REG_SZ_32); // VBIAS_CAP pin 1.11 V voltage source. (DEFAULT)
+  AD5941_writeRegister(AD_HSRTIACON, hsrtia, REG_SZ_32); 
 
 	return;
 }
